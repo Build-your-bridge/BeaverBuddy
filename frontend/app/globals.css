@@ -1,0 +1,36 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+@import "tailwindcss";
+
+@layer components {
+  .btn-red {
+    @apply w-85 px-10 py-4 mb-4 text-base font-bold bg-[#CE5C5C] text-white rounded-lg cursor-pointer shadow-lg transition-colors hover:bg-[#b94d4d];
+  }
+  .btn-white {
+    @apply w-85 px-3 py-4 text-base font-bold bg-gray-100 text-[#CE5C5C] rounded-lg cursor-pointer shadow-lg transition-colors hover:bg-gray-200;
+  }
+}
+
+:root {
+  --background: #ffffff;
+  --foreground: #000000;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #ffffff;
+    --foreground: #ffffff;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', Arial, Helvetica, sans-serif;
+}
