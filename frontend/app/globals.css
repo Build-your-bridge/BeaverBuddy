@@ -1,12 +1,29 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
 @import "tailwindcss";
 
+
+@layer base {
+  h1 {
+    @apply text-xl sm:text-2xl md:text-3xl lg:text-4xl font-bold;
+  }
+  h2 {
+    @apply text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold;
+  }
+  h3 {
+    @apply text-base sm:text-lg md:text-xl lg:text-2xl font-bold;
+  }
+}
+
 @layer components {
   .btn-red {
-    @apply w-85 px-10 py-4 mb-4 text-base font-bold bg-[#CE5C5C] text-white rounded-lg cursor-pointer shadow-lg transition-colors hover:bg-[#b94d4d];
+    @apply flex items-center justify-center w-full h-13 px-4 py-5 text-sm sm:text-base font-bold bg-[#CE5C5C] text-white rounded-[1rem] cursor-pointer shadow-lg transition-colors hover:bg-[#b94d4d] border border-transparent;
   }
   .btn-white {
-    @apply w-85 px-3 py-4 text-base font-bold bg-gray-100 text-[#CE5C5C] rounded-lg cursor-pointer shadow-lg transition-colors hover:bg-gray-200;
+    @apply flex items-center justify-center w-full h-13 px-4 py-5 text-sm sm:text-base font-bold bg-gray-100 text-[#CE5C5C] rounded-[1rem] cursor-pointer shadow-lg transition-colors hover:bg-gray-200 border border-gray-300;
+  }
+  .input-field {
+    @apply w-full px-4 py-3 text-sm sm:text-base text-black border border-gray-300 rounded-[1rem] font-bold bg-[#F7F7F7] focus:outline-none focus:ring-2 focus:ring-[#CE5C5C];
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
   }
 }
 
