@@ -29,7 +29,7 @@ export default function DashboardPage() {
 
   const handleSubmitFeeling = () => {
     console.log('Feeling:', feeling);
-    alert('Thanks for sharing! 🦫');
+    alert('Thanks for sharing, eh! 🦫🍁');
     setFeeling('');
   };
 
@@ -41,138 +41,206 @@ export default function DashboardPage() {
 
   if (!user) {
     return (
-      <div className="h-screen flex items-center justify-center" style={{ background: 'linear-gradient(180deg, #F8C4C4 0%, #E8B4B4 100%)' }}>
-        <p className="text-gray-600">Loading...</p>
+      <div className="h-screen flex items-center justify-center" style={{ 
+        background: 'linear-gradient(135deg, #B8312F 0%, #E63946 50%, #8B0000 100%)'
+      }}>
+        <p className="text-white font-semibold">Loading...</p>
       </div>
     );
   }
 
   return (
-    <main className="h-screen flex flex-col relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #F8C4C4 0%, #E8B4B4 100%)' }}>
-      {/* Header with stats */}
-      <div className="bg-white rounded-b-[50px] pt-6 pb-5 px-6">
-        {/* Welcome message */}
-        <div className="text-center mb-4">
-          <h2 className="text-2xl font-bold text-gray-800">
-            Welcome, {user.name}! 👋
+    <main className="h-screen flex flex-col relative overflow-hidden" style={{ 
+      background: 'linear-gradient(135deg, #B8312F 0%, #E63946 25%, #DC143C 50%, #C41E3A 75%, #8B0000 100%)',
+      backgroundSize: '400% 400%',
+      animation: 'gradient 15s ease infinite'
+    }}>
+      <style jsx>{`
+        @keyframes gradient {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-10px); }
+        }
+        @keyframes fall {
+          0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
+          100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+        }
+        .maple-leaf {
+          position: absolute;
+          font-size: 30px;
+          animation: fall linear infinite;
+          pointer-events: none;
+        }
+      `}</style>
+
+      {/* Falling maple leaves animation */}
+      <div className="maple-leaf" style={{ left: '10%', animationDuration: '8s', animationDelay: '0s' }}>🍁</div>
+      <div className="maple-leaf" style={{ left: '30%', animationDuration: '10s', animationDelay: '2s' }}>🍁</div>
+      <div className="maple-leaf" style={{ left: '50%', animationDuration: '12s', animationDelay: '4s' }}>🍁</div>
+      <div className="maple-leaf" style={{ left: '70%', animationDuration: '9s', animationDelay: '1s' }}>🍁</div>
+      <div className="maple-leaf" style={{ left: '90%', animationDuration: '11s', animationDelay: '3s' }}>🍁</div>
+
+      {/* Header with Canadian flag colors - REDUCED PADDING */}
+      <div className="bg-white rounded-b-[45px] pt-5 pb-4 px-6 relative" style={{ 
+        boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+        borderBottom: '4px solid #C41E3A'
+      }}>
+        {/* Welcome message with Canadian flair - COMPACT */}
+        <div className="text-center mb-3">
+          <div className="inline-block mb-1">
+            <span className="text-3xl animate-bounce inline-block" style={{ animation: 'float 3s ease-in-out infinite' }}>🍁</span>
+          </div>
+          <h2 className="text-2xl font-bold mb-0.5" style={{ 
+            background: 'linear-gradient(90deg, #C41E3A 0%, #E63946 50%, #C41E3A 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text'
+          }}>
+            Welcome, {user.name}!
           </h2>
+          <p className="text-xs text-gray-600 font-medium">Hope you're having a great day, eh! 🇨🇦</p>
         </div>
         
-        {/* Stats */}
-        <div className="flex justify-center items-center gap-24">
-          <div className="flex items-center gap-2">
-            <span className="text-3xl">🔥</span>
-            <span className="text-2xl font-bold" style={{ color: '#FF6B35' }}>12</span>
+        {/* Stats with Canadian theme - COMPACT */}
+        <div className="flex justify-center items-center gap-16">
+          <div className="flex flex-col items-center">
+            <div className="flex items-center gap-2 bg-gradient-to-r from-orange-400 to-red-500 px-4 py-1.5 rounded-full shadow-lg">
+              <span className="text-2xl">🔥</span>
+              <span className="text-xl font-bold text-white">12</span>
+            </div>
+            <span className="text-[10px] font-semibold text-gray-600 mt-1">Day Streak</span>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-3xl">🍁</span>
-            <span className="text-2xl font-bold" style={{ color: '#E63946' }}>500</span>
+          <div className="flex flex-col items-center">
+            <div className="flex items-center gap-2 bg-gradient-to-r from-red-600 to-red-800 px-4 py-1.5 rounded-full shadow-lg">
+              <span className="text-2xl">🍁</span>
+              <span className="text-xl font-bold text-white">500</span>
+            </div>
+            <span className="text-[10px] font-semibold text-gray-600 mt-1">Maple Points</span>
           </div>
         </div>
       </div>
 
-      {/* Main content - centered vertically with proper spacing */}
-      <div className="flex-1 flex items-center justify-center px-6 pb-28">
-        <div className="w-full max-w-md">
-          {/* White card container */}
-          <div className="bg-white rounded-[35px] px-8 py-7 relative">
-            {/* Question speech bubble */}
-            <div className="bg-white rounded-3xl px-6 py-3 mb-6 text-center" style={{ boxShadow: '0 4px 15px rgba(0,0,0,0.08)' }}>
-              <h1 className="text-xl font-bold text-gray-800 leading-relaxed">
-                How are you feeling today and<br/>why?
+      {/* Main content - REDUCED SPACING */}
+      <div className="flex-1 flex items-center justify-center px-6 pb-24">
+        <div className="w-full max-w-lg">
+          {/* Card with Canadian cabin feel - COMPACT */}
+          <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-[35px] px-6 py-5 relative shadow-2xl" style={{
+            border: '3px solid #8B4513',
+            boxShadow: '0 20px 60px rgba(139, 69, 19, 0.3)'
+          }}>
+            {/* Question speech bubble - COMPACT */}
+            <div className="bg-white rounded-3xl px-5 py-2.5 mb-4 text-center relative" style={{ 
+              boxShadow: '0 8px 20px rgba(196, 30, 58, 0.15)',
+              border: '2px solid #FFE5E5'
+            }}>
+              <div className="absolute -top-2.5 left-1/2 transform -translate-x-1/2 text-2xl">🍁</div>
+              <h1 className="text-lg font-bold text-gray-800 leading-snug pt-1">
+                How are you feeling today, eh?
               </h1>
+              <p className="text-xs text-gray-600 mt-0.5">Share what's on your mind</p>
             </div>
 
-            {/* Beaver mascot */}
-            <div className="flex justify-center mb-6">
-              <div className="relative w-40 h-40">
+            {/* Beaver mascot - SMALLER */}
+            <div className="flex justify-center mb-4">
+              <div className="relative w-32 h-32 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full flex items-center justify-center shadow-lg" style={{
+                border: '3px solid #8B4513'
+              }}>
                 <Image
                   src="/images/beaver/welcome_beaver2.png"
                   alt="Beaver mascot"
-                  fill
+                  width={120}
+                  height={120}
                   className="object-contain"
                   priority
                 />
               </div>
             </div>
 
-            {/* Input field */}
-            <div className="mb-5">
+            {/* Input field - SMALLER */}
+            <div className="mb-3">
               <textarea
                 value={feeling}
                 onChange={(e) => setFeeling(e.target.value)}
-                placeholder='Type your answer here... e.g., "I feel stressed because finding a job is hard."'
-                className="w-full p-4 rounded-3xl resize-none text-gray-700 text-sm leading-relaxed"
+                placeholder='Type your answer here... e.g., "I feel great because hockey season started!" 🏒'
+                className="w-full p-3 rounded-3xl resize-none text-gray-700 text-xs leading-relaxed shadow-inner"
                 style={{ 
-                  border: '2px solid #FFB3BA',
-                  backgroundColor: '#FFF5F5',
+                  border: '3px solid #C41E3A',
+                  backgroundColor: '#FFFBF5',
                   outline: 'none'
                 }}
-                rows={3}
+                rows={2}
               />
             </div>
 
-            {/* Quests button */}
+            {/* Quests button - COMPACT */}
             <button
               onClick={handleSubmitFeeling}
-              className="w-full py-4 rounded-full font-bold text-lg tracking-wider transition-all"
+              className="w-full py-3 rounded-full font-bold text-base tracking-wider transition-all transform hover:scale-105 hover:shadow-2xl"
               style={{ 
-                backgroundColor: '#D3D3D3',
-                color: 'white'
+                background: 'linear-gradient(135deg, #C41E3A 0%, #E63946 100%)',
+                color: 'white',
+                boxShadow: '0 8px 20px rgba(196, 30, 58, 0.4)'
               }}
             >
-              QUESTS
+              🍁 VIEW QUESTS 🍁
             </button>
 
-            {/* Helper text */}
-            <p className="text-center text-xs mt-3" style={{ color: '#B8B8B8' }}>
-              Share how you're feeling to see today's quests!
+            {/* Helper text - SMALLER */}
+            <p className="text-center text-[10px] mt-2 text-gray-500 font-medium">
+              Share your feelings to unlock today's Canadian quests!
             </p>
           </div>
         </div>
       </div>
 
-      {/* Bottom navigation - fixed at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-[40px] py-4" style={{ boxShadow: '0 -4px 20px rgba(0,0,0,0.1)' }}>
+      {/* Bottom navigation - COMPACT */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-b from-amber-50 to-orange-100 rounded-t-[40px] py-3" style={{ 
+        boxShadow: '0 -8px 30px rgba(139, 69, 19, 0.3)',
+        borderTop: '3px solid #8B4513'
+      }}>
         <div className="flex justify-around items-end max-w-md mx-auto px-8">
           {/* Biby */}
-          <button className="flex flex-col items-center gap-1">
-            <div className="w-12 h-12 flex items-center justify-center">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: '#D4A574' }}>
-                <span className="text-xl">🦫</span>
-              </div>
+          <button className="flex flex-col items-center gap-0.5 transition-transform hover:scale-110">
+            <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-amber-600 to-orange-700 rounded-full shadow-lg">
+              <span className="text-xl">🦫</span>
             </div>
-            <span className="text-xs font-semibold" style={{ color: '#4A4A4A' }}>Biby</span>
+            <span className="text-[10px] font-bold" style={{ color: '#8B4513' }}>Biby</span>
           </button>
           
-          {/* Home - active */}
-          <button className="flex flex-col items-center gap-1 -mt-3">
-            <div className="rounded-full px-8 py-3" style={{ backgroundColor: '#FFD5D8' }}>
-              <div className="w-10 h-10 flex items-center justify-center" style={{ backgroundColor: '#FFA8B0', borderRadius: '12px' }}>
-                <span className="text-2xl">🏠</span>
+          {/* Home - active with maple leaf */}
+          <button className="flex flex-col items-center gap-0.5 -mt-3">
+            <div className="rounded-full px-6 py-2 relative" style={{ 
+              background: 'linear-gradient(135deg, #C41E3A 0%, #E63946 100%)',
+              boxShadow: '0 8px 25px rgba(196, 30, 58, 0.5)'
+            }}>
+              <div className="absolute -top-1.5 -right-1.5 text-lg">🍁</div>
+              <div className="w-10 h-10 flex items-center justify-center bg-white rounded-2xl">
+                <span className="text-xl">🏠</span>
               </div>
             </div>
-            <span className="text-xs font-bold" style={{ color: '#E63946' }}>Home</span>
+            <span className="text-[10px] font-bold" style={{ color: '#C41E3A' }}>Home</span>
           </button>
           
           {/* Journal */}
-          <button className="flex flex-col items-center gap-1">
-            <div className="w-12 h-12 flex items-center justify-center">
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#7A7A7A' }}>
-                <span className="text-xl">📖</span>
-              </div>
+          <button className="flex flex-col items-center gap-0.5 transition-transform hover:scale-110">
+            <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-gray-600 to-gray-800 rounded-2xl shadow-lg">
+              <span className="text-xl">📖</span>
             </div>
-            <span className="text-xs font-semibold" style={{ color: '#4A4A4A' }}>Journal</span>
+            <span className="text-[10px] font-bold" style={{ color: '#8B4513' }}>Journal</span>
           </button>
         </div>
       </div>
 
-      {/* Temporary logout button */}
+      {/* Logout button */}
       <button
         onClick={handleLogout}
-        className="absolute top-2 right-4 text-xs text-gray-400 hover:text-gray-600 underline bg-white/70 px-3 py-1 rounded-full z-10"
+        className="absolute top-3 right-4 text-[10px] font-semibold text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-full z-10 shadow-lg transition-all"
       >
-        Logout
+        🚪 Logout
       </button>
     </main>
   );
