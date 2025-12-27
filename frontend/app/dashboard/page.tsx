@@ -30,9 +30,9 @@ export default function DashboardPage() {
   }, [router]);
 
   const handleSubmitFeeling = async () => {
-    // Validation - 50 characters minimum
+    // Validation - 20 characters minimum
     if (feeling.trim().length < 20) {
-      setError('Please share at least 50 characters about how you\'re feeling');
+      setError('Please share at least 20 characters about how you\'re feeling');
       return;
     }
 
@@ -74,6 +74,7 @@ export default function DashboardPage() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    sessionStorage.removeItem('generatedQuests'); // Clear quest data
     router.push('/');
   };
 
