@@ -49,6 +49,16 @@ export default function DashboardPage() {
     );
   }
 
+  // Generate blue and white maple leaves
+  const mapleLeaves = Array.from({ length: 8 }, (_, i) => ({
+    id: i,
+    left: `${(i * 12) + 5}%`,
+    color: i % 3 === 0 ? '#1e40af' : i % 3 === 1 ? '#3b82f6' : '#ffffff',
+    animationDuration: `${Math.random() * 4 + 8}s`,
+    animationDelay: `${Math.random() * 5}s`,
+    fontSize: `${Math.random() * 15 + 25}px`,
+  }));
+
   return (
     <main className="h-screen flex flex-col relative overflow-hidden" style={{ 
       background: 'linear-gradient(135deg, #B8312F 0%, #E63946 25%, #DC143C 50%, #C41E3A 75%, #8B0000 100%)',
@@ -66,30 +76,59 @@ export default function DashboardPage() {
           50% { transform: translateY(-10px); }
         }
         @keyframes fall {
-          0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
-          100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+          0% { 
+            transform: translateY(-100px) rotate(0deg); 
+            opacity: 0;
+          }
+          10% {
+            opacity: 1;
+          }
+          90% {
+            opacity: 0.9;
+          }
+          100% { 
+            transform: translateY(100vh) rotate(360deg); 
+            opacity: 0;
+          }
         }
         .maple-leaf {
           position: absolute;
-          font-size: 30px;
           animation: fall linear infinite;
           pointer-events: none;
+          filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.6));
         }
       `}</style>
 
-      {/* Falling maple leaves animation */}
-      <div className="maple-leaf" style={{ left: '10%', animationDuration: '8s', animationDelay: '0s' }}>🍁</div>
-      <div className="maple-leaf" style={{ left: '30%', animationDuration: '10s', animationDelay: '2s' }}>🍁</div>
-      <div className="maple-leaf" style={{ left: '50%', animationDuration: '12s', animationDelay: '4s' }}>🍁</div>
-      <div className="maple-leaf" style={{ left: '70%', animationDuration: '9s', animationDelay: '1s' }}>🍁</div>
-      <div className="maple-leaf" style={{ left: '90%', animationDuration: '11s', animationDelay: '3s' }}>🍁</div>
+      {/* Falling blue and white maple leaves as SVG */}
+      {mapleLeaves.map((leaf) => (
+        <div
+          key={leaf.id}
+          className="maple-leaf"
+          style={{
+            left: leaf.left,
+            animationDuration: leaf.animationDuration,
+            animationDelay: leaf.animationDelay,
+            width: leaf.fontSize,
+            height: leaf.fontSize,
+          }}
+        >
+          <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 0 3px rgba(255,255,255,0.8))' }}>
+            <path
+              d="M50,10 L55,35 L70,25 L60,45 L85,45 L65,55 L75,75 L55,65 L50,90 L45,65 L25,75 L35,55 L15,45 L40,45 L30,25 L45,35 Z"
+              fill={leaf.color}
+              stroke="rgba(255,255,255,0.5)"
+              strokeWidth="1"
+            />
+          </svg>
+        </div>
+      ))}
 
-      {/* Header with Canadian flag colors - REDUCED PADDING */}
+      {/* Header with Canadian flag colors */}
       <div className="bg-white rounded-b-[45px] pt-5 pb-4 px-6 relative" style={{ 
         boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
         borderBottom: '4px solid #C41E3A'
       }}>
-        {/* Welcome message with Canadian flair - COMPACT */}
+        {/* Welcome message with Canadian flair */}
         <div className="text-center mb-3">
           <div className="inline-block mb-1">
             <span className="text-3xl animate-bounce inline-block" style={{ animation: 'float 3s ease-in-out infinite' }}>🍁</span>
@@ -105,7 +144,7 @@ export default function DashboardPage() {
           <p className="text-xs text-gray-600 font-medium">Hope you're having a great day, eh! 🇨🇦</p>
         </div>
         
-        {/* Stats with Canadian theme - COMPACT */}
+        {/* Stats with Canadian theme */}
         <div className="flex justify-center items-center gap-16">
           <div className="flex flex-col items-center">
             <div className="flex items-center gap-2 bg-gradient-to-r from-orange-400 to-red-500 px-4 py-1.5 rounded-full shadow-lg">
@@ -119,20 +158,20 @@ export default function DashboardPage() {
               <span className="text-2xl">🍁</span>
               <span className="text-xl font-bold text-white">500</span>
             </div>
-            <span className="text-[10px] font-semibold text-gray-600 mt-1">Maple Points</span>
+            <span className="text-[10px] font-semibold text-gray-600 mt-1">Maple Leafs</span>
           </div>
         </div>
       </div>
 
-      {/* Main content - REDUCED SPACING */}
+      {/* Main content */}
       <div className="flex-1 flex items-center justify-center px-6 pb-24">
-        <div className="w-full max-w-lg">
-          {/* Card with Canadian cabin feel - COMPACT */}
+        <div className="w-full max-w-md">
+          {/* Card with Canadian cabin feel */}
           <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-[35px] px-6 py-5 relative shadow-2xl" style={{
             border: '3px solid #8B4513',
             boxShadow: '0 20px 60px rgba(139, 69, 19, 0.3)'
           }}>
-            {/* Question speech bubble - COMPACT */}
+            {/* Question speech bubble with maple leaf accent */}
             <div className="bg-white rounded-3xl px-5 py-2.5 mb-4 text-center relative" style={{ 
               boxShadow: '0 8px 20px rgba(196, 30, 58, 0.15)',
               border: '2px solid #FFE5E5'
@@ -144,7 +183,7 @@ export default function DashboardPage() {
               <p className="text-xs text-gray-600 mt-0.5">Share what's on your mind</p>
             </div>
 
-            {/* Beaver mascot - SMALLER */}
+            {/* Beaver mascot with Canadian vibe */}
             <div className="flex justify-center mb-4">
               <div className="relative w-32 h-32 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full flex items-center justify-center shadow-lg" style={{
                 border: '3px solid #8B4513'
@@ -160,7 +199,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Input field - SMALLER */}
+            {/* Input field with Canadian styling */}
             <div className="mb-3">
               <textarea
                 value={feeling}
@@ -176,7 +215,7 @@ export default function DashboardPage() {
               />
             </div>
 
-            {/* Quests button - COMPACT */}
+            {/* Quests button with Canadian red */}
             <button
               onClick={handleSubmitFeeling}
               className="w-full py-3 rounded-full font-bold text-base tracking-wider transition-all transform hover:scale-105 hover:shadow-2xl"
@@ -189,7 +228,7 @@ export default function DashboardPage() {
               🍁 VIEW QUESTS 🍁
             </button>
 
-            {/* Helper text - SMALLER */}
+            {/* Helper text */}
             <p className="text-center text-[10px] mt-2 text-gray-500 font-medium">
               Share your feelings to unlock today's Canadian quests!
             </p>
@@ -197,18 +236,18 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Bottom navigation - COMPACT */}
+      {/* Bottom navigation with wooden texture */}
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-b from-amber-50 to-orange-100 rounded-t-[40px] py-3" style={{ 
         boxShadow: '0 -8px 30px rgba(139, 69, 19, 0.3)',
         borderTop: '3px solid #8B4513'
       }}>
         <div className="flex justify-around items-end max-w-md mx-auto px-8">
-          {/* Biby */}
+          {/* Billy */}
           <button className="flex flex-col items-center gap-0.5 transition-transform hover:scale-110">
             <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-amber-600 to-orange-700 rounded-full shadow-lg">
               <span className="text-xl">🦫</span>
             </div>
-            <span className="text-[10px] font-bold" style={{ color: '#8B4513' }}>Biby</span>
+            <span className="text-[10px] font-bold" style={{ color: '#8B4513' }}>Billy</span>
           </button>
           
           {/* Home - active with maple leaf */}
