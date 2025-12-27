@@ -3,6 +3,7 @@ import express, { Application, Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes';
+import questRoutes from './routes/questRoutes';
 import prisma from './db/prisma';
 
 dotenv.config();
@@ -26,6 +27,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/quests', questRoutes); // ADD THIS LINE
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {

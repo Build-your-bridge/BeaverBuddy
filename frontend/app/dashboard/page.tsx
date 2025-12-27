@@ -13,6 +13,8 @@ interface User {
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null);
   const [feeling, setFeeling] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -27,10 +29,46 @@ export default function DashboardPage() {
     setUser(JSON.parse(userData));
   }, [router]);
 
-  const handleSubmitFeeling = () => {
-    console.log('Feeling:', feeling);
-    alert('Thanks for sharing, eh! 🦫🍁');
-    setFeeling('');
+  const handleSubmitFeeling = async () => {
+    // Validation - 50 characters minimum
+    if (feeling.trim().length < 20) {
+      setError('Please share at least 50 characters about how you\'re feeling');
+      return;
+    }
+
+    setError('');
+    setLoading(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      
+      // API call to backend
+      const response = await fetch('http://localhost:5000/api/quests/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ feeling })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate quests');
+      }
+
+      // Save quests to sessionStorage
+      sessionStorage.setItem('generatedQuests', JSON.stringify(data.quests));
+
+      // Navigate to quests page
+      router.push('/quests');
+
+    } catch (err: any) {
+      setError(err.message || 'Failed to generate quests. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogout = () => {
@@ -128,7 +166,6 @@ export default function DashboardPage() {
         boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
         borderBottom: '4px solid #C41E3A'
       }}>
-        {/* Welcome message with Canadian flair */}
         <div className="text-center mb-3">
           <div className="inline-block mb-1">
             <span className="text-3xl animate-bounce inline-block" style={{ animation: 'float 3s ease-in-out infinite' }}>🍁</span>
@@ -144,7 +181,6 @@ export default function DashboardPage() {
           <p className="text-xs text-gray-600 font-medium">Hope you're having a great day, eh! 🇨🇦</p>
         </div>
         
-        {/* Stats with Canadian theme */}
         <div className="flex justify-center items-center gap-16">
           <div className="flex flex-col items-center">
             <div className="flex items-center gap-2 bg-gradient-to-r from-orange-400 to-red-500 px-4 py-1.5 rounded-full shadow-lg">
@@ -166,12 +202,10 @@ export default function DashboardPage() {
       {/* Main content */}
       <div className="flex-1 flex items-center justify-center px-6 pb-24">
         <div className="w-full max-w-md">
-          {/* Card with Canadian cabin feel */}
           <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-[35px] px-6 py-5 relative shadow-2xl" style={{
             border: '3px solid #8B4513',
             boxShadow: '0 20px 60px rgba(139, 69, 19, 0.3)'
           }}>
-            {/* Question speech bubble with maple leaf accent */}
             <div className="bg-white rounded-3xl px-5 py-2.5 mb-4 text-center relative" style={{ 
               boxShadow: '0 8px 20px rgba(196, 30, 58, 0.15)',
               border: '2px solid #FFE5E5'
@@ -183,7 +217,6 @@ export default function DashboardPage() {
               <p className="text-xs text-gray-600 mt-0.5">Share what's on your mind</p>
             </div>
 
-            {/* Beaver mascot with Canadian vibe */}
             <div className="flex justify-center mb-4">
               <div className="relative w-32 h-32 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full flex items-center justify-center shadow-lg" style={{
                 border: '3px solid #8B4513'
@@ -199,11 +232,21 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Input field with Canadian styling */}
+            {/* Error message */}
+            {error && (
+              <div className="mb-3 p-2 bg-red-100 border border-red-400 text-red-700 rounded-2xl text-xs text-center">
+                {error}
+              </div>
+            )}
+
+            {/* Input field with character count */}
             <div className="mb-3">
               <textarea
                 value={feeling}
-                onChange={(e) => setFeeling(e.target.value)}
+                onChange={(e) => {
+                  setFeeling(e.target.value);
+                  setError('');
+                }}
                 placeholder='Type your answer here... e.g., "I feel great because hockey season started!" 🏒'
                 className="w-full p-3 rounded-3xl resize-none text-gray-700 text-xs leading-relaxed shadow-inner"
                 style={{ 
@@ -213,22 +256,25 @@ export default function DashboardPage() {
                 }}
                 rows={2}
               />
+              <p className="text-[10px] text-gray-500 mt-1 ml-1">
+                {feeling.length}/20 characters minimum
+              </p>
             </div>
 
-            {/* Quests button with Canadian red */}
+            {/* Disabled button until 20 characters */}
             <button
               onClick={handleSubmitFeeling}
-              className="w-full py-3 rounded-full font-bold text-base tracking-wider transition-all transform hover:scale-105 hover:shadow-2xl"
+              disabled={loading || feeling.trim().length < 20}
+              className="w-full py-3 rounded-full font-bold text-base tracking-wider transition-all transform hover:scale-105 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               style={{ 
                 background: 'linear-gradient(135deg, #C41E3A 0%, #E63946 100%)',
                 color: 'white',
                 boxShadow: '0 8px 20px rgba(196, 30, 58, 0.4)'
               }}
             >
-              🍁 VIEW QUESTS 🍁
+              {loading ? '🍁 GENERATING... 🍁' : '🍁 VIEW QUESTS 🍁'}
             </button>
 
-            {/* Helper text */}
             <p className="text-center text-[10px] mt-2 text-gray-500 font-medium">
               Share your feelings to unlock today's Canadian quests!
             </p>
@@ -236,13 +282,12 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Bottom navigation with wooden texture */}
+      {/* Bottom navigation */}
       <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-b from-amber-50 to-orange-100 rounded-t-[40px] py-3" style={{ 
         boxShadow: '0 -8px 30px rgba(139, 69, 19, 0.3)',
         borderTop: '3px solid #8B4513'
       }}>
         <div className="flex justify-around items-end max-w-md mx-auto px-8">
-          {/* Billy */}
           <button className="flex flex-col items-center gap-0.5 transition-transform hover:scale-110">
             <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-amber-600 to-orange-700 rounded-full shadow-lg">
               <span className="text-xl">🦫</span>
@@ -250,7 +295,6 @@ export default function DashboardPage() {
             <span className="text-[10px] font-bold" style={{ color: '#8B4513' }}>Billy</span>
           </button>
           
-          {/* Home - active with maple leaf */}
           <button className="flex flex-col items-center gap-0.5 -mt-3">
             <div className="rounded-full px-6 py-2 relative" style={{ 
               background: 'linear-gradient(135deg, #C41E3A 0%, #E63946 100%)',
@@ -264,7 +308,6 @@ export default function DashboardPage() {
             <span className="text-[10px] font-bold" style={{ color: '#C41E3A' }}>Home</span>
           </button>
           
-          {/* Journal */}
           <button className="flex flex-col items-center gap-0.5 transition-transform hover:scale-110">
             <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-gray-600 to-gray-800 rounded-2xl shadow-lg">
               <span className="text-xl">📖</span>
@@ -274,7 +317,6 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Logout button */}
       <button
         onClick={handleLogout}
         className="absolute top-3 right-4 text-[10px] font-semibold text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-full z-10 shadow-lg transition-all"
