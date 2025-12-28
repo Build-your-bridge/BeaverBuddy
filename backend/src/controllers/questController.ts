@@ -4,73 +4,73 @@ import { Request, Response } from 'express';
 export const generateQuests = async (req: Request, res: Response) => {
   try {
     const { feeling } = req.body;
-    const userId = (req as any).userId;
-
-    // Validation
+    
     if (!feeling || feeling.trim().length < 20) {
       return res.status(422).json({ 
         error: 'Please share at least 20 characters about how you\'re feeling' 
       });
     }
 
-    console.log(`Generating quests for user ${userId} based on: "${feeling}"`);
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': 'http://localhost:3000', 
+        'X-Title': 'BeaverBuddy'
+      },
+      body: JSON.stringify({
+        model: 'meta-llama/llama-3.2-3b-instruct:free', // Changed to Llama
+        messages: [{
+          role: 'user',
+          content: `You are a Canadian mental health assistant. Generate 4 daily quests based on this feeling: "${feeling}"
 
-    // Call your AI API to generate quests
-    const quests = await generateQuestsWithAI(feeling);
+Respond with ONLY valid JSON (no other text):
+{
+  "quests": [
+    {
+      "title": "Quest Title",
+      "description": "Short description",
+      "points": 15,
+      "difficulty": "easy",
+      "category": "mental_health"
+    }
+  ]
+}
 
-    res.status(200).json({
+Make quests helpful and Canadian-themed.`
+        }]
+      })
+    });
+
+    const data: any = await response.json();
+    
+    if (!response.ok) {
+      console.error('OpenRouter Error:', data);
+      return res.status(500).json({ error: 'AI service temporarily unavailable' });
+    }
+
+    const content = data.choices[0].message.content;
+    let questsData;
+    
+    try {
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      const jsonStr = jsonMatch ? jsonMatch[0] : content;
+      questsData = JSON.parse(jsonStr.trim());
+    } catch (parseError) {
+      console.error('Parse error:', content);
+      throw new Error('Invalid JSON from AI');
+    }
+
+    return res.status(200).json({
       success: true,
-      quests
+      quests: questsData.quests
     });
 
   } catch (error: any) {
-    console.error('Generate quests error:', error);
-    res.status(500).json({ 
+    console.error('Generate quests error:', error.message);
+    return res.status(500).json({ 
       error: 'Failed to generate quests. Please try again.' 
     });
   }
 };
-
-async function generateQuestsWithAI(feeling: string): Promise<any[]> {
-  // TODO: Replace with your preferred AI API
-  // Example using fetch for any REST API:
-  
-  const response = await fetch('YOUR_AI_API_ENDPOINT_HERE', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${process.env.AI_API_KEY}`
-    },
-    body: JSON.stringify({
-      prompt: `You are a helpful Canadian wellness assistant. Based on how someone is feeling, generate exactly 4 personalized daily quests to help them improve their day.
-
-User's feeling: "${feeling}"
-
-Generate 4 quests as a JSON array. Each quest should have:
-- title: A short, encouraging title (include relevant emoji)
-- description: A clear, actionable description (one sentence)
-- points: Between 15-40 based on difficulty
-- difficulty: "easy", "medium", or "hard"
-- category: "wellness", "social", "cultural", or "mental_health"
-
-Make the quests:
-1. Relevant to their emotional state
-2. Achievable in one day
-3. Canadian-themed where appropriate (Tim Hortons, hockey, nature, etc.)
-4. Supportive and encouraging
-
-Return ONLY a valid JSON array, nothing else.`
-    })
-  });
-
-  const data = await response.json();
-  
-  // Parse the AI response - adjust based on your API's response format
-  const aiResponse = data.response || data.text || data.content || '';
-  
-  // Remove markdown code blocks if present
-  const cleanedResponse = aiResponse.replace(/```json\n?|\n?```/g, '').trim();
-  const quests = JSON.parse(cleanedResponse);
-
-  return quests;
-}
