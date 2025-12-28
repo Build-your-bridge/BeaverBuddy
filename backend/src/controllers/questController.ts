@@ -1,105 +1,152 @@
 // src/controllers/questController.ts
 import { Request, Response } from 'express';
+import prisma from '../db/prisma';
 
 export const generateQuests = async (req: Request, res: Response) => {
   try {
+    const userId = (req as any).userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
     const { feeling } = req.body;
-    
+
     if (!feeling || feeling.trim().length < 20) {
-      return res.status(422).json({ 
-        error: 'Please share at least 20 characters about how you\'re feeling' 
+      return res.status(422).json({
+        error: 'Please share at least 20 characters about how you\'re feeling',
       });
     }
 
+    // FIX: Use Date objects instead of string slices for Prisma findUnique
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    // 1️⃣ Check if quests already exist
+    const existingDaily = await prisma.dailyQuest.findUnique({
+      where: {
+        userId_date: {
+          userId,
+          date: today, // Passing the Date object fixed the error
+        },
+      },
+    });
+
+    const existingMonthly = await prisma.monthlyQuest.findUnique({
+      where: {
+        userId_month: {
+          userId,
+          month: currentMonthStr,
+        },
+      },
+    });
+
+    if (existingDaily && existingMonthly) {
+      return res.status(200).json({
+        success: true,
+        quests: existingDaily.quests,
+        monthlyQuests: existingMonthly.monthlyQuests,
+        journalPrompts: existingDaily.journalPrompts,
+        generatedAt: today,
+        monthGenerated: currentMonthStr,
+        regenerated: false,
+      });
+    }
+
+    // 2️⃣ Call AI to generate quests
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'http://localhost:3000', 
-        'X-Title': 'BeaverBuddy'
+        'HTTP-Referer': 'http://localhost:3000',
+        'X-Title': 'BeaverBuddy',
       },
       body: JSON.stringify({
         model: 'meta-llama/llama-3.2-3b-instruct:free',
-        messages: [{
-          role: 'user',
-          content: `You are an assistant who helps Canadian immigrants with 2 different problems: Mental health struggles and cultural isolation. The user will tell you how they're feeling today and why, and your job is to generate 4 personalized tasks (named Daily Quests) catered to their needs. 2 of them should be Emotional Quests that directly help with their current situation, and the other 2 should be Cultural Quests that help them get more familiar and comfortable with Canada's local culture.
-
-Here are some examples of Emotional Quests:
-
-"I'm feeling bored and lonely, I haven't seen my friends in while because everyone is so busy with life."
--Suggested Quest: Listen to this song or check out this game! (Reward: 50 Maple Leaves)
-
-"I'm really mad, I studied so hard for my test yesterday but I didn't get the grade I wanted."
--Suggested Quest: Breathing Exercises to calm you down. (Reward: 20 Maple Leaves)
-
-"I'm feeling great! I just had a fun Christmas party with all of my friends and I won some cool prizes!"
--Suggested Quest: Write down something you're grateful for. (Reward: 25 Maple Leaves)
-
-"I'm feeling disappointed because I'm really struggling to find a job."
--Suggested Quest: Try tweaking your resume and apply for 3 different jobs today! (Reward: 50 Maple Leaves)
-
-Here are some examples of Cultural Quests:
--Buy a coffee from Tim Hortons (Reward: 20 Maple Leaves)
--Go to a Raptors Game (Reward: 500 Maple Leaves)
--Song of the Week: Listen to a song from a small, Canadian artist (Reward: 75 Maple Leaves)
-
-ALSO generate 3 reflective journal prompts based on their feeling. These should be thoughtful questions that help them process their emotions.
-
-User's feeling: "${feeling}"
-
-Generate exactly 4 quests (2 Emotional, 2 Cultural) and 3 journal prompts. Respond with ONLY valid JSON:
-{
-  "quests": [
-    {
-      "title": "Quest Title with emoji",
-      "description": "Clear, actionable description",
-      "points": 20,
-      "difficulty": "easy",
-      "category": "mental_health"
-    }
-  ],
-  "journalPrompts": [
-    "What specific moment today made you feel this way?",
-    "How can you show yourself compassion right now?",
-    "What's one small step you can take tomorrow?"
-  ]
-}
-
-Use categories: "mental_health" for Emotional Quests, "cultural" for Cultural Quests. Points should be 15-50 based on difficulty.`
-        }]
-      })
+        max_tokens: 1200,
+        temperature: 0.7,
+        messages: [
+          {
+            role: 'user',
+            content: `
+              Generate 4 daily quests, 2 monthly quests, and 3 journal prompts based on this feeling: "${feeling}".
+              Return ONLY a JSON object with this exact structure:
+              {
+                "quests": [{"id": 1, "text": "string", "completed": false}, ...],
+                "monthlyQuests": [{"id": 1, "text": "string", "completed": false}, ...],
+                "journalPrompts": ["string1", "string2", "string3"]
+              }
+            `,
+          },
+        ],
+      }),
     });
 
     const data: any = await response.json();
-    
+
     if (!response.ok) {
       console.error('OpenRouter Error:', data);
-      return res.status(500).json({ error: 'AI service temporarily unavailable' });
+      return res.status(500).json({
+        error: data.error?.message || 'AI service temporarily unavailable',
+      });
     }
 
-    const content = data.choices[0].message.content;
-    let questsData;
-    
-    try {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      const jsonStr = jsonMatch ? jsonMatch[0] : content;
-      questsData = JSON.parse(jsonStr.trim());
-    } catch (parseError) {
-      console.error('Parse error:', content);
-      throw new Error('Invalid JSON from AI');
-    }
+    let content = data.choices[0].message.content;
+
+    // 3️⃣ Parse AI JSON safely
+    const startIndex = content.indexOf('{');
+    const endIndex = content.lastIndexOf('}');
+    const jsonStr = content
+      .substring(startIndex, endIndex + 1)
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim()
+      .replace(/,\s*}/g, '}')
+      .replace(/,\s*]/g, ']');
+
+    const questsData = JSON.parse(jsonStr);
+
+    // 4️⃣ Save quests to DB using Transaction to ensure both or neither are saved
+    const result = await prisma.$transaction(async (tx) => {
+      const daily = await tx.dailyQuest.create({
+        data: {
+          userId,
+          date: today,
+          quests: questsData.quests,
+          journalPrompts: questsData.journalPrompts,
+        },
+      });
+
+      // Only create monthly if it doesn't exist
+      let monthly = existingMonthly;
+      if (!monthly) {
+        monthly = await tx.monthlyQuest.create({
+          data: {
+            userId,
+            month: currentMonthStr,
+            monthlyQuests: questsData.monthlyQuests,
+          },
+        });
+      }
+
+      return { daily, monthly };
+    });
 
     return res.status(200).json({
       success: true,
-      quests: questsData.quests,
-      journalPrompts: questsData.journalPrompts
+      quests: result.daily.quests,
+      monthlyQuests: result.monthly.monthlyQuests,
+      journalPrompts: result.daily.journalPrompts,
+      generatedAt: today,
+      monthGenerated: currentMonthStr,
+      regenerated: true,
     });
 
   } catch (error: any) {
-    console.error('Generate quests error:', error.message);
-    return res.status(500).json({ 
-      error: 'Failed to generate quests. Please try again.' 
+    console.error('Generate quests error:', error);
+    return res.status(500).json({
+      error: error.message || 'Failed to generate quests. Please try again.',
     });
   }
 };
