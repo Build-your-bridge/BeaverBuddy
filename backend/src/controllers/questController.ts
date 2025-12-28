@@ -44,9 +44,11 @@ Here are some examples of Cultural Quests:
 -Go to a Raptors Game (Reward: 500 Maple Leaves)
 -Song of the Week: Listen to a song from a small, Canadian artist (Reward: 75 Maple Leaves)
 
+ALSO generate 3 reflective journal prompts based on their feeling. These should be thoughtful questions that help them process their emotions.
+
 User's feeling: "${feeling}"
 
-Generate exactly 4 quests (2 Emotional, 2 Cultural). Respond with ONLY valid JSON:
+Generate exactly 4 quests (2 Emotional, 2 Cultural) and 3 journal prompts. Respond with ONLY valid JSON:
 {
   "quests": [
     {
@@ -56,6 +58,11 @@ Generate exactly 4 quests (2 Emotional, 2 Cultural). Respond with ONLY valid JSO
       "difficulty": "easy",
       "category": "mental_health"
     }
+  ],
+  "journalPrompts": [
+    "What specific moment today made you feel this way?",
+    "How can you show yourself compassion right now?",
+    "What's one small step you can take tomorrow?"
   ]
 }
 
@@ -85,7 +92,8 @@ Use categories: "mental_health" for Emotional Quests, "cultural" for Cultural Qu
 
     return res.status(200).json({
       success: true,
-      quests: questsData.quests
+      quests: questsData.quests,
+      journalPrompts: questsData.journalPrompts
     });
 
   } catch (error: any) {

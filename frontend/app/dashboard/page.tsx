@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const [feeling, setFeeling] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [hasJournalPrompts, setHasJournalPrompts] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -27,6 +28,10 @@ export default function DashboardPage() {
     }
 
     setUser(JSON.parse(userData));
+    
+    // Check if there are journal prompts
+    const journalPrompts = sessionStorage.getItem('journalPrompts');
+    setHasJournalPrompts(!!journalPrompts);
   }, [router]);
 
   const handleSubmitFeeling = async () => {
@@ -58,8 +63,9 @@ export default function DashboardPage() {
         throw new Error(data.error || 'Failed to generate quests');
       }
 
-      // Save quests to sessionStorage
+      // Save both quests and journal prompts to sessionStorage
       sessionStorage.setItem('generatedQuests', JSON.stringify(data.quests));
+      sessionStorage.setItem('journalPrompts', JSON.stringify(data.journalPrompts));
 
       // Navigate to quests page
       router.push('/quests');
@@ -75,6 +81,7 @@ export default function DashboardPage() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     sessionStorage.removeItem('generatedQuests'); // Clear quest data
+    sessionStorage.removeItem('journalPrompts'); // Clear journal prompts
     router.push('/');
   };
 
@@ -309,7 +316,16 @@ export default function DashboardPage() {
             <span className="text-[10px] font-bold" style={{ color: '#C41E3A' }}>Home</span>
           </button>
           
-          <button className="flex flex-col items-center gap-0.5 transition-transform hover:scale-110">
+          <button 
+            onClick={() => router.push('/journal')}
+            className="flex flex-col items-center gap-0.5 transition-transform hover:scale-110 relative"
+          >
+            {/* Notification badge */}
+            {hasJournalPrompts && (
+              <div className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center z-10 animate-pulse">
+                3
+              </div>
+            )}
             <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-gray-600 to-gray-800 rounded-2xl shadow-lg">
               <span className="text-xl">📖</span>
             </div>
