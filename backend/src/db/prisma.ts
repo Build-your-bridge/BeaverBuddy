@@ -1,26 +1,31 @@
-// src/db/prisma.ts
 import { PrismaClient } from '@prisma/client';
 
-const prismaClientSingleton = () => {
-  return new PrismaClient({
+// Create a Prisma client singleton to avoid multiple instances in dev
+const prismaClientSingleton = () =>
+  new PrismaClient({
     log: ['query', 'info', 'warn', 'error'],
   });
-};
 
 declare global {
-  var prisma: undefined | ReturnType<typeof prismaClientSingleton>;
+  // allow global prisma to persist across hot reloads in dev
+  // eslint-disable-next-line no-var
+  var prisma: PrismaClient | undefined;
 }
 
-const prisma = globalThis.prisma ?? prismaClientSingleton();
+// Use the existing global prisma instance if available
+const prisma: PrismaClient =
+  globalThis.prisma ?? prismaClientSingleton();
 
+// Attach to globalThis in non-production to prevent multiple instances
 if (process.env.NODE_ENV !== 'production') {
   globalThis.prisma = prisma;
 }
 
 export default prisma;
 
-// Test connection
-prisma.$connect()
+// Test connection (optional, can be removed in production)
+prisma
+  .$connect()
   .then(() => console.log('✅ Connected to PostgreSQL via Prisma'))
   .catch((error) => {
     console.error('❌ Failed to connect to database:', error);

@@ -22,41 +22,33 @@ export default function QuestsPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Get daily quests from sessionStorage
-    const questsData = sessionStorage.getItem('generatedQuests');
+    const questsDataRaw = sessionStorage.getItem('generatedQuests');
     
-    if (!questsData) {
+    if (!questsDataRaw) {
       router.push('/dashboard');
       return;
     }
 
-    const parsedQuests = JSON.parse(questsData);
-    setDailyQuests(parsedQuests.map((q: Quest) => ({ ...q, completed: false })));
-    setTotalDailyQuests(parsedQuests.length);
-    
-    // Get monthly quests from localStorage
-    const monthlyData = localStorage.getItem('monthlyQuests');
-    const currentMonth = `${new Date().getFullYear()}-${new Date().getMonth() + 1}`;
-    
-    if (monthlyData) {
-      const parsed = JSON.parse(monthlyData);
+    try {
+      const parsedData = JSON.parse(questsDataRaw);
       
-      // Check if monthly quests are from current month
-      if (parsed.month === currentMonth) {
-        setMonthlyQuests(parsed.quests.map((q: Quest) => ({ ...q, completed: false })));
-        setTotalMonthlyQuests(parsed.quests.length);
-      } else {
-        // Old month, clear them
-        localStorage.removeItem('monthlyQuests');
-        setMonthlyQuests([]);
-        setTotalMonthlyQuests(0);
-      }
-    } else {
-      setMonthlyQuests([]);
-      setTotalMonthlyQuests(0);
+      // FIX: Your backend sends { quests: [], monthlyQuests: [] }
+      // We must extract the 'quests' array specifically
+      const dailyArray = Array.isArray(parsedData) ? parsedData : (parsedData.quests || []);
+      const monthlyArray = parsedData.monthlyQuests || [];
+
+      setDailyQuests(dailyArray.map((q: Quest) => ({ ...q, completed: false })));
+      setTotalDailyQuests(dailyArray.length);
+      
+      setMonthlyQuests(monthlyArray.map((q: Quest) => ({ ...q, completed: false })));
+      setTotalMonthlyQuests(monthlyArray.length);
+
+    } catch (err) {
+      console.error("Parsing error:", err);
+      router.push('/dashboard');
+    } finally {
+      setLoading(false);
     }
-    
-    setLoading(false);
   }, [router]);
 
   const toggleQuestCompletion = (index: number) => {
@@ -73,180 +65,94 @@ export default function QuestsPage() {
 
   const removeQuest = (index: number) => {
     if (activeTab === 'daily') {
-      const newQuests = dailyQuests.filter((_, i) => i !== index);
-      setDailyQuests(newQuests);
+      setDailyQuests(prev => prev.filter((_, i) => i !== index));
     } else {
-      const newQuests = monthlyQuests.filter((_, i) => i !== index);
-      setMonthlyQuests(newQuests);
-      
-      // Update localStorage
-      const monthlyData = localStorage.getItem('monthlyQuests');
-      if (monthlyData) {
-        const parsed = JSON.parse(monthlyData);
-        parsed.quests = newQuests;
-        localStorage.setItem('monthlyQuests', JSON.stringify(parsed));
-      }
+      setMonthlyQuests(prev => prev.filter((_, i) => i !== index));
     }
   };
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gradient-to-b from-red-400 to-red-500">
-        <div className="animate-bounce">
-          <p className="text-white text-lg font-bold">Loading quests... 🍁</p>
-        </div>
+      <div className="h-screen flex items-center justify-center bg-gradient-to-b from-red-500 to-red-700">
+        <p className="text-white text-xl font-bold animate-pulse">Loading Quests... 🍁</p>
       </div>
     );
   }
 
   const currentQuests = activeTab === 'daily' ? dailyQuests : monthlyQuests;
-  const totalQuests = activeTab === 'daily' ? totalDailyQuests : totalMonthlyQuests;
-  const completedCount = totalQuests - currentQuests.length;
+  const totalCount = activeTab === 'daily' ? totalDailyQuests : totalMonthlyQuests;
+  const completedCount = totalCount - currentQuests.length;
 
   return (
-    <main className="h-screen bg-gradient-to-b from-red-400 to-red-500 overflow-hidden flex flex-col relative">
-      {/* Dashboard Button - Top Right Corner */}
+    <main className="h-screen bg-gradient-to-b from-red-400 to-red-600 overflow-hidden flex flex-col">
       <div className="absolute top-4 right-4 z-50">
-        <button 
-          onClick={() => router.push('/dashboard')}
-          className="bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-2 rounded-full font-bold text-sm shadow-lg hover:shadow-xl hover:from-red-700 hover:to-red-800 transition-all transform hover:scale-105"
-        >
+        <button onClick={() => router.push('/dashboard')} className="bg-white text-red-600 px-4 py-2 rounded-full font-bold shadow-lg text-sm">
           Dashboard
         </button>
       </div>
 
-      <div className="max-w-md mx-auto w-full flex flex-col h-full pt-4">
-
-        {/* Header Card */}
-        <div className="bg-white rounded-3xl p-5 shadow-lg mx-4 mb-4">
-          <h1 className="text-xl font-bold text-gray-800 text-center mb-3">
+      <div className="max-w-md mx-auto w-full flex flex-col h-full pt-6">
+        <div className="bg-white rounded-3xl p-5 shadow-xl mx-4 mb-4 border-b-4 border-red-200">
+          <h1 className="text-xl font-bold text-gray-800 text-center mb-4">
             {activeTab === 'daily' ? '🔥 Daily Quests' : '🏆 Monthly Quests'}
           </h1>
-          <div className="flex items-center justify-center gap-6 mb-3">
-            <div className="flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-full shadow-sm">
-              <span className="text-xl">🔥</span>
-              <span className="font-bold text-gray-800">12</span>
-            </div>
-            <div className="flex items-center gap-2 bg-red-50 px-4 py-2 rounded-full shadow-sm">
-              <span className="text-xl">🍁</span>
-              <span className="font-bold text-gray-800">500</span>
-            </div>
-          </div>
           
-          {/* Progress bar */}
-          {totalQuests > 0 && (
-            <>
-              <div className="bg-gray-100 rounded-full h-2 overflow-hidden">
+          {totalCount > 0 && (
+            <div className="px-2">
+              <div className="bg-gray-100 rounded-full h-3 overflow-hidden shadow-inner">
                 <div 
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    activeTab === 'daily' 
-                      ? 'bg-gradient-to-r from-orange-400 to-red-500' 
-                      : 'bg-gradient-to-r from-purple-400 to-pink-500'
-                  }`}
-                  style={{ width: `${(completedCount / totalQuests) * 100}%` }}
+                  className="h-full bg-gradient-to-r from-orange-400 to-red-500 transition-all duration-700"
+                  style={{ width: `${(completedCount / totalCount) * 100}%` }}
                 />
               </div>
-              <p className="text-center text-xs text-gray-600 mt-2">
-                {completedCount} of {totalQuests} completed
+              <p className="text-center text-[10px] text-gray-500 mt-2 font-bold uppercase tracking-wider">
+                {completedCount} / {totalCount} Completed
               </p>
-            </>
+            </div>
           )}
         </div>
 
-        {/* Quests List - Scrollable but contained */}
-        <div className="flex-1 px-4 overflow-y-auto space-y-3 mb-4">
+        <div className="flex-1 px-4 overflow-y-auto space-y-3 pb-24">
           {currentQuests.length === 0 ? (
-            <div className="bg-white rounded-3xl p-6 text-center shadow-md">
-              <div className="text-5xl mb-3">
-                {activeTab === 'daily' ? '🎉' : '📅'}
-              </div>
-              <h3 className="font-bold text-gray-800 text-base mb-2">
-                {activeTab === 'daily' ? 'All Done!' : 'No Monthly Quests Yet'}
-              </h3>
-              <p className="text-gray-600 text-sm">
-                {activeTab === 'daily' 
-                  ? "You've completed all your daily quests. Great job, eh!" 
-                  : 'Complete your daily check-in to generate monthly quests!'}
-              </p>
+            <div className="bg-white/90 backdrop-blur rounded-3xl p-10 text-center shadow-xl border-2 border-white/50">
+              <span className="text-5xl block mb-4">🎉</span>
+              <h3 className="font-bold text-gray-800">All Quests Clear!</h3>
+              <p className="text-sm text-gray-600">You're doing great, eh!</p>
             </div>
           ) : (
             currentQuests.map((quest, index) => (
-              <div
-                key={index}
-                className={`w-full rounded-3xl p-4 flex items-start gap-3 shadow-md transition-all duration-300 ${
-                  quest.completed 
-                    ? activeTab === 'daily'
-                      ? 'bg-gradient-to-br from-green-100 to-green-50'
-                      : 'bg-gradient-to-br from-purple-100 to-purple-50'
-                    : 'bg-white'
-                } border-2 ${
-                  quest.completed 
-                    ? activeTab === 'daily' 
-                      ? 'border-green-200' 
-                      : 'border-purple-200'
-                    : 'border-transparent'
-                }`}
-              >
-                <button
+              <div key={index} className={`rounded-3xl p-4 flex items-center gap-4 shadow-lg transition-all border-2 ${quest.completed ? 'bg-green-50 border-green-200 opacity-75' : 'bg-white border-transparent'}`}>
+                <button 
                   onClick={() => toggleQuestCompletion(index)}
-                  className={`w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 relative transform transition-transform hover:rotate-12 hover:scale-105 cursor-pointer ${
-                    activeTab === 'daily' 
-                      ? 'bg-gradient-to-br from-orange-100 to-red-100' 
-                      : 'bg-gradient-to-br from-purple-100 to-pink-100'
-                  }`}
+                  className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md ${activeTab === 'daily' ? 'bg-orange-100' : 'bg-purple-100'}`}
                 >
                   <span className="text-2xl">{activeTab === 'daily' ? '🍁' : '🏆'}</span>
-                  <span className={`absolute bottom-1 text-xs font-bold ${
-                    activeTab === 'daily' ? 'text-red-600' : 'text-purple-600'
-                  }`}>
-                    ✕{quest.points}
-                  </span>
                 </button>
-                <div className="flex-1 pt-1 text-left">
-                  <h3 className="font-bold text-gray-900 text-sm mb-1">
-                    {quest.title}
-                  </h3>
-                  <p className="text-xs text-gray-600 leading-relaxed">
-                    {quest.description}
-                  </p>
+                <div className="flex-1">
+                  <h3 className="font-bold text-gray-800 text-sm">{quest.title}</h3>
+                  <p className="text-[11px] text-gray-500 leading-tight mt-0.5">{quest.description}</p>
                 </div>
                 {quest.completed && (
-                  <button
-                    onClick={() => removeQuest(index)}
-                    className="flex-shrink-0 cursor-pointer hover:scale-110 transition-transform"
-                  >
-                    <div className="w-9 h-9 bg-green-500 rounded-full flex items-center justify-center shadow-lg">
-                      <span className="text-white text-lg">→</span>
-                    </div>
-                  </button>
+                  <button onClick={() => removeQuest(index)} className="bg-green-500 text-white w-8 h-8 rounded-full font-bold">✓</button>
                 )}
               </div>
             ))
           )}
         </div>
 
-        {/* Footer Tabs */}
-        <div className="bg-white rounded-t-3xl p-4 shadow-2xl">
-          <div className="flex gap-3">
+        <div className="bg-white p-4 rounded-t-[40px] shadow-2xl mt-auto">
+          <div className="flex gap-4 max-w-xs mx-auto">
             <button 
               onClick={() => setActiveTab('daily')}
-              className={`flex-1 py-3 rounded-full font-bold text-sm shadow-lg transition-all duration-300 ${
-                activeTab === 'daily'
-                  ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white scale-105'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              className={`flex-1 py-3 rounded-full font-black text-xs transition-all ${activeTab === 'daily' ? 'bg-red-600 text-white shadow-red-200' : 'bg-gray-100 text-gray-400'}`}
             >
-              🔥 DAILY
+              DAILY
             </button>
             <button 
               onClick={() => setActiveTab('monthly')}
-              className={`flex-1 py-3 rounded-full font-bold text-sm shadow-lg transition-all duration-300 ${
-                activeTab === 'monthly'
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white scale-105'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              className={`flex-1 py-3 rounded-full font-black text-xs transition-all ${activeTab === 'monthly' ? 'bg-purple-600 text-white shadow-purple-200' : 'bg-gray-100 text-gray-400'}`}
             >
-              🏆 MONTHLY
+              MONTHLY
             </button>
           </div>
         </div>

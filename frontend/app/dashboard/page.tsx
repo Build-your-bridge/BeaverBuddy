@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
@@ -21,27 +21,29 @@ export default function DashboardPage() {
   const [timeUntilReset, setTimeUntilReset] = useState('');
   const router = useRouter();
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userData = localStorage.getItem('user');
+  // Helper to get user-specific storage key so different accounts have different timers
+  const getStorageKey = useCallback((userId: number) => `lastQuestSubmission_${userId}`, []);
 
-    if (!token || !userData) {
-      router.push('/login');
-      return;
-    }
-
-    setUser(JSON.parse(userData));
+  const updateCountdown = useCallback((resetTime: Date) => {
+    const now = new Date();
+    const diff = resetTime.getTime() - now.getTime();
     
-    // Check if there are journal prompts
-    const journalPrompts = sessionStorage.getItem('journalPrompts');
-    setHasJournalPrompts(!!journalPrompts);
+    if (diff <= 0) {
+      setTimeUntilReset('');
+      setCanSubmit(true);
+      if (user) localStorage.removeItem(getStorageKey(user.id));
+      sessionStorage.removeItem('generatedQuests');
+      sessionStorage.removeItem('journalPrompts');
+    } else {
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      setTimeUntilReset(`${hours}h ${minutes}m`);
+    }
+  }, [user, getStorageKey]);
 
-    // Check if user already submitted today
-    checkSubmissionStatus();
-  }, [router]);
-
-  const checkSubmissionStatus = () => {
-    const lastSubmission = localStorage.getItem('lastQuestSubmission');
+  const checkSubmissionStatus = useCallback((currentUser: User) => {
+    const storageKey = getStorageKey(currentUser.id);
+    const lastSubmission = localStorage.getItem(storageKey);
     const generatedQuests = sessionStorage.getItem('generatedQuests');
     
     if (lastSubmission) {
@@ -53,44 +55,38 @@ export default function DashboardPage() {
         setCanSubmit(false);
         setHasExistingQuests(!!generatedQuests);
         
-        // Calculate time until reset
         const resetTime = new Date(lastSubmitTime.getTime() + 24 * 60 * 60 * 1000);
         updateCountdown(resetTime);
         
-        // Update countdown every minute
         const interval = setInterval(() => updateCountdown(resetTime), 60000);
         return () => clearInterval(interval);
       } else {
-        // Reset if 24 hours passed
-        localStorage.removeItem('lastQuestSubmission');
-        sessionStorage.removeItem('generatedQuests');
-        sessionStorage.removeItem('journalPrompts');
+        localStorage.removeItem(storageKey);
         setCanSubmit(true);
-        setHasExistingQuests(false);
       }
     }
-  };
+  }, [getStorageKey, updateCountdown]);
 
-  const updateCountdown = (resetTime: Date) => {
-    const now = new Date();
-    const diff = resetTime.getTime() - now.getTime();
-    
-    if (diff <= 0) {
-      setTimeUntilReset('');
-      setCanSubmit(true);
-      localStorage.removeItem('lastQuestSubmission');
-      sessionStorage.removeItem('generatedQuests');
-      sessionStorage.removeItem('journalPrompts');
-      window.location.reload();
-    } else {
-      const hours = Math.floor(diff / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      setTimeUntilReset(`${hours}h ${minutes}m`);
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const userData = localStorage.getItem('user');
+
+    if (!token || !userData) {
+      router.push('/login');
+      return;
     }
-  };
+
+    const parsedUser = JSON.parse(userData);
+    setUser(parsedUser);
+    
+    const journalPrompts = sessionStorage.getItem('journalPrompts');
+    setHasJournalPrompts(!!journalPrompts);
+
+    const cleanup = checkSubmissionStatus(parsedUser);
+    return () => { if (cleanup) cleanup(); };
+  }, [router, checkSubmissionStatus]);
 
   const handleSubmitFeeling = async () => {
-    // Validation - 20 characters minimum
     if (feeling.trim().length < 20) {
       setError('Please share at least 20 characters about how you\'re feeling');
       return;
@@ -101,8 +97,6 @@ export default function DashboardPage() {
 
     try {
       const token = localStorage.getItem('token');
-      
-      // API call to backend
       const response = await fetch('http://localhost:5000/api/quests/generate', {
         method: 'POST',
         headers: {
@@ -114,18 +108,15 @@ export default function DashboardPage() {
 
       const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to generate quests');
-      }
+      if (!response.ok) throw new Error(data.error || 'Failed to generate quests');
 
-      // Save both quests and journal prompts to sessionStorage
       sessionStorage.setItem('generatedQuests', JSON.stringify(data.quests));
       sessionStorage.setItem('journalPrompts', JSON.stringify(data.journalPrompts));
       
-      // Save submission timestamp to localStorage
-      localStorage.setItem('lastQuestSubmission', new Date().toISOString());
+      if (user) {
+        localStorage.setItem(getStorageKey(user.id), new Date().toISOString());
+      }
 
-      // Navigate to quests page
       router.push('/quests');
 
     } catch (err: any) {
@@ -133,10 +124,6 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const handleViewExistingQuests = () => {
-    router.push('/quests');
   };
 
   const handleLogout = () => {
@@ -147,25 +134,7 @@ export default function DashboardPage() {
     router.push('/');
   };
 
-  if (!user) {
-    return (
-      <div className="h-screen flex items-center justify-center" style={{ 
-        background: 'linear-gradient(135deg, #B8312F 0%, #E63946 50%, #8B0000 100%)'
-      }}>
-        <p className="text-white font-semibold">Loading...</p>
-      </div>
-    );
-  }
-
-  // Generate blue and white maple leaves
-  const mapleLeaves = Array.from({ length: 8 }, (_, i) => ({
-    id: i,
-    left: `${(i * 12) + 5}%`,
-    color: i % 3 === 0 ? '#1e40af' : i % 3 === 1 ? '#3b82f6' : '#ffffff',
-    animationDuration: `${Math.random() * 4 + 8}s`,
-    animationDelay: `${Math.random() * 5}s`,
-    fontSize: `${Math.random() * 15 + 25}px`,
-  }));
+  if (!user) return null;
 
   return (
     <main className="h-screen flex flex-col relative overflow-hidden" style={{ 
@@ -183,69 +152,15 @@ export default function DashboardPage() {
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-10px); }
         }
-        @keyframes fall {
-          0% { 
-            transform: translateY(-100px) rotate(0deg); 
-            opacity: 0;
-          }
-          10% {
-            opacity: 1;
-          }
-          90% {
-            opacity: 0.9;
-          }
-          100% { 
-            transform: translateY(100vh) rotate(360deg); 
-            opacity: 0;
-          }
-        }
-        .maple-leaf {
-          position: absolute;
-          animation: fall linear infinite;
-          pointer-events: none;
-          filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.6));
-        }
       `}</style>
 
-      {/* Falling blue and white maple leaves as SVG */}
-      {mapleLeaves.map((leaf) => (
-        <div
-          key={leaf.id}
-          className="maple-leaf"
-          style={{
-            left: leaf.left,
-            animationDuration: leaf.animationDuration,
-            animationDelay: leaf.animationDelay,
-            width: leaf.fontSize,
-            height: leaf.fontSize,
-          }}
-        >
-          <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 0 3px rgba(255,255,255,0.8))' }}>
-            <path
-              d="M50,10 L55,35 L70,25 L60,45 L85,45 L65,55 L75,75 L55,65 L50,90 L45,65 L25,75 L35,55 L15,45 L40,45 L30,25 L45,35 Z"
-              fill={leaf.color}
-              stroke="rgba(255,255,255,0.5)"
-              strokeWidth="1"
-            />
-          </svg>
-        </div>
-      ))}
-
-      {/* Header with Canadian flag colors */}
-      <div className="bg-white rounded-b-[45px] pt-5 pb-4 px-6 relative" style={{ 
-        boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
-        borderBottom: '4px solid #C41E3A'
-      }}>
+      {/* Header */}
+      <div className="bg-white rounded-b-[45px] pt-5 pb-4 px-6 relative z-10" style={{ boxShadow: '0 10px 40px rgba(0,0,0,0.2)', borderBottom: '4px solid #C41E3A' }}>
         <div className="text-center mb-3">
           <div className="inline-block mb-1">
             <span className="text-3xl animate-bounce inline-block" style={{ animation: 'float 3s ease-in-out infinite' }}>🍁</span>
           </div>
-          <h2 className="text-2xl font-bold mb-0.5" style={{ 
-            background: 'linear-gradient(90deg, #C41E3A 0%, #E63946 50%, #C41E3A 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text'
-          }}>
+          <h2 className="text-2xl font-bold mb-0.5" style={{ background: 'linear-gradient(90deg, #C41E3A 0%, #E63946 50%, #C41E3A 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>
             Welcome, {user.name}!
           </h2>
           <p className="text-xs text-gray-600 font-medium">Hope you're having a great day, eh! 🇨🇦</p>
@@ -269,19 +184,13 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Main content */}
-      <div className="flex-1 flex items-center justify-center px-6 pb-24">
+      {/* Main Content Card */}
+      <div className="flex-1 flex items-center justify-center px-6 pb-24 relative z-10">
         <div className="w-full max-w-md">
-          <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-[35px] px-6 py-5 relative shadow-2xl" style={{
-            border: '3px solid #8B4513',
-            boxShadow: '0 20px 60px rgba(139, 69, 19, 0.3)'
-          }}>
-            <div className="bg-white rounded-3xl px-5 py-2.5 mb-4 text-center relative" style={{ 
-              boxShadow: '0 8px 20px rgba(196, 30, 58, 0.15)',
-              border: '2px solid #FFE5E5'
-            }}>
+          <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-[35px] px-6 py-5 relative shadow-2xl" style={{ border: '3px solid #8B4513' }}>
+            <div className="bg-white rounded-3xl px-5 py-2.5 mb-4 text-center relative shadow-md">
               <div className="absolute -top-2.5 left-1/2 transform -translate-x-1/2 text-2xl">🍁</div>
-              <h1 className="text-lg font-bold text-gray-800 leading-snug pt-1">
+              <h1 className="text-lg font-bold text-gray-800 pt-1">
                 {canSubmit ? 'How are you feeling today, eh?' : 'Today\'s Check-in Complete!'}
               </h1>
               <p className="text-xs text-gray-600 mt-0.5">
@@ -290,137 +199,64 @@ export default function DashboardPage() {
             </div>
 
             <div className="flex justify-center mb-4">
-              <div className="relative w-32 h-32 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full flex items-center justify-center shadow-lg" style={{
-                border: '3px solid #8B4513'
-              }}>
-                <Image
-                  src="/images/beaver/welcome_beaver2.png"
-                  alt="Beaver mascot"
-                  width={120}
-                  height={120}
-                  className="object-contain"
-                  priority
-                />
-              </div>
+                <Image src="/images/beaver/welcome_beaver2.png" alt="Beaver" width={120} height={120} className="object-contain" priority />
             </div>
 
-            {/* Error message */}
-            {error && (
-              <div className="mb-3 p-2 bg-red-100 border border-red-400 text-red-700 rounded-2xl text-xs text-center">
-                {error}
-              </div>
-            )}
+            {error && <div className="mb-3 p-2 bg-red-100 border border-red-400 text-red-700 rounded-2xl text-xs text-center">{error}</div>}
 
-            {/* Input field with character count - only if can submit */}
-            {canSubmit && (
+            {canSubmit ? (
               <div className="mb-3">
                 <textarea
                   value={feeling}
-                  onChange={(e) => {
-                    setFeeling(e.target.value);
-                    setError('');
-                  }}
-                  placeholder='Type your answer here... e.g., "I feel great because hockey season started!" 🏒'
-                  className="w-full p-3 rounded-3xl resize-none text-gray-700 text-xs leading-relaxed shadow-inner"
-                  style={{ 
-                    border: '3px solid #C41E3A',
-                    backgroundColor: '#FFFBF5',
-                    outline: 'none'
-                  }}
+                  onChange={(e) => { setFeeling(e.target.value); setError(''); }}
+                  placeholder='Type your answer here... 🏒'
+                  className="w-full p-3 rounded-3xl resize-none text-gray-700 text-xs shadow-inner outline-none border-[3px] border-[#C41E3A] bg-[#FFFBF5]"
                   rows={2}
                 />
-                <p className="text-[10px] text-gray-500 mt-1 ml-1">
-                  {feeling.length}/20 characters minimum
-                </p>
+                <p className="text-[10px] text-gray-500 mt-1 ml-1">{feeling.length}/20 characters minimum</p>
               </div>
-            )}
+            ) : null}
 
-            {/* Submit or View Quests button */}
-            {canSubmit ? (
-              <button
-                onClick={handleSubmitFeeling}
-                disabled={loading || feeling.trim().length < 20}
-                className="w-full py-3 rounded-full font-bold text-base tracking-wider transition-all transform hover:scale-105 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-                style={{ 
-                  background: 'linear-gradient(135deg, #C41E3A 0%, #E63946 100%)',
-                  color: 'white',
-                  boxShadow: '0 8px 20px rgba(196, 30, 58, 0.4)'
-                }}
-              >
-                {loading ? '🍁 GENERATING... 🍁' : (feeling.trim().length >= 20 ? '🍁 SUBMIT 🍁' : '🍁 VIEW QUESTS 🍁')}
-              </button>
-            ) : (
-              <button
-                onClick={handleViewExistingQuests}
-                disabled={!hasExistingQuests}
-                className="w-full py-3 rounded-full font-bold text-base tracking-wider transition-all transform hover:scale-105 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ 
-                  background: hasExistingQuests ? 'linear-gradient(135deg, #C41E3A 0%, #E63946 100%)' : 'linear-gradient(135deg, #9CA3AF 0%, #6B7280 100%)',
-                  color: 'white',
-                  boxShadow: '0 8px 20px rgba(196, 30, 58, 0.4)'
-                }}
-              >
-                🍁 VIEW QUESTS 🍁
-              </button>
-            )}
-
-            <p className="text-center text-[10px] mt-2 text-gray-500 font-medium">
-              {canSubmit 
-                ? 'Share your feelings to unlock today\'s Canadian quests!' 
-                : 'Come back tomorrow for new quests!'}
-            </p>
+            {/* ACTION BUTTON: Either Submits or Navigates to Quests */}
+            <button
+              onClick={canSubmit ? handleSubmitFeeling : () => router.push('/quests')}
+              disabled={loading || (canSubmit && feeling.trim().length < 20)}
+              className="w-full py-3 rounded-full font-bold text-base tracking-wider transition-all transform hover:scale-105 shadow-lg text-white"
+              style={{ background: 'linear-gradient(135deg, #C41E3A 0%, #E63946 100%)' }}
+            >
+              {loading ? '🍁 GENERATING... 🍁' : (canSubmit ? '🍁 SUBMIT 🍁' : '🍁 VIEW QUESTS 🍁')}
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Bottom navigation */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-b from-amber-50 to-orange-100 rounded-t-[40px] py-3" style={{ 
-        boxShadow: '0 -8px 30px rgba(139, 69, 19, 0.3)',
-        borderTop: '3px solid #8B4513'
-      }}>
+      {/* BOTTOM NAVIGATION: All buttons now have router.push logic */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-b from-amber-50 to-orange-100 rounded-t-[40px] py-3 z-20 border-t-[3px] border-[#8B4513]">
         <div className="flex justify-around items-end max-w-md mx-auto px-8">
-          <button className="flex flex-col items-center gap-0.5 transition-transform hover:scale-110">
-            <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-amber-600 to-orange-700 rounded-full shadow-lg">
-              <span className="text-xl">🦫</span>
-            </div>
-            <span className="text-[10px] font-bold" style={{ color: '#8B4513' }}>Billy</span>
+          
+          <button onClick={() => router.push('/dashboard')} className="flex flex-col items-center gap-0.5 transition-transform hover:scale-110">
+            <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-amber-600 to-orange-700 rounded-full shadow-lg"><span className="text-xl">🦫</span></div>
+            <span className="text-[10px] font-bold text-[#8B4513]">Billy</span>
           </button>
           
-          <button className="flex flex-col items-center gap-0.5 -mt-3">
-            <div className="rounded-full px-6 py-2 relative" style={{ 
-              background: 'linear-gradient(135deg, #C41E3A 0%, #E63946 100%)',
-              boxShadow: '0 8px 25px rgba(196, 30, 58, 0.5)'
-            }}>
+          <button onClick={() => router.push('/dashboard')} className="flex flex-col items-center gap-0.5 -mt-3">
+            <div className="rounded-full px-6 py-2 relative bg-gradient-to-br from-[#C41E3A] to-[#E63946] shadow-xl">
               <div className="absolute -top-1.5 -right-1.5 text-lg">🍁</div>
-              <div className="w-10 h-10 flex items-center justify-center bg-white rounded-2xl">
-                <span className="text-xl">🏠</span>
-              </div>
+              <div className="w-10 h-10 flex items-center justify-center bg-white rounded-2xl"><span className="text-xl">🏠</span></div>
             </div>
-            <span className="text-[10px] font-bold" style={{ color: '#C41E3A' }}>Home</span>
+            <span className="text-[10px] font-bold text-[#C41E3A]">Home</span>
           </button>
           
-          <button 
-            onClick={() => router.push('/journal')}
-            className="flex flex-col items-center gap-0.5 transition-transform hover:scale-110 relative"
-          >
-            {/* Notification badge */}
-            {hasJournalPrompts && (
-              <div className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center z-10 animate-pulse">
-                3
-              </div>
-            )}
-            <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-gray-600 to-gray-800 rounded-2xl shadow-lg">
-              <span className="text-xl">📖</span>
-            </div>
-            <span className="text-[10px] font-bold" style={{ color: '#8B4513' }}>Journal</span>
+          <button onClick={() => router.push('/journal')} className="flex flex-col items-center gap-0.5 transition-transform hover:scale-110 relative">
+            {hasJournalPrompts && <div className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center z-30 animate-pulse">3</div>}
+            <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-gray-600 to-gray-800 rounded-2xl shadow-lg"><span className="text-xl">📖</span></div>
+            <span className="text-[10px] font-bold text-[#8B4513]">Journal</span>
           </button>
+
         </div>
       </div>
 
-      <button
-        onClick={handleLogout}
-        className="absolute top-3 right-4 text-[10px] font-semibold text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-full z-10 shadow-lg transition-all"
-      >
+      <button onClick={handleLogout} className="absolute top-3 right-4 text-[10px] font-semibold text-white bg-red-600 px-3 py-1.5 rounded-full z-20 shadow-lg">
         🚪 Logout
       </button>
     </main>
