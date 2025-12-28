@@ -210,7 +210,7 @@ Respond with a warm, supportive, and comforting message (2-3 sentences). Be empa
       {/* Main content */}
       <div className="flex-1 flex items-center justify-center px-6 pb-24">
         <div className="w-full max-w-md">
-          <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-[35px] px-6 py-5 relative shadow-2xl" style={{
+          <div className="bg-amber-50 rounded-[35px] px-6 py-5 relative shadow-2xl" style={{
             border: '3px solid #8B4513',
             boxShadow: '0 20px 60px rgba(139, 69, 19, 0.3)'
           }}>
@@ -227,7 +227,7 @@ Respond with a warm, supportive, and comforting message (2-3 sentences). Be empa
 
             {/* Beaver */}
             <div className="flex justify-center mb-4">
-              <div className="relative w-32 h-32 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full flex items-center justify-center shadow-lg" style={{
+              <div className="relative w-32 h-32 bg-amber-100 rounded-full flex items-center justify-center shadow-lg" style={{
                 border: '3px solid #8B4513'
               }}>
                 <Image
@@ -243,7 +243,7 @@ Respond with a warm, supportive, and comforting message (2-3 sentences). Be empa
 
             {/* AI Response after submission */}
             {showResponse && (
-              <div className="mb-4 p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-3xl border-2 border-green-200 animate-fade-in">
+              <div className="mb-4 p-4 bg-green-50 rounded-3xl border-2 border-green-200 animate-fade-in">
                 <div className="flex items-start gap-2 mb-2">
                   <span className="text-xl">🦫</span>
                   <p className="text-xs font-bold text-green-800">Billy says:</p>
@@ -307,7 +307,7 @@ Respond with a warm, supportive, and comforting message (2-3 sentences). Be empa
       </div>
 
       {/* Bottom navigation */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-b from-amber-50 to-orange-100 rounded-t-[40px] py-3" style={{ 
+      <div className="absolute bottom-0 left-0 right-0 bg-amber-100 rounded-t-[40px] py-3" style={{ 
         boxShadow: '0 -8px 30px rgba(139, 69, 19, 0.3)',
         borderTop: '3px solid #8B4513'
       }}>

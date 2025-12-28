@@ -107,16 +107,9 @@ export default function DashboardPage() {
 
   return (
     <main className="h-screen flex flex-col relative overflow-hidden" style={{ 
-      background: 'linear-gradient(135deg, #B8312F 0%, #E63946 25%, #DC143C 50%, #C41E3A 75%, #8B0000 100%)',
-      backgroundSize: '400% 400%',
-      animation: 'gradient 15s ease infinite'
+      background: 'white'
     }}>
       <style jsx>{`
-        @keyframes gradient {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
           50% { transform: translateY(-10px); }
@@ -169,40 +162,22 @@ export default function DashboardPage() {
         </div>
       ))}
 
-      {/* Header with Canadian flag colors */}
-      <div className="bg-white rounded-b-[45px] pt-5 pb-4 px-6 relative" style={{ 
-        boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
-        borderBottom: '4px solid #C41E3A'
-      }}>
-        <div className="text-center mb-3">
-          <div className="inline-block mb-1">
-            <span className="text-3xl animate-bounce inline-block" style={{ animation: 'float 3s ease-in-out infinite' }}>🍁</span>
+      {/* Simple Header */}
+      <div className="relative h-12 flex items-center justify-between px-4 border-b border-gray-300" style={{ background: 'white' }}>
+        <button
+          onClick={handleLogout}
+          className="text-xs font-medium text-gray-600 hover:text-gray-800 shadow-md hover:shadow-lg transition-all px-2 py-1 rounded cursor-pointer"
+        >
+          🚪 Logout
+        </button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1">
+            <span className="text-lg">🍁</span>
+            <span className="text-sm font-bold text-red-600">500</span>
           </div>
-          <h2 className="text-2xl font-bold mb-0.5" style={{ 
-            background: 'linear-gradient(90deg, #C41E3A 0%, #E63946 50%, #C41E3A 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text'
-          }}>
-            Welcome, {user.name}!
-          </h2>
-          <p className="text-xs text-gray-600 font-medium">Hope you're having a great day, eh! 🇨🇦</p>
-        </div>
-        
-        <div className="flex justify-center items-center gap-16">
-          <div className="flex flex-col items-center">
-            <div className="flex items-center gap-2 bg-gradient-to-r from-orange-400 to-red-500 px-4 py-1.5 rounded-full shadow-lg">
-              <span className="text-2xl">🔥</span>
-              <span className="text-xl font-bold text-white">12</span>
-            </div>
-            <span className="text-[10px] font-semibold text-gray-600 mt-1">Day Streak</span>
-          </div>
-          <div className="flex flex-col items-center">
-            <div className="flex items-center gap-2 bg-gradient-to-r from-red-600 to-red-800 px-4 py-1.5 rounded-full shadow-lg">
-              <span className="text-2xl">🍁</span>
-              <span className="text-xl font-bold text-white">500</span>
-            </div>
-            <span className="text-[10px] font-semibold text-gray-600 mt-1">Maple Leafs</span>
+          <div className="flex items-center gap-1">
+            <span className="text-lg">🔥</span>
+            <span className="text-sm font-bold text-orange-600">12</span>
           </div>
         </div>
       </div>
@@ -210,30 +185,26 @@ export default function DashboardPage() {
       {/* Main content */}
       <div className="flex-1 flex items-center justify-center px-6 pb-24">
         <div className="w-full max-w-md">
-          <div className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-[35px] px-6 py-5 relative shadow-2xl" style={{
-            border: '3px solid #8B4513',
+          <div className="bg-white rounded-[35px] px-6 py-5 relative shadow-2xl" style={{
             boxShadow: '0 20px 60px rgba(139, 69, 19, 0.3)'
           }}>
-            <div className="bg-white rounded-3xl px-5 py-2.5 mb-4 text-center relative" style={{ 
-              boxShadow: '0 8px 20px rgba(196, 30, 58, 0.15)',
-              border: '2px solid #FFE5E5'
+            <div className="bg-white rounded-xl px-5 py-2.5 mb-4 text-center relative" style={{ 
+              boxShadow: '0 2px 10px rgba(0, 0, 0, 0.15)',
             }}>
-              <div className="absolute -top-2.5 left-1/2 transform -translate-x-1/2 text-2xl">🍁</div>
               <h1 className="text-lg font-bold text-gray-800 leading-snug pt-1">
-                How are you feeling today, eh?
+                How are you feeling today?
               </h1>
               <p className="text-xs text-gray-600 mt-0.5">Share what's on your mind</p>
             </div>
 
             <div className="flex justify-center mb-4">
-              <div className="relative w-32 h-32 bg-gradient-to-br from-amber-100 to-orange-100 rounded-full flex items-center justify-center shadow-lg" style={{
-                border: '3px solid #8B4513'
+              <div className="relative w-35 h-35 md:w-48 md:h-48 flex items-center justify-center" style={{
               }}>
                 <Image
-                  src="/images/beaver/welcome_beaver2.png"
+                  src="/images/beaver/default_beaver.png"
                   alt="Beaver mascot"
-                  width={120}
-                  height={120}
+                  width={200}
+                  height={200}
                   className="object-contain"
                   priority
                 />
@@ -256,10 +227,10 @@ export default function DashboardPage() {
                   setError('');
                 }}
                 placeholder='Type your answer here... e.g., "I feel great because hockey season started!" 🏒'
-                className="w-full p-3 rounded-3xl resize-none text-gray-700 text-xs leading-relaxed shadow-inner"
+                className="w-full p-3 rounded-2xl resize-none text-gray-700 text-xs leading-relaxed shadow-inner"
                 style={{ 
-                  border: '3px solid #C41E3A',
-                  backgroundColor: '#FFFBF5',
+                  border: '1.5px solid #C41E3A',
+                  backgroundColor: '#ffffffff',
                   outline: 'none'
                 }}
                 rows={2}
@@ -273,73 +244,76 @@ export default function DashboardPage() {
             <button
               onClick={handleSubmitFeeling}
               disabled={loading || feeling.trim().length < 20}
-              className="w-full py-3 rounded-full font-bold text-base tracking-wider transition-all transform hover:scale-105 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className="w-full py-3 rounded-2xl font-bold text-base tracking-wider transition-all transform hover:scale-105 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               style={{ 
                 background: 'linear-gradient(135deg, #C41E3A 0%, #E63946 100%)',
                 color: 'white',
                 boxShadow: '0 8px 20px rgba(196, 30, 58, 0.4)'
               }}
             >
-              {loading ? '🍁 GENERATING... 🍁' : '🍁 VIEW QUESTS 🍁'}
+              {loading ? 'GENERATING...' : 'VIEW QUESTS'}
             </button>
 
             <p className="text-center text-[10px] mt-2 text-gray-500 font-medium">
-              Share your feelings to unlock today's Canadian quests!
+              Share how you're feeling to unlock today's quests!
             </p>
           </div>
         </div>
       </div>
 
       {/* Bottom navigation */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-b from-amber-50 to-orange-100 rounded-t-[40px] py-3" style={{ 
-        boxShadow: '0 -8px 30px rgba(139, 69, 19, 0.3)',
-        borderTop: '3px solid #8B4513'
-      }}>
-        <div className="flex justify-around items-end max-w-md mx-auto px-8">
-          <button className="flex flex-col items-center gap-0.5 transition-transform hover:scale-110">
-            <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-amber-600 to-orange-700 rounded-full shadow-lg">
-              <span className="text-xl">🦫</span>
+      <div className="absolute bottom-0 left-0 right-0 h-20 flex items-end justify-around px-4 border-t border-gray-300 pb-2" style={{ background: 'white' }}>
+        <div className="flex justify-around items-center max-w-md mx-auto px-8 w-full">
+          <button className="flex flex-col items-center transition-transform hover:scale-110">
+            <div className="w-16 h-16 flex flex-col items-center justify-center px-2 py-1">
+              <Image
+                src="/images/icons/billy.png"
+                alt="Billy"
+                width={48}
+                height={48}
+                className="object-contain mb-0.5"
+              />
+              <span className="text-xs font-bold text-gray-600">Billy</span>
             </div>
-            <span className="text-[10px] font-bold" style={{ color: '#8B4513' }}>Billy</span>
           </button>
           
-          <button className="flex flex-col items-center gap-0.5 -mt-3">
-            <div className="rounded-full px-6 py-2 relative" style={{ 
-              background: 'linear-gradient(135deg, #C41E3A 0%, #E63946 100%)',
-              boxShadow: '0 8px 25px rgba(196, 30, 58, 0.5)'
-            }}>
-              <div className="absolute -top-1.5 -right-1.5 text-lg">🍁</div>
-              <div className="w-10 h-10 flex items-center justify-center bg-white rounded-2xl">
-                <span className="text-xl">🏠</span>
-              </div>
+          <button className="flex flex-col items-center">
+            <div className="w-16 h-16 flex flex-col items-center justify-center rounded-lg px-2 py-1" style={{ backgroundColor: '#e8c4c4' }}>
+              <Image
+                src="/images/icons/house.png"
+                alt="Home"
+                width={48}
+                height={48}
+                className="object-contain mb-0.5"
+              />
+              <span className="text-xs font-bold text-red-600">Home</span>
             </div>
-            <span className="text-[10px] font-bold" style={{ color: '#C41E3A' }}>Home</span>
           </button>
           
           <button 
             onClick={() => router.push('/journal')}
-            className="flex flex-col items-center gap-0.5 transition-transform hover:scale-110 relative"
+            className="flex flex-col items-center transition-transform hover:scale-110 relative"
           >
             {/* Notification badge */}
             {hasJournalPrompts && (
-              <div className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center z-10 animate-pulse">
+              <div className="absolute top-3 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center z-10 animate-pulse">
                 3
               </div>
             )}
-            <div className="w-12 h-12 flex items-center justify-center bg-gradient-to-br from-gray-600 to-gray-800 rounded-2xl shadow-lg">
-              <span className="text-xl">📖</span>
+            <div className="w-16 h-16 flex flex-col items-center justify-center px-2 py-1">
+              <Image
+                src="/images/icons/grey_journal.png"
+                alt="Journal"
+                width={48}
+                height={48}
+                className="object-contain mb-0.5"
+              />
+              <span className="text-xs font-bold text-gray-600">Journal</span>
             </div>
-            <span className="text-[10px] font-bold" style={{ color: '#8B4513' }}>Journal</span>
           </button>
         </div>
       </div>
 
-      <button
-        onClick={handleLogout}
-        className="absolute top-3 right-4 text-[10px] font-semibold text-white bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-full z-10 shadow-lg transition-all"
-      >
-        🚪 Logout
-      </button>
     </main>
   );
 }

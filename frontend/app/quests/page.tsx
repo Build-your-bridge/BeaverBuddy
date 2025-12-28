@@ -78,7 +78,7 @@ export default function QuestsPage() {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-gradient-to-b from-red-400 to-red-500">
+      <div className="h-screen flex items-center justify-center bg-red-500">
         <div className="animate-bounce">
           <p className="text-white text-lg font-bold">Loading quests... 🍁</p>
         </div>
@@ -91,12 +91,12 @@ export default function QuestsPage() {
   const completedCount = totalQuests - currentQuests.length;
 
   return (
-    <main className="h-screen bg-gradient-to-b from-red-400 to-red-500 overflow-hidden flex flex-col relative">
+    <main className="h-screen bg-[#f5f5f5] overflow-hidden flex flex-col relative">
       {/* Dashboard Button - Top Right Corner */}
       <div className="absolute top-4 right-4 z-50">
         <button 
           onClick={() => router.push('/dashboard')}
-          className="bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-2 rounded-full font-bold text-sm shadow-lg hover:shadow-xl hover:from-red-700 hover:to-red-800 transition-all transform hover:scale-105"
+          className="bg-red-600 text-white px-6 py-2 rounded-full font-bold text-sm shadow-lg hover:shadow-xl hover:bg-red-700 transition-all transform hover:scale-105"
         >
           Dashboard
         </button>
@@ -125,8 +125,8 @@ export default function QuestsPage() {
             <div 
               className={`h-full rounded-full transition-all duration-500 ${
                 activeTab === 'daily' 
-                  ? 'bg-gradient-to-r from-orange-400 to-red-500' 
-                  : 'bg-gradient-to-r from-purple-400 to-pink-500'
+                  ? 'bg-orange-500' 
+                  : 'bg-purple-500'
               }`}
               style={{ width: `${(completedCount / totalQuests) * 100}%` }}
             />
@@ -155,8 +155,8 @@ export default function QuestsPage() {
                 className={`w-full rounded-3xl p-4 flex items-start gap-3 shadow-md transition-all duration-300 ${
                   quest.completed 
                     ? activeTab === 'daily'
-                      ? 'bg-gradient-to-br from-green-100 to-green-50'
-                      : 'bg-gradient-to-br from-purple-100 to-purple-50'
+                      ? 'bg-green-50'
+                      : 'bg-purple-50'
                     : 'bg-white'
                 } border-2 ${
                   quest.completed 
@@ -170,8 +170,8 @@ export default function QuestsPage() {
                   onClick={() => toggleQuestCompletion(index)}
                   className={`w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 relative transform transition-transform hover:rotate-12 hover:scale-105 cursor-pointer ${
                     activeTab === 'daily' 
-                      ? 'bg-gradient-to-br from-orange-100 to-red-100' 
-                      : 'bg-gradient-to-br from-purple-100 to-pink-100'
+                      ? 'bg-orange-100' 
+                      : 'bg-purple-100'
                   }`}
                 >
                   <span className="text-2xl">{activeTab === 'daily' ? '🍁' : '🏆'}</span>
@@ -211,7 +211,7 @@ export default function QuestsPage() {
               onClick={() => setActiveTab('daily')}
               className={`flex-1 py-3 rounded-full font-bold text-sm shadow-lg transition-all duration-300 ${
                 activeTab === 'daily'
-                  ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white scale-105'
+                  ? 'bg-[#CE5C5C] text-white scale-105'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
@@ -221,7 +221,7 @@ export default function QuestsPage() {
               onClick={() => setActiveTab('monthly')}
               className={`flex-1 py-3 rounded-full font-bold text-sm shadow-lg transition-all duration-300 ${
                 activeTab === 'monthly'
-                  ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white scale-105'
+                  ? 'bg-[#CE5C5C] text-white scale-105'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
             >
