@@ -73,15 +73,10 @@ export default function QuestsPage() {
 
   if (loading) {
     return (
-<<<<<<< HEAD
       <div className="h-screen flex items-center justify-center bg-red-500">
         <div className="animate-bounce">
           <p className="text-white text-lg font-bold">Loading quests... 🍁</p>
         </div>
-=======
-      <div className="h-screen flex items-center justify-center bg-gradient-to-b from-red-500 to-red-700">
-        <p className="text-white text-xl font-bold animate-pulse">Loading Quests... 🍁</p>
->>>>>>> ac5d252490cf2918513938e0ab43a1bde4a51bc2
       </div>
     );
   }
@@ -91,7 +86,6 @@ export default function QuestsPage() {
   const completedCount = totalCount - currentQuests.length;
 
   return (
-<<<<<<< HEAD
     <main className="h-screen bg-[#f5f5f5] overflow-hidden flex flex-col relative">
       {/* Dashboard Button - Top Right Corner */}
       <div className="absolute top-4 right-4 z-50">
@@ -99,11 +93,6 @@ export default function QuestsPage() {
           onClick={() => router.push('/dashboard')}
           className="bg-red-600 text-white px-6 py-2 rounded-full font-bold text-sm shadow-lg hover:shadow-xl hover:bg-red-700 transition-all transform hover:scale-105"
         >
-=======
-    <main className="h-screen bg-gradient-to-b from-red-400 to-red-600 overflow-hidden flex flex-col">
-      <div className="absolute top-4 right-4 z-50">
-        <button onClick={() => router.push('/dashboard')} className="bg-white text-red-600 px-4 py-2 rounded-full font-bold shadow-lg text-sm">
->>>>>>> ac5d252490cf2918513938e0ab43a1bde4a51bc2
           Dashboard
         </button>
       </div>
@@ -114,7 +103,6 @@ export default function QuestsPage() {
             {activeTab === 'daily' ? '🔥 Daily Quests' : '🏆 Monthly Quests'}
           </h1>
           
-<<<<<<< HEAD
           {/* Progress bar */}
           <div className="bg-gray-100 rounded-full h-2 overflow-hidden">
             <div 
@@ -123,27 +111,12 @@ export default function QuestsPage() {
                   ? 'bg-orange-500' 
                   : 'bg-purple-500'
               }`}
-              style={{ width: `${(completedCount / totalQuests) * 100}%` }}
+              style={{ width: `${(completedCount / totalCount) * 100}%` }}
             />
           </div>
           <p className="text-center text-xs text-gray-600 mt-2">
-            {completedCount} of {totalQuests} completed
+            {completedCount} of {totalCount} completed
           </p>
-=======
-          {totalCount > 0 && (
-            <div className="px-2">
-              <div className="bg-gray-100 rounded-full h-3 overflow-hidden shadow-inner">
-                <div 
-                  className="h-full bg-gradient-to-r from-orange-400 to-red-500 transition-all duration-700"
-                  style={{ width: `${(completedCount / totalCount) * 100}%` }}
-                />
-              </div>
-              <p className="text-center text-[10px] text-gray-500 mt-2 font-bold uppercase tracking-wider">
-                {completedCount} / {totalCount} Completed
-              </p>
-            </div>
-          )}
->>>>>>> ac5d252490cf2918513938e0ab43a1bde4a51bc2
         </div>
 
         <div className="flex-1 px-4 overflow-y-auto space-y-3 pb-24">
@@ -155,7 +128,6 @@ export default function QuestsPage() {
             </div>
           ) : (
             currentQuests.map((quest, index) => (
-<<<<<<< HEAD
               <div
                 key={index}
                 className={`w-full rounded-3xl p-4 flex items-start gap-3 shadow-md transition-all duration-300 ${
@@ -179,12 +151,6 @@ export default function QuestsPage() {
                       ? 'bg-orange-100' 
                       : 'bg-purple-100'
                   }`}
-=======
-              <div key={index} className={`rounded-3xl p-4 flex items-center gap-4 shadow-lg transition-all border-2 ${quest.completed ? 'bg-green-50 border-green-200 opacity-75' : 'bg-white border-transparent'}`}>
-                <button 
-                  onClick={() => toggleQuestCompletion(index)}
-                  className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md ${activeTab === 'daily' ? 'bg-orange-100' : 'bg-purple-100'}`}
->>>>>>> ac5d252490cf2918513938e0ab43a1bde4a51bc2
                 >
                   <span className="text-2xl">{activeTab === 'daily' ? '🍁' : '🏆'}</span>
                 </button>
@@ -204,29 +170,21 @@ export default function QuestsPage() {
           <div className="flex gap-4 max-w-xs mx-auto">
             <button 
               onClick={() => setActiveTab('daily')}
-<<<<<<< HEAD
               className={`flex-1 py-3 rounded-full font-bold text-sm shadow-lg transition-all duration-300 ${
                 activeTab === 'daily'
                   ? 'bg-[#CE5C5C] text-white scale-105'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
-=======
-              className={`flex-1 py-3 rounded-full font-black text-xs transition-all ${activeTab === 'daily' ? 'bg-red-600 text-white shadow-red-200' : 'bg-gray-100 text-gray-400'}`}
->>>>>>> ac5d252490cf2918513938e0ab43a1bde4a51bc2
             >
               DAILY
             </button>
             <button 
               onClick={() => setActiveTab('monthly')}
-<<<<<<< HEAD
               className={`flex-1 py-3 rounded-full font-bold text-sm shadow-lg transition-all duration-300 ${
                 activeTab === 'monthly'
                   ? 'bg-[#CE5C5C] text-white scale-105'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
-=======
-              className={`flex-1 py-3 rounded-full font-black text-xs transition-all ${activeTab === 'monthly' ? 'bg-purple-600 text-white shadow-purple-200' : 'bg-gray-100 text-gray-400'}`}
->>>>>>> ac5d252490cf2918513938e0ab43a1bde4a51bc2
             >
               MONTHLY
             </button>
