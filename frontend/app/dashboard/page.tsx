@@ -16,6 +16,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [hasJournalPrompts, setHasJournalPrompts] = useState(false);
+  const [canSubmit, setCanSubmit] = useState(true);
+  const [hasExistingQuests, setHasExistingQuests] = useState(false);
+  const [timeUntilReset, setTimeUntilReset] = useState('');
   const router = useRouter();
 
   useEffect(() => {
@@ -32,7 +35,59 @@ export default function DashboardPage() {
     // Check if there are journal prompts
     const journalPrompts = sessionStorage.getItem('journalPrompts');
     setHasJournalPrompts(!!journalPrompts);
+
+    // Check if user already submitted today
+    checkSubmissionStatus();
   }, [router]);
+
+  const checkSubmissionStatus = () => {
+    const lastSubmission = localStorage.getItem('lastQuestSubmission');
+    const generatedQuests = sessionStorage.getItem('generatedQuests');
+    
+    if (lastSubmission) {
+      const lastSubmitTime = new Date(lastSubmission);
+      const now = new Date();
+      const hoursSinceSubmit = (now.getTime() - lastSubmitTime.getTime()) / (1000 * 60 * 60);
+      
+      if (hoursSinceSubmit < 24) {
+        setCanSubmit(false);
+        setHasExistingQuests(!!generatedQuests);
+        
+        // Calculate time until reset
+        const resetTime = new Date(lastSubmitTime.getTime() + 24 * 60 * 60 * 1000);
+        updateCountdown(resetTime);
+        
+        // Update countdown every minute
+        const interval = setInterval(() => updateCountdown(resetTime), 60000);
+        return () => clearInterval(interval);
+      } else {
+        // Reset if 24 hours passed
+        localStorage.removeItem('lastQuestSubmission');
+        sessionStorage.removeItem('generatedQuests');
+        sessionStorage.removeItem('journalPrompts');
+        setCanSubmit(true);
+        setHasExistingQuests(false);
+      }
+    }
+  };
+
+  const updateCountdown = (resetTime: Date) => {
+    const now = new Date();
+    const diff = resetTime.getTime() - now.getTime();
+    
+    if (diff <= 0) {
+      setTimeUntilReset('');
+      setCanSubmit(true);
+      localStorage.removeItem('lastQuestSubmission');
+      sessionStorage.removeItem('generatedQuests');
+      sessionStorage.removeItem('journalPrompts');
+      window.location.reload();
+    } else {
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      setTimeUntilReset(`${hours}h ${minutes}m`);
+    }
+  };
 
   const handleSubmitFeeling = async () => {
     // Validation - 20 characters minimum
@@ -66,6 +121,9 @@ export default function DashboardPage() {
       // Save both quests and journal prompts to sessionStorage
       sessionStorage.setItem('generatedQuests', JSON.stringify(data.quests));
       sessionStorage.setItem('journalPrompts', JSON.stringify(data.journalPrompts));
+      
+      // Save submission timestamp to localStorage
+      localStorage.setItem('lastQuestSubmission', new Date().toISOString());
 
       // Navigate to quests page
       router.push('/quests');
@@ -77,11 +135,15 @@ export default function DashboardPage() {
     }
   };
 
+  const handleViewExistingQuests = () => {
+    router.push('/quests');
+  };
+
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    sessionStorage.removeItem('generatedQuests'); // Clear quest data
-    sessionStorage.removeItem('journalPrompts'); // Clear journal prompts
+    sessionStorage.removeItem('generatedQuests');
+    sessionStorage.removeItem('journalPrompts');
     router.push('/');
   };
 
@@ -220,9 +282,11 @@ export default function DashboardPage() {
             }}>
               <div className="absolute -top-2.5 left-1/2 transform -translate-x-1/2 text-2xl">🍁</div>
               <h1 className="text-lg font-bold text-gray-800 leading-snug pt-1">
-                How are you feeling today, eh?
+                {canSubmit ? 'How are you feeling today, eh?' : 'Today\'s Check-in Complete!'}
               </h1>
-              <p className="text-xs text-gray-600 mt-0.5">Share what's on your mind</p>
+              <p className="text-xs text-gray-600 mt-0.5">
+                {canSubmit ? 'Share what\'s on your mind' : `Resets in ${timeUntilReset}`}
+              </p>
             </div>
 
             <div className="flex justify-center mb-4">
@@ -247,44 +311,63 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Input field with character count */}
-            <div className="mb-3">
-              <textarea
-                value={feeling}
-                onChange={(e) => {
-                  setFeeling(e.target.value);
-                  setError('');
-                }}
-                placeholder='Type your answer here... e.g., "I feel great because hockey season started!" 🏒'
-                className="w-full p-3 rounded-3xl resize-none text-gray-700 text-xs leading-relaxed shadow-inner"
-                style={{ 
-                  border: '3px solid #C41E3A',
-                  backgroundColor: '#FFFBF5',
-                  outline: 'none'
-                }}
-                rows={2}
-              />
-              <p className="text-[10px] text-gray-500 mt-1 ml-1">
-                {feeling.length}/20 characters minimum
-              </p>
-            </div>
+            {/* Input field with character count - only if can submit */}
+            {canSubmit && (
+              <div className="mb-3">
+                <textarea
+                  value={feeling}
+                  onChange={(e) => {
+                    setFeeling(e.target.value);
+                    setError('');
+                  }}
+                  placeholder='Type your answer here... e.g., "I feel great because hockey season started!" 🏒'
+                  className="w-full p-3 rounded-3xl resize-none text-gray-700 text-xs leading-relaxed shadow-inner"
+                  style={{ 
+                    border: '3px solid #C41E3A',
+                    backgroundColor: '#FFFBF5',
+                    outline: 'none'
+                  }}
+                  rows={2}
+                />
+                <p className="text-[10px] text-gray-500 mt-1 ml-1">
+                  {feeling.length}/20 characters minimum
+                </p>
+              </div>
+            )}
 
-            {/* Disabled button until 20 characters */}
-            <button
-              onClick={handleSubmitFeeling}
-              disabled={loading || feeling.trim().length < 20}
-              className="w-full py-3 rounded-full font-bold text-base tracking-wider transition-all transform hover:scale-105 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-              style={{ 
-                background: 'linear-gradient(135deg, #C41E3A 0%, #E63946 100%)',
-                color: 'white',
-                boxShadow: '0 8px 20px rgba(196, 30, 58, 0.4)'
-              }}
-            >
-              {loading ? '🍁 GENERATING... 🍁' : '🍁 VIEW QUESTS 🍁'}
-            </button>
+            {/* Submit or View Quests button */}
+            {canSubmit ? (
+              <button
+                onClick={handleSubmitFeeling}
+                disabled={loading || feeling.trim().length < 20}
+                className="w-full py-3 rounded-full font-bold text-base tracking-wider transition-all transform hover:scale-105 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                style={{ 
+                  background: 'linear-gradient(135deg, #C41E3A 0%, #E63946 100%)',
+                  color: 'white',
+                  boxShadow: '0 8px 20px rgba(196, 30, 58, 0.4)'
+                }}
+              >
+                {loading ? '🍁 GENERATING... 🍁' : (feeling.trim().length >= 20 ? '🍁 SUBMIT 🍁' : '🍁 VIEW QUESTS 🍁')}
+              </button>
+            ) : (
+              <button
+                onClick={handleViewExistingQuests}
+                disabled={!hasExistingQuests}
+                className="w-full py-3 rounded-full font-bold text-base tracking-wider transition-all transform hover:scale-105 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
+                style={{ 
+                  background: hasExistingQuests ? 'linear-gradient(135deg, #C41E3A 0%, #E63946 100%)' : 'linear-gradient(135deg, #9CA3AF 0%, #6B7280 100%)',
+                  color: 'white',
+                  boxShadow: '0 8px 20px rgba(196, 30, 58, 0.4)'
+                }}
+              >
+                🍁 VIEW QUESTS 🍁
+              </button>
+            )}
 
             <p className="text-center text-[10px] mt-2 text-gray-500 font-medium">
-              Share your feelings to unlock today's Canadian quests!
+              {canSubmit 
+                ? 'Share your feelings to unlock today\'s Canadian quests!' 
+                : 'Come back tomorrow for new quests!'}
             </p>
           </div>
         </div>

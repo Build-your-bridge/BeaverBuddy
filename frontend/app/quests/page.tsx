@@ -14,36 +14,18 @@ interface Quest {
 
 export default function QuestsPage() {
   const [dailyQuests, setDailyQuests] = useState<Quest[]>([]);
-  const [monthlyQuests, setMonthlyQuests] = useState<Quest[]>([
-    {
-      title: 'Networking Champion 🤝',
-      description: 'Connect with 10 professionals in your field on LinkedIn and send personalized messages to build your network.',
-      points: 100,
-      difficulty: 'hard',
-      category: 'networking',
-      completed: false
-    },
-    {
-      title: 'Career Visionary 🎯',
-      description: 'Complete a comprehensive career assessment and create a detailed 5-year professional development plan.',
-      points: 150,
-      difficulty: 'hard',
-      category: 'planning',
-      completed: false
-    }
-  ]);
+  const [monthlyQuests, setMonthlyQuests] = useState<Quest[]>([]);
   const [activeTab, setActiveTab] = useState<'daily' | 'monthly'>('daily');
   const [loading, setLoading] = useState(true);
   const [totalDailyQuests, setTotalDailyQuests] = useState(0);
-  const [totalMonthlyQuests, setTotalMonthlyQuests] = useState(2);
+  const [totalMonthlyQuests, setTotalMonthlyQuests] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
-    // Get quests from sessionStorage
+    // Get daily quests from sessionStorage
     const questsData = sessionStorage.getItem('generatedQuests');
     
     if (!questsData) {
-      // No quests, redirect back
       router.push('/dashboard');
       return;
     }
@@ -51,6 +33,29 @@ export default function QuestsPage() {
     const parsedQuests = JSON.parse(questsData);
     setDailyQuests(parsedQuests.map((q: Quest) => ({ ...q, completed: false })));
     setTotalDailyQuests(parsedQuests.length);
+    
+    // Get monthly quests from localStorage
+    const monthlyData = localStorage.getItem('monthlyQuests');
+    const currentMonth = `${new Date().getFullYear()}-${new Date().getMonth() + 1}`;
+    
+    if (monthlyData) {
+      const parsed = JSON.parse(monthlyData);
+      
+      // Check if monthly quests are from current month
+      if (parsed.month === currentMonth) {
+        setMonthlyQuests(parsed.quests.map((q: Quest) => ({ ...q, completed: false })));
+        setTotalMonthlyQuests(parsed.quests.length);
+      } else {
+        // Old month, clear them
+        localStorage.removeItem('monthlyQuests');
+        setMonthlyQuests([]);
+        setTotalMonthlyQuests(0);
+      }
+    } else {
+      setMonthlyQuests([]);
+      setTotalMonthlyQuests(0);
+    }
+    
     setLoading(false);
   }, [router]);
 
@@ -73,6 +78,14 @@ export default function QuestsPage() {
     } else {
       const newQuests = monthlyQuests.filter((_, i) => i !== index);
       setMonthlyQuests(newQuests);
+      
+      // Update localStorage
+      const monthlyData = localStorage.getItem('monthlyQuests');
+      if (monthlyData) {
+        const parsed = JSON.parse(monthlyData);
+        parsed.quests = newQuests;
+        localStorage.setItem('monthlyQuests', JSON.stringify(parsed));
+      }
     }
   };
 
@@ -121,31 +134,39 @@ export default function QuestsPage() {
           </div>
           
           {/* Progress bar */}
-          <div className="bg-gray-100 rounded-full h-2 overflow-hidden">
-            <div 
-              className={`h-full rounded-full transition-all duration-500 ${
-                activeTab === 'daily' 
-                  ? 'bg-gradient-to-r from-orange-400 to-red-500' 
-                  : 'bg-gradient-to-r from-purple-400 to-pink-500'
-              }`}
-              style={{ width: `${(completedCount / totalQuests) * 100}%` }}
-            />
-          </div>
-          <p className="text-center text-xs text-gray-600 mt-2">
-            {completedCount} of {totalQuests} completed
-          </p>
+          {totalQuests > 0 && (
+            <>
+              <div className="bg-gray-100 rounded-full h-2 overflow-hidden">
+                <div 
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    activeTab === 'daily' 
+                      ? 'bg-gradient-to-r from-orange-400 to-red-500' 
+                      : 'bg-gradient-to-r from-purple-400 to-pink-500'
+                  }`}
+                  style={{ width: `${(completedCount / totalQuests) * 100}%` }}
+                />
+              </div>
+              <p className="text-center text-xs text-gray-600 mt-2">
+                {completedCount} of {totalQuests} completed
+              </p>
+            </>
+          )}
         </div>
 
         {/* Quests List - Scrollable but contained */}
         <div className="flex-1 px-4 overflow-y-auto space-y-3 mb-4">
           {currentQuests.length === 0 ? (
             <div className="bg-white rounded-3xl p-6 text-center shadow-md">
-              <div className="text-5xl mb-3">🎉</div>
+              <div className="text-5xl mb-3">
+                {activeTab === 'daily' ? '🎉' : '📅'}
+              </div>
               <h3 className="font-bold text-gray-800 text-base mb-2">
-                All Done!
+                {activeTab === 'daily' ? 'All Done!' : 'No Monthly Quests Yet'}
               </h3>
               <p className="text-gray-600 text-sm">
-                You've completed all your {activeTab} quests. Great job, eh!
+                {activeTab === 'daily' 
+                  ? "You've completed all your daily quests. Great job, eh!" 
+                  : 'Complete your daily check-in to generate monthly quests!'}
               </p>
             </div>
           ) : (
