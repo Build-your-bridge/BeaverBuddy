@@ -232,21 +232,27 @@ export default function DashboardPage() {
       ))}
 
       {/* Simple Header */}
-      <div className="relative h-12 flex items-center justify-between px-4 border-b border-gray-300" style={{ background: 'white' }}>
+      <div className="relative h-12 md:h-20 flex items-center justify-between px-4 border-b border-gray-300" style={{ background: 'white' }}>
         <button
           onClick={handleLogout}
-          className="text-xs font-medium text-gray-600 hover:text-gray-800 shadow-md hover:shadow-lg transition-all px-2 py-1 rounded cursor-pointer"
+          className="text-xs md:text-sm font-medium text-gray-600 hover:text-gray-800 shadow-md hover:shadow-lg transition-all px-2 py-1 md:px-3 md:py-2 rounded cursor-pointer"
         >
           🚪 Logout
         </button>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
-            <span className="text-lg">🍁</span>
-            <span className="text-sm font-bold text-red-600">500</span>
+            <span className="text-lg md:text-2xl">🍁</span>
+            <span className="text-sm md:text-lg font-bold text-red-600">500</span>
           </div>
           <div className="flex items-center gap-1">
-            <span className="text-lg">🔥</span>
-            <span className="text-sm font-bold text-orange-600">12</span>
+            <Image
+              src="/images/icons/fire.png"
+              alt="Fire"
+              width={40}
+              height={40}
+              className="w-7 h-7 md:w-10 md:h-10 object-cover"
+            />
+            <span className="text-sm md:text-lg font-bold text-orange-600">12</span>
           </div>
         </div>
       </div>
@@ -348,31 +354,31 @@ export default function DashboardPage() {
       </div>
 
       {/* Bottom navigation */}
-      <div className="absolute bottom-0 left-0 right-0 h-20 flex items-end justify-around px-4 border-t border-gray-300 pb-2" style={{ background: 'white' }}>
+      <div className="absolute bottom-0 left-0 right-0 h-20 md:h-32 flex items-end justify-around px-4 border-t border-gray-300 pb-2" style={{ background: 'white' }}>
         <div className="flex justify-around items-center max-w-md mx-auto px-8 w-full">
           <button className="flex flex-col items-center transition-transform hover:scale-110">
-            <div className="w-16 h-16 flex flex-col items-center justify-center px-2 py-1">
+            <div className="w-16 h-16 md:w-24 md:h-24 flex flex-col items-center justify-center rounded-lg px-2 py-1">
               <Image
                 src="/images/icons/billy.png"
                 alt="Billy"
-                width={48}
-                height={48}
-                className="object-contain mb-0.5"
+                width={96}
+                height={96}
+                className="w-16 h-16 md:!w-24 md:!h-24 object-contain mb-0.5"
               />
-              <span className="text-xs font-bold text-gray-600">Billy</span>
+              <span className="text-xs md:text-base font-bold text-gray-600">Billy</span>
             </div>
           </button>
           
           <button className="flex flex-col items-center">
-            <div className="w-16 h-16 flex flex-col items-center justify-center rounded-lg px-2 py-1" style={{ backgroundColor: '#e8c4c4' }}>
+            <div className="w-16 h-16 md:w-24 md:h-24 flex flex-col items-center justify-center rounded-lg px-2 py-1" style={{ backgroundColor: '#e8c4c4' }}>
               <Image
                 src="/images/icons/house.png"
                 alt="Home"
-                width={48}
-                height={48}
-                className="object-contain mb-0.5"
+                width={96}
+                height={96}
+                className="w-16 h-16 md:!w-24 md:!h-24 object-contain mb-0.5"
               />
-              <span className="text-xs font-bold text-red-600">Home</span>
+              <span className="text-xs md:text-base font-bold text-red-600">Home</span>
             </div>
           </button>
           
@@ -385,15 +391,15 @@ export default function DashboardPage() {
                 3
               </div>
             )}
-            <div className="w-16 h-16 flex flex-col items-center justify-center px-2 py-1">
+            <div className="w-16 h-16 md:w-24 md:h-24 flex flex-col items-center justify-center px-2 py-1">
               <Image
                 src="/images/icons/grey_journal.png"
                 alt="Journal"
-                width={48}
-                height={48}
-                className="object-contain mb-0.5"
+                width={96}
+                height={96}
+                className="w-16 h-16 md:!w-24 md:!h-24 object-contain mb-0.5"
               />
-              <span className="text-xs font-bold text-gray-600">Journal</span>
+              <span className="text-xs md:text-base font-bold text-gray-600">Journal</span>
             </div>
           </button>
         </div>
