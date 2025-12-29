@@ -17,7 +17,15 @@ export default function QuestsPage() {
   const router = useRouter();
 
   useEffect(() => {
-    const questsDataRaw = sessionStorage.getItem('generatedQuests');
+    // Get user ID from localStorage
+    const userData = localStorage.getItem('user');
+    if (!userData) {
+      router.push('/login');
+      return;
+    }
+    
+    const currentUser = JSON.parse(userData);
+    const questsDataRaw = sessionStorage.getItem(`generatedQuests_${currentUser.id}`);
     
     if (!questsDataRaw) {
       router.push('/dashboard');
@@ -32,8 +40,8 @@ export default function QuestsPage() {
       // The backend returns the quests directly as an array
       const dailyArray = Array.isArray(parsedData) ? parsedData : [];
       
-      // Get monthly quests from sessionStorage
-      const monthlyDataRaw = sessionStorage.getItem('monthlyQuests');
+      // Get monthly quests from sessionStorage with user-specific key
+      const monthlyDataRaw = sessionStorage.getItem(`monthlyQuests_${currentUser.id}`);
       const monthlyArray = monthlyDataRaw ? JSON.parse(monthlyDataRaw) : [];
 
       console.log('Daily quests:', dailyArray);

@@ -183,9 +183,20 @@ Return ONLY a JSON object with this exact structure:
 
     let content = data.choices[0].message.content;
 
+    // Debug: log the raw content
+    console.log('AI Response Content:', content);
+
     // Parse AI JSON safely
     const startIndex = content.indexOf('{');
     const endIndex = content.lastIndexOf('}');
+    
+    if (startIndex === -1 || endIndex === -1) {
+      console.error('No JSON found in AI response');
+      return res.status(500).json({
+        error: 'AI returned invalid response format',
+      });
+    }
+
     const jsonStr = content
       .substring(startIndex, endIndex + 1)
       .replace(/```json\n?/g, '')
@@ -194,7 +205,18 @@ Return ONLY a JSON object with this exact structure:
       .replace(/,\s*}/g, '}')
       .replace(/,\s*]/g, ']');
 
-    const questsData = JSON.parse(jsonStr);
+    console.log('Extracted JSON string:', jsonStr);
+
+    let questsData;
+    try {
+      questsData = JSON.parse(jsonStr);
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      console.error('Failed to parse:', jsonStr);
+      return res.status(500).json({
+        error: 'Failed to parse AI response',
+      });
+    }
 
     // Save quests to DB using Transaction
     const result = await prisma.$transaction(async (tx) => {

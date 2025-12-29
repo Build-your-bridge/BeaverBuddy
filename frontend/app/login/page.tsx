@@ -35,6 +35,12 @@ export default function Page() {
       localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
 
+      // Clear any old generic quest data (from before user-specific keys)
+      localStorage.removeItem('questGeneratedDate');
+      sessionStorage.removeItem('generatedQuests');
+      sessionStorage.removeItem('monthlyQuests');
+      sessionStorage.removeItem('journalPrompts');
+
       // Redirect to dashboard or home
       router.push('/dashboard');
     } catch (err: any) {

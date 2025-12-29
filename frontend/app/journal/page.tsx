@@ -15,8 +15,17 @@ export default function JournalPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Get journal prompts from sessionStorage
-    const journalPromptsData = sessionStorage.getItem('journalPrompts');
+    // Get user ID from localStorage
+    const userData = localStorage.getItem('user');
+    if (!userData) {
+      router.push('/login');
+      return;
+    }
+    
+    const currentUser = JSON.parse(userData);
+    
+    // Get journal prompts from sessionStorage with user-specific key
+    const journalPromptsData = sessionStorage.getItem(`journalPrompts_${currentUser.id}`);
     
     if (!journalPromptsData) {
       router.push('/dashboard');

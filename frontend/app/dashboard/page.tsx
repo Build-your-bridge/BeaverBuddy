@@ -17,7 +17,7 @@ export default function DashboardPage() {
   const [error, setError] = useState('');
   const [hasJournalPrompts, setHasJournalPrompts] = useState(false);
   const [hasGeneratedToday, setHasGeneratedToday] = useState(false);
-  const [checkingStatus, setCheckingStatus] = useState(true);
+  const [checkingStatus, setCheckingStatus] = useState(false); // Start as false
   const router = useRouter();
 
   useEffect(() => {
@@ -30,36 +30,49 @@ export default function DashboardPage() {
     }
 
     setUser(JSON.parse(userData));
+    const currentUserId = JSON.parse(userData).id;
     
-    // Check if there are journal prompts
-    const journalPrompts = sessionStorage.getItem('journalPrompts');
+    // Check if there are journal prompts for this user
+    const journalPrompts = sessionStorage.getItem(`journalPrompts_${currentUserId}`);
     setHasJournalPrompts(!!journalPrompts);
 
-    // Check session storage first (fallback if API fails)
-    const existingQuests = sessionStorage.getItem('generatedQuests');
-    const questGeneratedDate = localStorage.getItem('questGeneratedDate');
+    // Check session storage first (fallback if API fails) - user specific
+    const existingQuests = sessionStorage.getItem(`generatedQuests_${currentUserId}`);
+    const questGeneratedDate = localStorage.getItem(`questGeneratedDate_${currentUserId}`);
     const today = new Date().toDateString();
 
     if (existingQuests && questGeneratedDate === today) {
       // Already generated today based on local storage
       setHasGeneratedToday(true);
-      setCheckingStatus(false);
+      // checkingStatus stays false
     } else if (questGeneratedDate && questGeneratedDate !== today) {
       // Old quests from a previous day, clear them
-      sessionStorage.removeItem('generatedQuests');
-      sessionStorage.removeItem('monthlyQuests');
-      sessionStorage.removeItem('journalPrompts');
-      localStorage.removeItem('questGeneratedDate');
+      sessionStorage.removeItem(`generatedQuests_${currentUserId}`);
+      sessionStorage.removeItem(`monthlyQuests_${currentUserId}`);
+      sessionStorage.removeItem(`journalPrompts_${currentUserId}`);
+      localStorage.removeItem(`questGeneratedDate_${currentUserId}`);
       setHasJournalPrompts(false);
+      // Need to check with backend after clearing old data
+      setCheckingStatus(true);
       checkTodayStatus(token);
     } else {
-      // Check with backend
+      // No cached data, need to check with backend
+      setCheckingStatus(true);
       checkTodayStatus(token);
     }
   }, [router]);
 
   const checkTodayStatus = async (token: string) => {
+    console.log('Starting checkTodayStatus...');
+    
+    // Set a timeout to force loading to complete after 10 seconds
+    const timeoutId = setTimeout(() => {
+      console.log('API call timed out, setting checkingStatus to false');
+      setCheckingStatus(false);
+    }, 10000);
+    
     try {
+      console.log('Making API call to check-today...');
       const response = await fetch('http://localhost:5000/api/quests/check-today', {
         method: 'GET',
         headers: {
@@ -67,23 +80,35 @@ export default function DashboardPage() {
         }
       });
 
+      clearTimeout(timeoutId); // Clear the timeout since we got a response
+      console.log('API response received:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('API data:', data);
         setHasGeneratedToday(data.hasGeneratedToday);
         
-        // If they have generated today, store the quests in session
+        // If they have generated today, store the quests in session with user-specific keys
         if (data.hasGeneratedToday && data.quests) {
-          sessionStorage.setItem('generatedQuests', JSON.stringify(data.quests));
-          sessionStorage.setItem('monthlyQuests', JSON.stringify(data.monthlyQuests || []));
-          sessionStorage.setItem('journalPrompts', JSON.stringify(data.journalPrompts));
-          localStorage.setItem('questGeneratedDate', new Date().toDateString());
-          setHasJournalPrompts(true);
+          const userData = localStorage.getItem('user');
+          if (userData) {
+            const currentUser = JSON.parse(userData);
+            sessionStorage.setItem(`generatedQuests_${currentUser.id}`, JSON.stringify(data.quests));
+            sessionStorage.setItem(`monthlyQuests_${currentUser.id}`, JSON.stringify(data.monthlyQuests || []));
+            sessionStorage.setItem(`journalPrompts_${currentUser.id}`, JSON.stringify(data.journalPrompts));
+            localStorage.setItem(`questGeneratedDate_${currentUser.id}`, new Date().toDateString());
+            setHasJournalPrompts(true);
+          }
         }
+      } else {
+        console.log('API call failed with status:', response.status);
       }
     } catch (err) {
+      clearTimeout(timeoutId);
       console.error('Error checking today status:', err);
       // Don't set hasGeneratedToday on error - let the localStorage check handle it
     } finally {
+      console.log('Setting checkingStatus to false');
       setCheckingStatus(false);
     }
   };
@@ -123,13 +148,17 @@ export default function DashboardPage() {
         throw new Error(data.error || 'Failed to generate quests');
       }
 
-      // Save quests, monthly quests, and journal prompts to sessionStorage
-      sessionStorage.setItem('generatedQuests', JSON.stringify(data.quests));
-      sessionStorage.setItem('monthlyQuests', JSON.stringify(data.monthlyQuests));
-      sessionStorage.setItem('journalPrompts', JSON.stringify(data.journalPrompts));
-      
-      // Store the date when quests were generated
-      localStorage.setItem('questGeneratedDate', new Date().toDateString());
+      // Save quests, monthly quests, and journal prompts to sessionStorage with user-specific keys
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        const currentUser = JSON.parse(userData);
+        sessionStorage.setItem(`generatedQuests_${currentUser.id}`, JSON.stringify(data.quests));
+        sessionStorage.setItem(`monthlyQuests_${currentUser.id}`, JSON.stringify(data.monthlyQuests));
+        sessionStorage.setItem(`journalPrompts_${currentUser.id}`, JSON.stringify(data.journalPrompts));
+        
+        // Store the date when quests were generated
+        localStorage.setItem(`questGeneratedDate_${currentUser.id}`, new Date().toDateString());
+      }
 
       // Mark as generated today
       setHasGeneratedToday(true);
@@ -145,16 +174,22 @@ export default function DashboardPage() {
   };
 
   const handleLogout = () => {
+    // Clear user-specific quest data
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const currentUser = JSON.parse(userData);
+      localStorage.removeItem(`questGeneratedDate_${currentUser.id}`);
+      sessionStorage.removeItem(`generatedQuests_${currentUser.id}`);
+      sessionStorage.removeItem(`monthlyQuests_${currentUser.id}`);
+      sessionStorage.removeItem(`journalPrompts_${currentUser.id}`);
+    }
+
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    localStorage.removeItem('questGeneratedDate');
-    sessionStorage.removeItem('generatedQuests');
-    sessionStorage.removeItem('monthlyQuests');
-    sessionStorage.removeItem('journalPrompts');
     router.push('/');
   };
 
-  if (!user || checkingStatus) {
+  if (!user) {
     return (
       <div className="h-screen flex items-center justify-center" style={{ 
         background: 'linear-gradient(135deg, #B8312F 0%, #E63946 50%, #8B0000 100%)'
@@ -290,7 +325,7 @@ export default function DashboardPage() {
             {/* Success message when already generated */}
             {hasGeneratedToday && (
               <div className="mb-3 p-3 bg-green-100 border border-green-400 text-green-700 rounded-2xl text-xs text-center">
-                ✓ You've already completed today's mental health check-in! View your quests below.
+                ✓ You've already completed today's daily check-in! View your quests below.
               </div>
             )}
 
@@ -301,30 +336,29 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Input field with character count */}
-            <div className="mb-3">
-              <textarea
-                value={feeling}
-                onChange={(e) => {
-                  setFeeling(e.target.value);
-                  setError('');
-                }}
-                placeholder={hasGeneratedToday ? 'Check-in complete for today. See you tomorrow! 🍁' : 'Type your answer here... e.g., "I feel great because hockey season started!" 🏒'}
-                className="w-full p-3 rounded-2xl resize-none text-gray-700 text-xs leading-relaxed shadow-inner"
-                style={{ 
-                  border: '1.5px solid #C41E3A',
-                  backgroundColor: hasGeneratedToday ? '#f5f5f5' : '#ffffffff',
-                  outline: 'none'
-                }}
-                rows={2}
-                disabled={hasGeneratedToday}
-              />
-              {!hasGeneratedToday && (
+            {/* Input field with character count - only show if not generated today */}
+            {!hasGeneratedToday && (
+              <div className="mb-3">
+                <textarea
+                  value={feeling}
+                  onChange={(e) => {
+                    setFeeling(e.target.value);
+                    setError('');
+                  }}
+                  placeholder="Type your answer here... e.g., 'I feel great because hockey season started!' 🏒"
+                  className="w-full p-3 rounded-2xl resize-none text-gray-700 text-xs leading-relaxed shadow-inner"
+                  style={{ 
+                    border: '1.5px solid #C41E3A',
+                    backgroundColor: '#ffffffff',
+                    outline: 'none'
+                  }}
+                  rows={2}
+                />
                 <p className="text-[10px] text-gray-500 mt-1 ml-1">
                   {feeling.length}/20 characters minimum
                 </p>
-              )}
-            </div>
+              </div>
+            )}
 
             {/* Button changes based on status */}
             <button
@@ -333,12 +367,12 @@ export default function DashboardPage() {
               className="w-full py-3 rounded-2xl font-bold text-base tracking-wider transition-all transform hover:scale-105 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               style={{ 
                 background: hasGeneratedToday 
-                  ? 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)'
-                  : 'linear-gradient(135deg, #C41E3A 0%, #E63946 100%)',
+                  ? 'linear-gradient(135deg, #ce5c5c 0%, #ce5c5c 100%)'
+                  : 'linear-gradient(135deg, #ce5c5c 0%, #ce5c5c 100%)',
                 color: 'white',
                 boxShadow: hasGeneratedToday 
-                  ? '0 8px 20px rgba(37, 99, 235, 0.4)'
-                  : '0 8px 20px rgba(196, 30, 58, 0.4)'
+                  ? '0 5px 10px rgba(0, 0, 0, 0.4)'
+                  : '0 5px 10px rgba(0, 0, 0, 0.4)'
               }}
             >
               {loading ? 'GENERATING...' : hasGeneratedToday ? 'VIEW MY QUESTS' : 'SUBMIT & VIEW QUESTS'}
@@ -393,7 +427,7 @@ export default function DashboardPage() {
             )}
             <div className="w-16 h-16 md:w-24 md:h-24 flex flex-col items-center justify-center px-2 py-1">
               <Image
-                src="/images/icons/grey_journal.png"
+                src={hasJournalPrompts ? "/images/icons/journal.png" : "/images/icons/grey_journal.png"}
                 alt="Journal"
                 width={96}
                 height={96}
