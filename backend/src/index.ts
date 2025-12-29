@@ -4,6 +4,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes';
 import questRoutes from './routes/questRoutes';
+import outfitRoutes from './routes/outfitRoutes';
 import prisma from './db/prisma';
 
 dotenv.config();
@@ -27,7 +28,8 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/quests', questRoutes); // ADD THIS LINE
+app.use('/api/quests', questRoutes);
+app.use('/api/outfits', outfitRoutes); // ADD THIS LINE
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {

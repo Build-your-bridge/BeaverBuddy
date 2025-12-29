@@ -8,6 +8,12 @@ interface User {
   id: number;
   name: string;
   email: string;
+  points: number;
+  equippedOutfit?: {
+    id: number;
+    name: string;
+    image: string;
+  } | null;
 }
 
 export default function DashboardPage() {
@@ -251,7 +257,7 @@ export default function DashboardPage() {
             <div className="flex justify-center mb-6">
               <div className="relative w-52 h-52">
                 <Image
-                  src="/images/beaver/default_beaver.png"
+                  src={user?.equippedOutfit?.image || "/images/beaver/default/default.png"}
                   alt="Beaver mascot"
                   width={240}
                   height={240}
@@ -340,14 +346,13 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Bottom navigation - glass */}
-      <div className="absolute bottom-0 left-0 right-0 h-28 flex items-center justify-center px-4 z-10" style={{ 
-        background: 'rgba(255, 255, 255, 0.15)', 
-        backdropFilter: 'blur(20px)',
-        borderTop: '1px solid rgba(255, 255, 255, 0.2)'
-      }}>
+      {/* Bottom navigation - solid */}
+      <div className="absolute bottom-0 left-0 right-0 h-28 flex items-center justify-center px-4 z-10 bg-white border-t-2 border-gray-200 shadow-lg">
         <div className="flex justify-center items-center gap-8 w-full max-w-2xl pb-4">
-          <button className="flex flex-col items-center transition-transform hover:scale-110">
+          <button 
+            onClick={() => router.push('/billy')}
+            className="flex flex-col items-center transition-transform hover:scale-110"
+          >
             <div className="w-24 h-24 flex flex-col items-center justify-center rounded-3xl px-3 py-2" style={{
               background: 'rgba(255, 255, 255, 0.3)',
               backdropFilter: 'blur(10px)',

@@ -12,11 +12,14 @@ model User {
   name      String
   email     String   @unique
   password  String
+  points    Int      @default(500)
+  equippedOutfitId Int?  // ID of currently equipped outfit
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   dailyQuests   DailyQuest[]
   monthlyQuests MonthlyQuest[]
+  userOutfits   UserOutfit[]
 
   @@index([email])
   @@map("users")
@@ -45,4 +48,40 @@ model MonthlyQuest {
 
   @@unique([userId, month])
   @@map("monthly_quests")
+}
+
+model Outfit {
+  id          Int         @id @default(autoincrement())
+  name        String
+  description String
+  image       String
+  price       Int
+  rarity      OutfitRarity
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  userOutfits UserOutfit[]
+
+  @@map("outfits")
+}
+
+model UserOutfit {
+  id       Int      @id @default(autoincrement())
+  userId   Int
+  outfitId Int
+  equipped Boolean  @default(false)
+  ownedAt  DateTime @default(now()) @map("owned_at")
+
+  user   User   @relation(fields: [userId], references: [id])
+  outfit Outfit @relation(fields: [outfitId], references: [id])
+
+  @@unique([userId, outfitId])
+  @@map("user_outfits")
+}
+
+enum OutfitRarity {
+  COMMON
+  RARE
+  EPIC
+  LEGENDARY
 }

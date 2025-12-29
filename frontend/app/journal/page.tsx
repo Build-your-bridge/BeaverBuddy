@@ -4,6 +4,18 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  points: number;
+  equippedOutfit?: {
+    id: number;
+    name: string;
+    image: string;
+  } | null;
+}
+
 export default function JournalPage() {
   const [prompts, setPrompts] = useState<string[]>([]);
   const [currentPromptIndex, setCurrentPromptIndex] = useState(0);
@@ -12,6 +24,7 @@ export default function JournalPage() {
   const [loading, setLoading] = useState(false);
   const [aiResponse, setAiResponse] = useState('');
   const [showResponse, setShowResponse] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -23,6 +36,7 @@ export default function JournalPage() {
     }
     
     const currentUser = JSON.parse(userData);
+    setUser(currentUser);
     
     // Get journal prompts from sessionStorage with user-specific key
     const journalPromptsData = sessionStorage.getItem(`journalPrompts_${currentUser.id}`);
@@ -99,6 +113,21 @@ Respond with a warm, supportive, and comforting message (2-3 sentences). Be empa
     }
   };
 
+  const handleLogout = () => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const currentUser = JSON.parse(userData);
+      localStorage.removeItem(`questGeneratedDate_${currentUser.id}`);
+      sessionStorage.removeItem(`generatedQuests_${currentUser.id}`);
+      sessionStorage.removeItem(`monthlyQuests_${currentUser.id}`);
+      sessionStorage.removeItem(`journalPrompts_${currentUser.id}`);
+    }
+
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    router.push('/');
+  };
+
   if (prompts.length === 0) {
     return (
       <div className="h-screen flex items-center justify-center" style={{ 
@@ -134,10 +163,10 @@ Respond with a warm, supportive, and comforting message (2-3 sentences). Be empa
         borderBottom: '1px solid rgba(255, 255, 255, 0.2)'
       }}>
         <button
-          onClick={() => router.push('/dashboard')}
+          onClick={handleLogout}
           className="text-sm font-bold text-gray-800 hover:text-gray-900 transition-all px-4 py-2 rounded-xl bg-white/60 backdrop-blur-md shadow-lg border border-white/40"
         >
-          🏠 Home
+          🪵 Logout
         </button>
         
         <div className="flex items-center gap-3">
@@ -195,7 +224,7 @@ Respond with a warm, supportive, and comforting message (2-3 sentences). Be empa
             <div className="flex justify-center mb-6">
               <div className="relative w-52 h-52">
                 <Image
-                  src="/images/beaver/default_beaver.png"
+                  src={user?.equippedOutfit?.image || "/images/beaver/default/default.png"}
                   alt="Billy the Beaver"
                   width={240}
                   height={240}
@@ -288,14 +317,13 @@ Respond with a warm, supportive, and comforting message (2-3 sentences). Be empa
         </div>
       </div>
 
-      {/* Bottom navigation - glass */}
-      <div className="absolute bottom-0 left-0 right-0 h-28 flex items-center justify-center px-4 z-10" style={{ 
-        background: 'rgba(255, 255, 255, 0.15)', 
-        backdropFilter: 'blur(20px)',
-        borderTop: '1px solid rgba(255, 255, 255, 0.2)'
-      }}>
+      {/* Bottom navigation - solid */}
+      <div className="absolute bottom-0 left-0 right-0 h-28 flex items-center justify-center px-4 z-10 bg-white border-t-2 border-gray-200 shadow-lg">
         <div className="flex justify-center items-center gap-8 w-full max-w-2xl pb-4">
-          <button className="flex flex-col items-center transition-transform hover:scale-110">
+          <button 
+            onClick={() => router.push('/billy')}
+            className="flex flex-col items-center transition-transform hover:scale-110"
+          >
             <div className="w-24 h-24 flex flex-col items-center justify-center rounded-3xl px-3 py-2" style={{
               background: 'rgba(255, 255, 255, 0.3)',
               backdropFilter: 'blur(10px)',
@@ -336,9 +364,9 @@ Respond with a warm, supportive, and comforting message (2-3 sentences). Be empa
           
           <button className="flex flex-col items-center">
             <div className="w-24 h-24 flex flex-col items-center justify-center rounded-3xl px-3 py-2" style={{
-              background: 'rgba(236, 72, 153, 0.3)',
+              background: 'rgba(255, 22, 22, 0.22)',
               backdropFilter: 'blur(10px)',
-              border: '2px solid rgba(236, 72, 153, 0.4)',
+              border: '2px solid rgba(236, 72, 72, 0.4)',
               boxShadow: '0 8px 24px rgba(236, 72, 153, 0.3)'
             }}>
               <Image
