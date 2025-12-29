@@ -102,157 +102,119 @@ Respond with a warm, supportive, and comforting message (2-3 sentences). Be empa
   if (prompts.length === 0) {
     return (
       <div className="h-screen flex items-center justify-center" style={{ 
-        background: 'linear-gradient(135deg, #B8312F 0%, #E63946 50%, #8B0000 100%)'
+        background: 'linear-gradient(135deg, #ffa69e 0%, #ffddd2 100%)'
       }}>
-        <p className="text-white font-bold">Loading journal...</p>
+        <p className="text-gray-800 font-semibold">Loading journal...</p>
       </div>
     );
   }
 
-  // Generate maple leaves
-  const mapleLeaves = Array.from({ length: 8 }, (_, i) => ({
-    id: i,
-    left: `${(i * 12) + 5}%`,
-    color: i % 3 === 0 ? '#1e40af' : i % 3 === 1 ? '#3b82f6' : '#ffffff',
-    animationDuration: `${Math.random() * 4 + 8}s`,
-    animationDelay: `${Math.random() * 5}s`,
-    fontSize: `${Math.random() * 15 + 25}px`,
-  }));
-
   return (
-    <main className="h-screen flex flex-col relative overflow-hidden" style={{ 
-      background: 'linear-gradient(135deg, #B8312F 0%, #E63946 25%, #DC143C 50%, #C41E3A 75%, #8B0000 100%)',
-      backgroundSize: '400% 400%',
-      animation: 'gradient 15s ease infinite'
-    }}>
+    <main className="h-screen flex flex-col relative overflow-hidden bg-white">
       <style jsx>{`
-        @keyframes gradient {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-10px); }
+          50% { transform: translateY(-15px); }
         }
-        @keyframes fall {
-          0% { 
-            transform: translateY(-100px) rotate(0deg); 
-            opacity: 0;
-          }
-          10% {
-            opacity: 1;
-          }
-          90% {
-            opacity: 0.9;
-          }
-          100% { 
-            transform: translateY(100vh) rotate(360deg); 
-            opacity: 0;
-          }
-        }
-        .maple-leaf {
-          position: absolute;
-          animation: fall linear infinite;
-          pointer-events: none;
-          filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.6));
+        @keyframes sparkle {
+          0%, 100% { opacity: 0.3; transform: scale(1); }
+          50% { opacity: 1; transform: scale(1.2); }
         }
       `}</style>
 
-      {/* Falling maple leaves */}
-      {mapleLeaves.map((leaf) => (
-        <div
-          key={leaf.id}
-          className="maple-leaf"
-          style={{
-            left: leaf.left,
-            animationDuration: leaf.animationDuration,
-            animationDelay: leaf.animationDelay,
-            width: leaf.fontSize,
-            height: leaf.fontSize,
-          }}
-        >
-          <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%', filter: 'drop-shadow(0 0 3px rgba(255,255,255,0.8))' }}>
-            <path
-              d="M50,10 L55,35 L70,25 L60,45 L85,45 L65,55 L75,75 L55,65 L50,90 L45,65 L25,75 L35,55 L15,45 L40,45 L30,25 L45,35 Z"
-              fill={leaf.color}
-              stroke="rgba(255,255,255,0.5)"
-              strokeWidth="1"
-            />
-          </svg>
-        </div>
-      ))}
+      {/* Floating sparkles */}
+      <div className="absolute top-20 left-20 text-gray-400 text-3xl z-5" style={{ animation: 'sparkle 3s ease-in-out infinite' }}>✦</div>
+      <div className="absolute top-32 right-32 text-gray-400 text-2xl z-5" style={{ animation: 'sparkle 3s ease-in-out infinite', animationDelay: '1s' }}>✦</div>
+      <div className="absolute bottom-40 left-40 text-gray-400 text-2xl z-5" style={{ animation: 'sparkle 3s ease-in-out infinite', animationDelay: '2s' }}>✦</div>
 
-      {/* Header */}
-      <div className="bg-white rounded-b-[45px] pt-5 pb-4 px-6 relative" style={{ 
-        boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
-        borderBottom: '4px solid #C41E3A'
+      {/* Header - Glass */}
+      <div className="relative h-20 flex items-center justify-between px-6 z-10" style={{ 
+        background: 'rgba(255, 255, 255, 0.15)', 
+        backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.2)'
       }}>
-        <div className="text-center">
-          <div className="inline-block mb-1">
-            <span className="text-3xl animate-bounce inline-block" style={{ animation: 'float 3s ease-in-out infinite' }}>📖</span>
-          </div>
-          <h2 className="text-2xl font-bold mb-0.5" style={{ 
-            background: 'linear-gradient(90deg, #C41E3A 0%, #E63946 50%, #C41E3A 100%)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text'
-          }}>
-            Journal Time
-          </h2>
-          <p className="text-xs text-gray-600 font-medium">Question {currentPromptIndex + 1} of {prompts.length}</p>
-        </div>
+        <button
+          onClick={() => router.push('/dashboard')}
+          className="text-sm font-bold text-gray-800 hover:text-gray-900 transition-all px-4 py-2 rounded-xl bg-white/60 backdrop-blur-md shadow-lg border border-white/40"
+        >
+          🏠 Home
+        </button>
         
-        {/* Progress dots */}
-        <div className="flex justify-center gap-2 mt-3">
-          {prompts.map((_, index) => (
-            <div
-              key={index}
-              className={`w-2 h-2 rounded-full transition-all ${
-                index <= currentPromptIndex ? 'bg-red-500' : 'bg-gray-300'
-              }`}
-            />
-          ))}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-white/60 backdrop-blur-md rounded-full px-4 py-2 shadow-lg border border-white/40">
+            <span className="text-2xl">🍁</span>
+            <span className="text-lg font-black text-gray-800">500</span>
+          </div>
+          <div className="flex items-center gap-2 bg-white/60 backdrop-blur-md rounded-full px-4 py-2 shadow-lg border border-white/40">
+            <span className="text-2xl">🔥</span>
+            <span className="text-lg font-black text-gray-800">12</span>
+          </div>
         </div>
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex items-center justify-center px-6 pb-24">
-        <div className="w-full max-w-md">
-          <div className="bg-amber-50 rounded-[35px] px-6 py-5 relative shadow-2xl" style={{
-            border: '3px solid #8B4513',
-            boxShadow: '0 20px 60px rgba(139, 69, 19, 0.3)'
+      <div className="flex-1 flex items-center justify-center px-6 pb-28 relative z-10">
+        {/* Question counter */}
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20">
+          <div className="flex items-center gap-2 bg-white/80 backdrop-blur-md rounded-full px-4 py-2 shadow-lg border border-white/50">
+            <span className="text-2xl">📖</span>
+            <span className="text-lg font-black text-gray-800">{currentPromptIndex + 1}/{prompts.length}</span>
+          </div>
+        </div>
+        
+        <div className="w-full max-w-lg">
+          {/* Glass card */}
+          <div className="relative" style={{
+            background: 'rgba(255, 255, 255, 1)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: '40px',
+            padding: '32px',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.3)',
+            border: '1px solid rgba(255, 255, 255, 0.3)'
           }}>
-            {/* Billy asking the question */}
-            <div className="bg-white rounded-3xl px-5 py-2.5 mb-4 text-center relative" style={{ 
-              boxShadow: '0 8px 20px rgba(196, 30, 58, 0.15)',
-              border: '2px solid #FFE5E5'
+            {/* Speech bubble */}
+            <div className="mb-6 text-left relative" style={{ 
+              background: 'rgba(255, 255, 255, 0.4)',
+              backdropFilter: 'blur(10px)',
+              borderRadius: '25px',
+              padding: '20px 24px',
+              boxShadow: '0 8px 10px rgba(0, 0, 0, 0.2)'
             }}>
-              <div className="absolute -top-2.5 left-1/2 transform -translate-x-1/2 text-2xl">🍁</div>
-              <h1 className="text-base font-bold text-gray-800 leading-snug pt-1">
+              {/* Speech bubble tail */}
+              <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2" style={{ filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1))' }}>
+                <svg width="30" height="20" viewBox="0 0 30 20" fill="none">
+                  <path d="M 5 0 Q 15 10 25 0 L 18 15 L 12 15 Z" fill="white"/>
+                </svg>
+              </div>
+              <h1 className="text-2xl font-black text-gray-800 leading-tight">
                 {prompts[currentPromptIndex]}
               </h1>
             </div>
 
-            {/* Beaver */}
-            <div className="flex justify-center mb-4">
-              <div className="relative w-32 h-32 bg-amber-100 rounded-full flex items-center justify-center shadow-lg" style={{
-                border: '3px solid #8B4513'
-              }}>
+            {/* Billy Beaver */}
+            <div className="flex justify-center mb-6">
+              <div className="relative w-52 h-52">
                 <Image
-                  src="/images/beaver/welcome_beaver2.png"
+                  src="/images/beaver/default_beaver.png"
                   alt="Billy the Beaver"
-                  width={120}
-                  height={120}
-                  className="object-contain"
+                  width={240}
+                  height={240}
+                  className="object-contain drop-shadow-2xl"
                   priority
+                  style={{ animation: 'float 3s ease-in-out infinite' }}
                 />
               </div>
             </div>
 
             {/* AI Response after submission */}
             {showResponse && (
-              <div className="mb-4 p-4 bg-green-50 rounded-3xl border-2 border-green-200 animate-fade-in">
+              <div className="mb-4 p-3 text-center font-bold text-sm" style={{
+                background: 'rgba(34, 197, 94, 0.3)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '16px',
+                border: '1px solid rgba(34, 197, 94, 0.4)',
+                color: '#166534'
+              }}>
                 <div className="flex items-start gap-2 mb-2">
                   <span className="text-xl">🦫</span>
                   <p className="text-xs font-bold text-green-800">Billy says:</p>
@@ -265,21 +227,26 @@ Respond with a warm, supportive, and comforting message (2-3 sentences). Be empa
 
             {/* Input field */}
             {!showResponse && (
-              <div className="mb-3">
+              <div className="mb-4">
                 <textarea
                   value={currentAnswer}
                   onChange={(e) => setCurrentAnswer(e.target.value)}
-                  placeholder='Share your thoughts here, eh! 🍁'
-                  className="w-full p-3 rounded-3xl resize-none text-gray-700 text-xs leading-relaxed shadow-inner"
+                  placeholder="Share your thoughts here..."
+                  className="w-full p-4 resize-none text-gray-800 placeholder-gray-500 text-sm leading-relaxed"
                   style={{ 
-                    border: '3px solid #C41E3A',
-                    backgroundColor: '#FFFBF5',
-                    outline: 'none'
+                    background: 'rgba(255, 255, 255, 0.4)',
+                    backdropFilter: 'blur(10px)',
+                    borderRadius: '20px',
+                    border: '2px solid rgba(236, 72, 153, 0.3)',
+                    outline: 'none',
+                    boxShadow: 'inset 0 2px 8px rgba(0, 0, 0, 0.05)'
                   }}
-                  rows={4}
+                  rows={3}
+                  onFocus={(e) => e.target.style.border = '2px solid rgba(236, 72, 153, 0.6)'}
+                  onBlur={(e) => e.target.style.border = '2px solid rgba(236, 72, 153, 0.3)'}
                 />
-                <p className="text-[10px] text-gray-500 mt-1 ml-1">
-                  {currentAnswer.length} characters (minimum 10)
+                <p className="text-xs text-gray-700 mt-2 ml-1 font-semibold">
+                  {currentAnswer.length}/10 characters minimum
                 </p>
               </div>
             )}
@@ -289,43 +256,100 @@ Respond with a warm, supportive, and comforting message (2-3 sentences). Be empa
               <button
                 onClick={handleSubmitAnswer}
                 disabled={loading || currentAnswer.trim().length < 10}
-                className="w-full py-3 rounded-full font-bold text-base tracking-wider transition-all transform hover:scale-105 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                className="w-full py-4 font-black text-lg tracking-wider transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 style={{ 
-                  background: 'linear-gradient(135deg, #C41E3A 0%, #E63946 100%)',
+                  borderRadius: '20px',
+                  background: '#ce5c5c',
                   color: 'white',
-                  boxShadow: '0 8px 20px rgba(196, 30, 58, 0.4)'
+                  boxShadow: '0 10px 30px rgba(236, 72, 153, 0.4)'
                 }}
               >
-                {loading ? '🍁 THINKING... 🍁' : '🍁 SUBMIT 🍁'}
+                {loading ? 'THINKING...' : 'SUBMIT'}
               </button>
             ) : (
               <button
                 onClick={handleNextPrompt}
-                className="w-full py-3 rounded-full font-bold text-base tracking-wider transition-all transform hover:scale-105 hover:shadow-2xl"
+                className="w-full py-4 font-black text-lg tracking-wider transition-all transform hover:scale-105"
                 style={{ 
-                  background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)',
+                  borderRadius: '20px',
+                  background: '#22c55e',
                   color: 'white',
-                  boxShadow: '0 8px 20px rgba(40, 167, 69, 0.4)'
+                  boxShadow: '0 10px 30px rgba(34, 197, 94, 0.4)'
                 }}
               >
                 {currentPromptIndex < prompts.length - 1 ? '→ NEXT QUESTION' : '✓ FINISH JOURNAL'}
               </button>
             )}
+
+            <p className="text-center text-xs mt-3 text-gray-700 font-semibold">
+              Take your time to reflect thoughtfully
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Bottom navigation */}
-      <div className="absolute bottom-0 left-0 right-0 bg-amber-100 rounded-t-[40px] py-3" style={{ 
-        boxShadow: '0 -8px 30px rgba(139, 69, 19, 0.3)',
-        borderTop: '3px solid #8B4513'
+      {/* Bottom navigation - glass */}
+      <div className="absolute bottom-0 left-0 right-0 h-28 flex items-center justify-center px-4 z-10" style={{ 
+        background: 'rgba(255, 255, 255, 0.15)', 
+        backdropFilter: 'blur(20px)',
+        borderTop: '1px solid rgba(255, 255, 255, 0.2)'
       }}>
-        <div className="flex justify-center">
+        <div className="flex justify-center items-center gap-8 w-full max-w-2xl pb-4">
+          <button className="flex flex-col items-center transition-transform hover:scale-110">
+            <div className="w-24 h-24 flex flex-col items-center justify-center rounded-3xl px-3 py-2" style={{
+              background: 'rgba(255, 255, 255, 0.3)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.1)'
+            }}>
+              <Image
+                src="/images/icons/billy.png"
+                alt="Billy"
+                width={64}
+                height={64}
+                className="w-14 h-14 object-contain mb-1"
+              />
+              <span className="text-xs font-black text-gray-800">Billy</span>
+            </div>
+          </button>
+          
           <button 
             onClick={() => router.push('/dashboard')}
-            className="px-6 py-2 bg-red-600 text-white rounded-full font-bold text-sm shadow-lg hover:bg-red-700 transition-all"
+            className="flex flex-col items-center transition-transform hover:scale-110"
           >
-            🏠 Back to Dashboard
+            <div className="w-24 h-24 flex flex-col items-center justify-center rounded-3xl px-3 py-2" style={{
+              background: 'rgba(255, 255, 255, 0.3)',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.3)',
+              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.1)'
+            }}>
+              <Image
+                src="/images/icons/house.png"
+                alt="Home"
+                width={64}
+                height={64}
+                className="w-14 h-14 object-contain mb-1"
+              />
+              <span className="text-xs font-black text-gray-800">Home</span>
+            </div>
+          </button>
+          
+          <button className="flex flex-col items-center">
+            <div className="w-24 h-24 flex flex-col items-center justify-center rounded-3xl px-3 py-2" style={{
+              background: 'rgba(236, 72, 153, 0.3)',
+              backdropFilter: 'blur(10px)',
+              border: '2px solid rgba(236, 72, 153, 0.4)',
+              boxShadow: '0 8px 24px rgba(236, 72, 153, 0.3)'
+            }}>
+              <Image
+                src="/images/icons/journal.png"
+                alt="Journal"
+                width={64}
+                height={64}
+                className="w-14 h-14 object-contain mb-1"
+              />
+              <span className="text-xs font-black text-pink-700">Journal</span>
+            </div>
           </button>
         </div>
       </div>

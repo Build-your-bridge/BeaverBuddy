@@ -109,7 +109,7 @@ export default function QuestsPage() {
       <div className="max-w-md mx-auto w-full flex flex-col h-full pt-6">
         <div className="bg-white rounded-3xl p-5 shadow-xl mx-4 mb-4 border-b-4 border-red-200">
           <h1 className="text-xl font-bold text-gray-800 text-center mb-4">
-            {activeTab === 'daily' ? '🔥 Daily Quests' : '🏆 Monthly Quests'}
+            {activeTab === 'daily' ? '🔥 Daily Quests' : '� Monthly Quests'}
           </h1>
           
           {/* Progress bar */}
@@ -161,7 +161,7 @@ export default function QuestsPage() {
                       : 'bg-purple-100'
                   }`}
                 >
-                  <span className="text-2xl">{activeTab === 'daily' ? '🍁' : '🏆'}</span>
+                  <span className="text-2xl">🍁</span>
                   <span className="text-xs font-bold text-gray-700 mt-0.5">
                     x{quest.reward || 50}
                   </span>

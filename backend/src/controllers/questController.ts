@@ -103,7 +103,7 @@ export const generateQuests = async (req: Request, res: Response) => {
       },
       body: JSON.stringify({
         model: 'meta-llama/llama-3.2-3b-instruct:free',
-        max_tokens: 1500,
+        max_tokens: 2500,
         temperature: 0.7,
         messages: [
           {
@@ -133,13 +133,21 @@ Here are some other examples for various Emotional Daily Quests:
 -Suggested Emotional Quest: Write down something you're grateful for. (Reward: 25🍁)
 
 Part Two - Monthly Quests
-In addition to generating 4 Daily Quests, we also want you to generate 2 Monthly Quests. Monthly Quests are supposed to be purely cultural and not related to the user's current mood for the day. These Monthly Quests are much more major events that are not done on a daily basis, and involve more money, people, and planning time in advance.
+In addition to generating 4 Daily Quests, we also want you to generate 2 Monthly Quests. Monthly Quests should be GENERAL Canadian cultural experiences that ANY Canadian immigrant would enjoy, regardless of their current mood or situation. These should be major events that are not done on a daily basis, and involve more money, people, and planning time in advance.
 
-Here are some examples:
--Go to a Toronto Raptors/Maple Leafs/Blue Jays game (Reward: 500🍁)
--Go to a concert/music festival (Like a Taylor Swift concert, or the Veld Music Festival)
--Go to a convention (Like FanExpo Canada or Toronto Comicon)
--Visit the CN Tower/Eaton Center/Ripley's Aquarium/The ROM
+IMPORTANT: Monthly quests should be COMPLETELY INDEPENDENT of the user's current feeling. They should be exciting Canadian experiences that help with cultural integration and exploration.
+
+Here are some examples of general Canadian monthly quests:
+-Visit the CN Tower and enjoy the panoramic views of Toronto (Reward: 500🍁)
+-Attend a Toronto Maple Leafs NHL hockey game at Scotiabank Arena (Reward: 600🍁)
+-Explore the Royal Ontario Museum (ROM) and discover Canadian art and history (Reward: 400🍁)
+-Visit Niagara Falls and take a boat tour to feel the mist (Reward: 550🍁)
+-Attend the Toronto International Film Festival (TIFF) screening (Reward: 450🍁)
+-Go to a concert at the Rogers Centre or another major venue (Reward: 500🍁)
+-Visit the Art Gallery of Ontario (AGO) to see Canadian artists (Reward: 400🍁)
+-Explore the Distillery District and enjoy local Canadian crafts and food (Reward: 350🍁)
+-Attend a Canadian music festival like Veld Music Festival (Reward: 500🍁)
+-Take a day trip to explore Ontario's beautiful national parks (Reward: 450🍁)
 
 Part Three - Follow-Up Questions
 We also want you to generate 3 follow-up questions based on the user's feelings today. These should be questions that allow the user to go deeper into detail about how they're feeling today, instead of just a brief 1-sentence summary. This is meant to act like a diary to the user, giving them a chance to thoroughly reflect through their emotions and relieve stress so that it's not all pent-up in their mind. The 3rd, final question should always be the same: "Is there anything else you'd like to talk about today?". This gives the user the freedom to write down whatever they want.
@@ -168,9 +176,13 @@ For Song quests, ALWAYS suggest a specific Canadian song:
 
 User's feeling: "${feeling}"
 
-CRITICAL: Generate NEW personalized quests based on the user's feeling above. Return ONLY a JSON object. DO NOT copy the example quests below - they are just to show the format and length!
+CRITICAL INSTRUCTIONS:
+- Generate NEW personalized DAILY quests based on the user's feeling above
+- Generate COMPLETELY GENERAL monthly quests that are exciting Canadian experiences for ANY immigrant
+- Monthly quests should have NOTHING to do with the user's current mood or feeling
+- Return ONLY a JSON object. DO NOT copy the example quests below - they are just to show the format and length!
 
-Example format (GENERATE YOUR OWN based on user's feeling):
+Example format (GENERATE YOUR OWN based on user's feeling for daily quests, general Canadian experiences for monthly quests):
 {
   "quests": [
     {"id": 1, "title": "☕ Quest Title", "description": "Detailed description that helps with their specific feeling (80-120 chars).", "reward": 20},
@@ -179,8 +191,8 @@ Example format (GENERATE YOUR OWN based on user's feeling):
     {"id": 4, "title": "📝 Quest Title", "description": "Fourth unique quest relevant to their feeling.", "reward": 10}
   ],
   "monthlyQuests": [
-    {"id": 1, "title": "🏒 Quest Title", "description": "Major Canadian cultural activity with engaging details (80-120 chars).", "reward": 500},
-    {"id": 2, "title": "🌊 Quest Title", "description": "Another major Canadian experience with rich description.", "reward": 400}
+    {"id": 1, "title": "🏒 Quest Title", "description": "Exciting general Canadian cultural experience (80-120 chars).", "reward": 500},
+    {"id": 2, "title": "🌊 Quest Title", "description": "Another amazing Canadian adventure experience.", "reward": 400}
   ],
   "journalPrompts": ["Personalized question about their feeling", "Deeper follow-up question", "Is there anything else you'd like to talk about today?"]
 }`,
@@ -214,7 +226,7 @@ Example format (GENERATE YOUR OWN based on user's feeling):
       });
     }
 
-    const jsonStr = content
+    let jsonStr = content
       .substring(startIndex, endIndex + 1)
       .replace(/```json\n?/g, '')
       .replace(/```\n?/g, '')
@@ -226,22 +238,68 @@ Example format (GENERATE YOUR OWN based on user's feeling):
 
     let questsData;
     try {
+      // Try to parse the JSON
       questsData = JSON.parse(jsonStr);
-      
-      // Add completed: false to all quests automatically
-      if (questsData.quests) {
-        questsData.quests = questsData.quests.map((q: any) => ({ ...q, completed: false }));
-      }
-      if (questsData.monthlyQuests) {
-        questsData.monthlyQuests = questsData.monthlyQuests.map((q: any) => ({ ...q, completed: false }));
-      }
     } catch (parseError) {
-      console.error('JSON parse error:', parseError);
-      console.error('Failed to parse:', jsonStr);
+      console.error('Initial JSON parse error:', parseError);
+      
+      // Try to fix common JSON issues
+      try {
+        // Attempt to fix incomplete JSON by adding missing closing brackets
+        let fixedJson = jsonStr;
+        
+        // Count opening and closing braces/brackets
+        const openBraces = (fixedJson.match(/{/g) || []).length;
+        const closeBraces = (fixedJson.match(/}/g) || []).length;
+        const openBrackets = (fixedJson.match(/\[/g) || []).length;
+        const closeBrackets = (fixedJson.match(/]/g) || []).length;
+        
+        // Add missing closing brackets
+        for (let i = 0; i < openBrackets - closeBrackets; i++) {
+          fixedJson += ']';
+        }
+        
+        // Add missing closing braces
+        for (let i = 0; i < openBraces - closeBraces; i++) {
+          fixedJson += '}';
+        }
+        
+        console.log('Attempting to parse fixed JSON:', fixedJson);
+        questsData = JSON.parse(fixedJson);
+      } catch (fixError) {
+        console.error('Failed to fix JSON:', fixError);
+        console.error('Original JSON:', jsonStr);
+        return res.status(500).json({
+          error: 'Failed to parse AI response. The AI generated incomplete JSON. Please try again.',
+        });
+      }
+    }
+
+    // Validate the structure
+    if (!questsData.quests || !Array.isArray(questsData.quests) || questsData.quests.length !== 4) {
+      console.error('Invalid quests structure:', questsData);
       return res.status(500).json({
-        error: 'Failed to parse AI response',
+        error: 'AI generated invalid quest structure. Please try again.',
       });
     }
+
+    if (!questsData.monthlyQuests || !Array.isArray(questsData.monthlyQuests) || questsData.monthlyQuests.length !== 2) {
+      console.error('Invalid monthlyQuests structure:', questsData);
+      return res.status(500).json({
+        error: 'AI generated invalid monthly quest structure. Please try again.',
+      });
+    }
+
+    if (!questsData.journalPrompts || !Array.isArray(questsData.journalPrompts) || questsData.journalPrompts.length !== 3) {
+      console.error('Invalid journalPrompts structure:', questsData);
+      return res.status(500).json({
+        error: 'AI generated invalid journal prompts. Please try again.',
+      });
+    }
+
+    // Add completed: false to all quests automatically
+    questsData.quests = questsData.quests.map((q: any) => ({ ...q, completed: false }));
+    questsData.monthlyQuests = questsData.monthlyQuests.map((q: any) => ({ ...q, completed: false }));
 
     // Save quests to DB using Transaction
     const result = await prisma.$transaction(async (tx) => {

@@ -171,7 +171,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="h-screen flex flex-col relative overflow-hidden">
+    <main className="h-screen flex flex-col relative overflow-hidden bg-white">
       <style jsx>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
@@ -183,22 +183,10 @@ export default function DashboardPage() {
         }
       `}</style>
 
-      {/* Toronto Background Image */}
-      <div className="absolute inset-0 z-0">
-        <Image
-          src="/images/icons/Toronto 2.png"
-          alt="Toronto Skyline"
-          fill
-          className="object-cover"
-          priority
-          quality={100}
-        />
-      </div>
-
       {/* Floating sparkles */}
-      <div className="absolute top-20 left-20 text-white text-3xl z-5" style={{ animation: 'sparkle 3s ease-in-out infinite' }}>✦</div>
-      <div className="absolute top-32 right-32 text-white text-2xl z-5" style={{ animation: 'sparkle 3s ease-in-out infinite', animationDelay: '1s' }}>✦</div>
-      <div className="absolute bottom-40 left-40 text-white text-2xl z-5" style={{ animation: 'sparkle 3s ease-in-out infinite', animationDelay: '2s' }}>✦</div>
+      <div className="absolute top-20 left-20 text-gray-400 text-3xl z-5" style={{ animation: 'sparkle 3s ease-in-out infinite' }}>✦</div>
+      <div className="absolute top-32 right-32 text-gray-400 text-2xl z-5" style={{ animation: 'sparkle 3s ease-in-out infinite', animationDelay: '1s' }}>✦</div>
+      <div className="absolute bottom-40 left-40 text-gray-400 text-2xl z-5" style={{ animation: 'sparkle 3s ease-in-out infinite', animationDelay: '2s' }}>✦</div>
 
       {/* Header - Glass */}
       <div className="relative h-20 flex items-center justify-between px-6 z-10" style={{ 
@@ -212,12 +200,6 @@ export default function DashboardPage() {
         >
           🪵 Logout
         </button>
-        
-        <div className="absolute left-1/2 transform -translate-x-1/2">
-          <h2 className="text-2xl font-black text-gray-800 drop-shadow-sm">
-            Welcome, {user.name}!
-          </h2>
-        </div>
         
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 bg-white/60 backdrop-blur-md rounded-full px-4 py-2 shadow-lg border border-white/40">
@@ -236,7 +218,7 @@ export default function DashboardPage() {
         <div className="w-full max-w-lg">
           {/* Glass card - you can see Toronto through it! */}
           <div className="relative" style={{
-            background: 'rgba(255, 255, 255, 0.25)',
+            background: 'rgba(255, 255, 255, 1)',
             backdropFilter: 'blur(20px)',
             borderRadius: '40px',
             padding: '32px',
@@ -249,18 +231,16 @@ export default function DashboardPage() {
               backdropFilter: 'blur(10px)',
               borderRadius: '25px',
               padding: '20px 24px',
-              border: '2px solid #f87171',
-              boxShadow: '0 8px 32px rgba(248, 113, 113, 0.2)'
+              boxShadow: '0 8px 10px rgba(0, 0, 0, 0.2)'
             }}>
               {/* Speech bubble tail */}
               <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2">
                 <svg width="30" height="20" viewBox="0 0 30 20" fill="none">
-                  <path d="M 5 0 Q 15 10 25 0 L 18 15 L 12 15 Z" fill="rgba(255, 255, 255, 0.4)"/>
-                  <path d="M 6 1 Q 15 9 24 1 L 18 13 L 12 13 Z" stroke="#f87171" strokeWidth="2" fill="none"/>
+                  <path d="M 5 0 Q 15 10 25 0 L 18 15 L 12 15 Z" fill="white"/>
                 </svg>
               </div>
               <h1 className="text-2xl font-black text-gray-800 leading-tight">
-                {hasGeneratedToday ? "Today's Check-in Complete! ✓" : "How are you feeling today?"}
+                {hasGeneratedToday ? "Today's Check-in Complete! ✓" : `Hi ${user.name}, how are you feeling today?`}
               </h1>
               <p className="text-sm text-gray-700 mt-1 font-semibold">
                 {hasGeneratedToday ? "Come back tomorrow for a new check-in" : "Share what's on your mind"}
@@ -322,7 +302,7 @@ export default function DashboardPage() {
                     background: 'rgba(255, 255, 255, 0.4)',
                     backdropFilter: 'blur(10px)',
                     borderRadius: '20px',
-                    border: '2px solid rgba(236, 72, 153, 0.3)',
+                    border: '2x solid rgba(236, 72, 153, 0.3)',
                     outline: 'none',
                     boxShadow: 'inset 0 2px 8px rgba(0, 0, 0, 0.05)'
                   }}
@@ -343,7 +323,7 @@ export default function DashboardPage() {
               className="w-full py-4 font-black text-lg tracking-wider transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               style={{ 
                 borderRadius: '20px',
-                background: 'linear-gradient(135deg, #ec4899 0%, #f9a8d4 100%)',
+                background: '#ce5c5c',
                 color: 'white',
                 boxShadow: '0 10px 30px rgba(236, 72, 153, 0.4)'
               }}
@@ -387,9 +367,9 @@ export default function DashboardPage() {
           
           <button className="flex flex-col items-center">
             <div className="w-24 h-24 flex flex-col items-center justify-center rounded-3xl px-3 py-2" style={{
-              background: 'rgba(236, 72, 153, 0.3)',
+              background: 'rgba(255, 22, 22, 0.22)',
               backdropFilter: 'blur(10px)',
-              border: '2px solid rgba(236, 72, 153, 0.4)',
+              border: '2px solid rgba(236, 72, 72, 0.4)',
               boxShadow: '0 8px 24px rgba(236, 72, 153, 0.3)'
             }}>
               <Image
