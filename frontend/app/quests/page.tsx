@@ -4,12 +4,9 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface Quest {
-  title: string;
-  description: string;
-  points: number;
-  difficulty: string;
-  category: string;
-  completed?: boolean;
+  id: number;
+  text: string;
+  completed: boolean;
 }
 
 export default function QuestsPage() {
@@ -17,8 +14,6 @@ export default function QuestsPage() {
   const [monthlyQuests, setMonthlyQuests] = useState<Quest[]>([]);
   const [activeTab, setActiveTab] = useState<'daily' | 'monthly'>('daily');
   const [loading, setLoading] = useState(true);
-  const [totalDailyQuests, setTotalDailyQuests] = useState(0);
-  const [totalMonthlyQuests, setTotalMonthlyQuests] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
@@ -32,16 +27,20 @@ export default function QuestsPage() {
     try {
       const parsedData = JSON.parse(questsDataRaw);
       
-      // FIX: Your backend sends { quests: [], monthlyQuests: [] }
-      // We must extract the 'quests' array specifically
-      const dailyArray = Array.isArray(parsedData) ? parsedData : (parsedData.quests || []);
-      const monthlyArray = parsedData.monthlyQuests || [];
-
-      setDailyQuests(dailyArray.map((q: Quest) => ({ ...q, completed: false })));
-      setTotalDailyQuests(dailyArray.length);
+      console.log('Parsed quests data:', parsedData);
       
-      setMonthlyQuests(monthlyArray.map((q: Quest) => ({ ...q, completed: false })));
-      setTotalMonthlyQuests(monthlyArray.length);
+      // The backend returns the quests directly as an array
+      const dailyArray = Array.isArray(parsedData) ? parsedData : [];
+      
+      // Get monthly quests from sessionStorage
+      const monthlyDataRaw = sessionStorage.getItem('monthlyQuests');
+      const monthlyArray = monthlyDataRaw ? JSON.parse(monthlyDataRaw) : [];
+
+      console.log('Daily quests:', dailyArray);
+      console.log('Monthly quests:', monthlyArray);
+
+      setDailyQuests(dailyArray);
+      setMonthlyQuests(monthlyArray);
 
     } catch (err) {
       console.error("Parsing error:", err);
@@ -82,8 +81,8 @@ export default function QuestsPage() {
   }
 
   const currentQuests = activeTab === 'daily' ? dailyQuests : monthlyQuests;
-  const totalCount = activeTab === 'daily' ? totalDailyQuests : totalMonthlyQuests;
-  const completedCount = totalCount - currentQuests.length;
+  const totalCount = activeTab === 'daily' ? dailyQuests.length : monthlyQuests.length;
+  const completedCount = currentQuests.filter(q => q.completed).length;
 
   return (
     <main className="h-screen bg-[#f5f5f5] overflow-hidden flex flex-col relative">
@@ -111,7 +110,7 @@ export default function QuestsPage() {
                   ? 'bg-orange-500' 
                   : 'bg-purple-500'
               }`}
-              style={{ width: `${(completedCount / totalCount) * 100}%` }}
+              style={{ width: `${totalCount > 0 ? (completedCount / totalCount) * 100 : 0}%` }}
             />
           </div>
           <p className="text-center text-xs text-gray-600 mt-2">
@@ -129,7 +128,7 @@ export default function QuestsPage() {
           ) : (
             currentQuests.map((quest, index) => (
               <div
-                key={index}
+                key={quest.id}
                 className={`w-full rounded-3xl p-4 flex items-start gap-3 shadow-md transition-all duration-300 ${
                   quest.completed 
                     ? activeTab === 'daily'
@@ -155,11 +154,15 @@ export default function QuestsPage() {
                   <span className="text-2xl">{activeTab === 'daily' ? '🍁' : '🏆'}</span>
                 </button>
                 <div className="flex-1">
-                  <h3 className="font-bold text-gray-800 text-sm">{quest.title}</h3>
-                  <p className="text-[11px] text-gray-500 leading-tight mt-0.5">{quest.description}</p>
+                  <p className="text-sm text-gray-800 leading-relaxed">{quest.text}</p>
                 </div>
                 {quest.completed && (
-                  <button onClick={() => removeQuest(index)} className="bg-green-500 text-white w-8 h-8 rounded-full font-bold">✓</button>
+                  <button 
+                    onClick={() => removeQuest(index)} 
+                    className="bg-green-500 text-white w-8 h-8 rounded-full font-bold flex items-center justify-center flex-shrink-0"
+                  >
+                    ✓
+                  </button>
                 )}
               </div>
             ))

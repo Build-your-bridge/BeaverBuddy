@@ -16,6 +16,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [hasJournalPrompts, setHasJournalPrompts] = useState(false);
+  const [hasGeneratedToday, setHasGeneratedToday] = useState(false);
+  const [checkingStatus, setCheckingStatus] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
@@ -32,9 +34,67 @@ export default function DashboardPage() {
     // Check if there are journal prompts
     const journalPrompts = sessionStorage.getItem('journalPrompts');
     setHasJournalPrompts(!!journalPrompts);
+
+    // Check session storage first (fallback if API fails)
+    const existingQuests = sessionStorage.getItem('generatedQuests');
+    const questGeneratedDate = localStorage.getItem('questGeneratedDate');
+    const today = new Date().toDateString();
+
+    if (existingQuests && questGeneratedDate === today) {
+      // Already generated today based on local storage
+      setHasGeneratedToday(true);
+      setCheckingStatus(false);
+    } else if (questGeneratedDate && questGeneratedDate !== today) {
+      // Old quests from a previous day, clear them
+      sessionStorage.removeItem('generatedQuests');
+      sessionStorage.removeItem('monthlyQuests');
+      sessionStorage.removeItem('journalPrompts');
+      localStorage.removeItem('questGeneratedDate');
+      setHasJournalPrompts(false);
+      checkTodayStatus(token);
+    } else {
+      // Check with backend
+      checkTodayStatus(token);
+    }
   }, [router]);
 
+  const checkTodayStatus = async (token: string) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/quests/check-today', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setHasGeneratedToday(data.hasGeneratedToday);
+        
+        // If they have generated today, store the quests in session
+        if (data.hasGeneratedToday && data.quests) {
+          sessionStorage.setItem('generatedQuests', JSON.stringify(data.quests));
+          sessionStorage.setItem('monthlyQuests', JSON.stringify(data.monthlyQuests || []));
+          sessionStorage.setItem('journalPrompts', JSON.stringify(data.journalPrompts));
+          localStorage.setItem('questGeneratedDate', new Date().toDateString());
+          setHasJournalPrompts(true);
+        }
+      }
+    } catch (err) {
+      console.error('Error checking today status:', err);
+      // Don't set hasGeneratedToday on error - let the localStorage check handle it
+    } finally {
+      setCheckingStatus(false);
+    }
+  };
+
   const handleSubmitFeeling = async () => {
+    if (hasGeneratedToday) {
+      // If already generated, just navigate to quests page
+      router.push('/quests');
+      return;
+    }
+
     // Validation - 20 characters minimum
     if (feeling.trim().length < 20) {
       setError('Please share at least 20 characters about how you\'re feeling');
@@ -63,9 +123,16 @@ export default function DashboardPage() {
         throw new Error(data.error || 'Failed to generate quests');
       }
 
-      // Save both quests and journal prompts to sessionStorage
+      // Save quests, monthly quests, and journal prompts to sessionStorage
       sessionStorage.setItem('generatedQuests', JSON.stringify(data.quests));
+      sessionStorage.setItem('monthlyQuests', JSON.stringify(data.monthlyQuests));
       sessionStorage.setItem('journalPrompts', JSON.stringify(data.journalPrompts));
+      
+      // Store the date when quests were generated
+      localStorage.setItem('questGeneratedDate', new Date().toDateString());
+
+      // Mark as generated today
+      setHasGeneratedToday(true);
 
       // Navigate to quests page
       router.push('/quests');
@@ -80,12 +147,14 @@ export default function DashboardPage() {
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    sessionStorage.removeItem('generatedQuests'); // Clear quest data
-    sessionStorage.removeItem('journalPrompts'); // Clear journal prompts
+    localStorage.removeItem('questGeneratedDate');
+    sessionStorage.removeItem('generatedQuests');
+    sessionStorage.removeItem('monthlyQuests');
+    sessionStorage.removeItem('journalPrompts');
     router.push('/');
   };
 
-  if (!user) {
+  if (!user || checkingStatus) {
     return (
       <div className="h-screen flex items-center justify-center" style={{ 
         background: 'linear-gradient(135deg, #B8312F 0%, #E63946 50%, #8B0000 100%)'
@@ -192,14 +261,15 @@ export default function DashboardPage() {
               boxShadow: '0 2px 10px rgba(0, 0, 0, 0.15)',
             }}>
               <h1 className="text-lg font-bold text-gray-800 leading-snug pt-1">
-                How are you feeling today?
+                {hasGeneratedToday ? "Today's Check-in Complete! ✓" : "How are you feeling today?"}
               </h1>
-              <p className="text-xs text-gray-600 mt-0.5">Share what's on your mind</p>
+              <p className="text-xs text-gray-600 mt-0.5">
+                {hasGeneratedToday ? "Come back tomorrow for a new check-in" : "Share what's on your mind"}
+              </p>
             </div>
 
             <div className="flex justify-center mb-4">
-              <div className="relative w-35 h-35 md:w-48 md:h-48 flex items-center justify-center" style={{
-              }}>
+              <div className="relative w-35 h-35 md:w-48 md:h-48 flex items-center justify-center">
                 <Image
                   src="/images/beaver/default_beaver.png"
                   alt="Beaver mascot"
@@ -210,6 +280,13 @@ export default function DashboardPage() {
                 />
               </div>
             </div>
+
+            {/* Success message when already generated */}
+            {hasGeneratedToday && (
+              <div className="mb-3 p-3 bg-green-100 border border-green-400 text-green-700 rounded-2xl text-xs text-center">
+                ✓ You've already completed today's mental health check-in! View your quests below.
+              </div>
+            )}
 
             {/* Error message */}
             {error && (
@@ -226,36 +303,45 @@ export default function DashboardPage() {
                   setFeeling(e.target.value);
                   setError('');
                 }}
-                placeholder='Type your answer here... e.g., "I feel great because hockey season started!" 🏒'
+                placeholder={hasGeneratedToday ? 'Check-in complete for today. See you tomorrow! 🍁' : 'Type your answer here... e.g., "I feel great because hockey season started!" 🏒'}
                 className="w-full p-3 rounded-2xl resize-none text-gray-700 text-xs leading-relaxed shadow-inner"
                 style={{ 
                   border: '1.5px solid #C41E3A',
-                  backgroundColor: '#ffffffff',
+                  backgroundColor: hasGeneratedToday ? '#f5f5f5' : '#ffffffff',
                   outline: 'none'
                 }}
                 rows={2}
+                disabled={hasGeneratedToday}
               />
-              <p className="text-[10px] text-gray-500 mt-1 ml-1">
-                {feeling.length}/20 characters minimum
-              </p>
+              {!hasGeneratedToday && (
+                <p className="text-[10px] text-gray-500 mt-1 ml-1">
+                  {feeling.length}/20 characters minimum
+                </p>
+              )}
             </div>
 
-            {/* Disabled button until 20 characters */}
+            {/* Button changes based on status */}
             <button
               onClick={handleSubmitFeeling}
-              disabled={loading || feeling.trim().length < 20}
+              disabled={loading || (!hasGeneratedToday && feeling.trim().length < 20)}
               className="w-full py-3 rounded-2xl font-bold text-base tracking-wider transition-all transform hover:scale-105 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               style={{ 
-                background: 'linear-gradient(135deg, #C41E3A 0%, #E63946 100%)',
+                background: hasGeneratedToday 
+                  ? 'linear-gradient(135deg, #2563eb 0%, #3b82f6 100%)'
+                  : 'linear-gradient(135deg, #C41E3A 0%, #E63946 100%)',
                 color: 'white',
-                boxShadow: '0 8px 20px rgba(196, 30, 58, 0.4)'
+                boxShadow: hasGeneratedToday 
+                  ? '0 8px 20px rgba(37, 99, 235, 0.4)'
+                  : '0 8px 20px rgba(196, 30, 58, 0.4)'
               }}
             >
-              {loading ? 'GENERATING...' : 'VIEW QUESTS'}
+              {loading ? 'GENERATING...' : hasGeneratedToday ? 'VIEW MY QUESTS' : 'SUBMIT & VIEW QUESTS'}
             </button>
 
             <p className="text-center text-[10px] mt-2 text-gray-500 font-medium">
-              Share how you're feeling to unlock today's quests!
+              {hasGeneratedToday 
+                ? 'One check-in per day. Reset at midnight.' 
+                : 'Share how you\'re feeling to unlock today\'s quests!'}
             </p>
           </div>
         </div>
@@ -294,7 +380,6 @@ export default function DashboardPage() {
             onClick={() => router.push('/journal')}
             className="flex flex-col items-center transition-transform hover:scale-110 relative"
           >
-            {/* Notification badge */}
             {hasJournalPrompts && (
               <div className="absolute top-3 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center z-10 animate-pulse">
                 3
