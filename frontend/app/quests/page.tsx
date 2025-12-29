@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 
 interface Quest {
   id: number;
-  text: string;
+  title: string;
+  description: string;
+  reward: number;
   completed: boolean;
 }
 
@@ -37,7 +39,7 @@ export default function QuestsPage() {
       
       console.log('Parsed quests data:', parsedData);
       
-      // The backend returns the quests directly as an array
+      // The backend now returns quests with title, description, reward, and completed fields
       const dailyArray = Array.isArray(parsedData) ? parsedData : [];
       
       // Get monthly quests from sessionStorage with user-specific key
@@ -153,16 +155,24 @@ export default function QuestsPage() {
               >
                 <button
                   onClick={() => toggleQuestCompletion(index)}
-                  className={`w-16 h-16 rounded-2xl flex items-center justify-center flex-shrink-0 relative transform transition-transform hover:rotate-12 hover:scale-105 cursor-pointer ${
+                  className={`w-16 h-16 rounded-2xl flex flex-col items-center justify-center flex-shrink-0 relative transform transition-transform hover:rotate-12 hover:scale-105 cursor-pointer ${
                     activeTab === 'daily' 
                       ? 'bg-orange-100' 
                       : 'bg-purple-100'
                   }`}
                 >
                   <span className="text-2xl">{activeTab === 'daily' ? '🍁' : '🏆'}</span>
+                  <span className="text-xs font-bold text-gray-700 mt-0.5">
+                    x{quest.reward || 50}
+                  </span>
                 </button>
                 <div className="flex-1">
-                  <p className="text-sm text-gray-800 leading-relaxed">{quest.text}</p>
+                  <h3 className="text-sm font-bold text-gray-900 mb-1">
+                    {quest.title}
+                  </h3>
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                    {quest.description}
+                  </p>
                 </div>
                 {quest.completed && (
                   <button 

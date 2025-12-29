@@ -107,6 +107,10 @@ export const generateQuests = async (req: Request, res: Response) => {
         temperature: 0.7,
         messages: [
           {
+            role: 'system',
+            content: 'You are a JSON generator. You ONLY output valid JSON. Never include explanations, greetings, or any text outside the JSON structure.'
+          },
+          {
             role: 'user',
             content: `Part One - Daily Quests
 Your job is to help Canadian immigrants with mental health and cultural isolation. The user will tell you how they're feeling today and why, and you will generate 4 personalized Daily Quests for them. 2 of them should be Emotional Quests that directly help with their current situation, and the other 2 should be Cultural Quests that have NOTHING to do with their current situation, and instead help them get familiar and comfortable with Canada's local culture.
@@ -141,9 +145,20 @@ Part Three - Follow-Up Questions
 We also want you to generate 3 follow-up questions based on the user's feelings today. These should be questions that allow the user to go deeper into detail about how they're feeling today, instead of just a brief 1-sentence summary. This is meant to act like a diary to the user, giving them a chance to thoroughly reflect through their emotions and relieve stress so that it's not all pent-up in their mind. The 3rd, final question should always be the same: "Is there anything else you'd like to talk about today?". This gives the user the freedom to write down whatever they want.
 
 Quest Formatting and Improvements
-Each quest description should be approximately 150 chars, but must not exceed this limit. We want quests to have a good amount of detail but not look like a whole paragraph. Feel free to make the quest titles more playful and less formal! The coffee quest can be renamed to "Timmies Time", the Raptors quest can be "We The North", the aquarium quest can be "Under The Sea", etc!. Please also add an emoji to the title of the quest for extra flair.
+IMPORTANT RULES:
+- ALL quest titles MUST start with an emoji
+- ALL 4 daily quests must be UNIQUE and DIFFERENT from each other
+- Quest descriptions should be detailed and engaging, approximately 80-120 characters
+- Make quest titles playful and fun! Examples: "☕ Timmies Time", "🏒 We The North", "🌊 Under The Sea", "🎵 Jam Session"
+- Add extra details to make quests more interesting and actionable
+- IMPORTANT: Generate NEW quests based on the user's feeling, don't copy these examples!
 
-For the Song quest, don't tell users to just find a song on their own. Suggest a song for them to listen to! Here are a bunch of examples:
+Quest Description Style Examples (GENERATE YOUR OWN, DON'T COPY THESE):
+- Coffee quest style: "Grab a coffee from Tim Hortons and [add personalized action based on user's mood]."
+- Song quest style: "Listen to [specific Canadian song] and [action related to user's feeling]."
+- Activity quest style: "[Activity] and [specific detail that helps with their emotional state]."
+
+For Song quests, ALWAYS suggest a specific Canadian song:
 -Waves of Blue by Majid Jordan
 -Crazy For You by Hedley
 -She's All I Wanna Be by Tate McRae
@@ -153,19 +168,21 @@ For the Song quest, don't tell users to just find a song on their own. Suggest a
 
 User's feeling: "${feeling}"
 
-Return ONLY a JSON object with this exact structure:
+CRITICAL: Generate NEW personalized quests based on the user's feeling above. Return ONLY a JSON object. DO NOT copy the example quests below - they are just to show the format and length!
+
+Example format (GENERATE YOUR OWN based on user's feeling):
 {
   "quests": [
-    {"id": 1, "text": "string", "completed": false},
-    {"id": 2, "text": "string", "completed": false},
-    {"id": 3, "text": "string", "completed": false},
-    {"id": 4, "text": "string", "completed": false}
+    {"id": 1, "title": "☕ Quest Title", "description": "Detailed description that helps with their specific feeling (80-120 chars).", "reward": 20},
+    {"id": 2, "title": "🎵 Quest Title", "description": "Another personalized description addressing their emotion.", "reward": 30},
+    {"id": 3, "title": "🏃 Quest Title", "description": "Activity description tailored to their current state.", "reward": 20},
+    {"id": 4, "title": "📝 Quest Title", "description": "Fourth unique quest relevant to their feeling.", "reward": 10}
   ],
   "monthlyQuests": [
-    {"id": 1, "text": "string", "completed": false},
-    {"id": 2, "text": "string", "completed": false}
+    {"id": 1, "title": "🏒 Quest Title", "description": "Major Canadian cultural activity with engaging details (80-120 chars).", "reward": 500},
+    {"id": 2, "title": "🌊 Quest Title", "description": "Another major Canadian experience with rich description.", "reward": 400}
   ],
-  "journalPrompts": ["string1", "string2", "Is there anything else you'd like to talk about today?"]
+  "journalPrompts": ["Personalized question about their feeling", "Deeper follow-up question", "Is there anything else you'd like to talk about today?"]
 }`,
           },
         ],
@@ -210,6 +227,14 @@ Return ONLY a JSON object with this exact structure:
     let questsData;
     try {
       questsData = JSON.parse(jsonStr);
+      
+      // Add completed: false to all quests automatically
+      if (questsData.quests) {
+        questsData.quests = questsData.quests.map((q: any) => ({ ...q, completed: false }));
+      }
+      if (questsData.monthlyQuests) {
+        questsData.monthlyQuests = questsData.monthlyQuests.map((q: any) => ({ ...q, completed: false }));
+      }
     } catch (parseError) {
       console.error('JSON parse error:', parseError);
       console.error('Failed to parse:', jsonStr);
