@@ -32,8 +32,14 @@ interface JournalPrompt {
 
 export default function JournalPage() {
   // --------------------------------------------------------------------------
+  // HOOKS
+  // --------------------------------------------------------------------------
+  const router = useRouter();
+
+  // --------------------------------------------------------------------------
   // STATE
   // --------------------------------------------------------------------------
+  const [isTyping, setIsTyping] = useState(false);
   const [prompts, setPrompts] = useState<JournalPrompt[]>([]);
   const [allPrompts, setAllPrompts] = useState<JournalPrompt[]>([]);
   const [currentPromptIndex, setCurrentPromptIndex] = useState(0);
@@ -42,8 +48,12 @@ export default function JournalPage() {
   const [aiResponse, setAiResponse] = useState('');
   const [showResponse, setShowResponse] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [isTyping, setIsTyping] = useState(false);
-  const router = useRouter();
+  // Store conversation history for display
+  const [conversationHistory, setConversationHistory] = useState<Array<{
+    question: string;
+    userAnswer: string;
+    billyResponse: string;
+  }>>([]);
 
   // --------------------------------------------------------------------------
   // INITIALIZE - Load user and prompts from storage
@@ -146,25 +156,32 @@ export default function JournalPage() {
 
       const responseData = await saveResponse.json();
 
-      // Update local state
-      const updatedAllPrompts = [...workingAllPrompts];
-      if (updatedAllPrompts[fullArrayIndex]) {
-        updatedAllPrompts[fullArrayIndex] = {
-          ...updatedAllPrompts[fullArrayIndex],
-          answer: currentAnswer,
-          answeredAt: new Date().toISOString(),
-        };
-      }
-      
-      if (user) {
-        sessionStorage.setItem(`journalPrompts_${user.id}`, JSON.stringify(updatedAllPrompts));
-      }
-      
-      setAllPrompts(updatedAllPrompts);
-      const remainingPrompts = updatedAllPrompts.filter((p: JournalPrompt) => p.answer === null);
-      setPrompts(remainingPrompts);
-      if (remainingPrompts.length > 0) {
-          setCurrentPromptIndex((prev) => prev >= remainingPrompts.length ? 0 : prev);
+      console.log('=== BACKEND RESPONSE ===');
+      console.log('Full response:', responseData);
+      console.log('Updated prompts:', responseData.updatedPrompts);
+      console.log('========================');
+
+      // Update with the fresh prompts from backend (includes dynamically generated Q2)
+      if (responseData.updatedPrompts) {
+        const updatedPrompts = responseData.updatedPrompts.map((p: any) => ({
+          question: p.question,
+          answer: p.answer,
+          answeredAt: p.answeredAt
+        }));
+        
+        setAllPrompts(updatedPrompts);
+        
+        if (user) {
+          sessionStorage.setItem(`journalPrompts_${user.id}`, JSON.stringify(updatedPrompts));
+        }
+        
+        // Update remaining prompts
+        const remainingPrompts = updatedPrompts.filter((p: JournalPrompt) => p.answer === null);
+        setPrompts(remainingPrompts);
+        
+        if (remainingPrompts.length > 0) {
+          setCurrentPromptIndex(0);
+        }
       }
 
       // Display AI response from backend
@@ -187,6 +204,15 @@ export default function JournalPage() {
   // NEXT PROMPT - Move to next question or finish
   // --------------------------------------------------------------------------
   const handleNextPrompt = () => {
+    // Save current conversation to history
+    if (currentAnswer && aiResponse && prompts[currentPromptIndex]) {
+      setConversationHistory(prev => [...prev, {
+        question: prompts[currentPromptIndex].question,
+        userAnswer: currentAnswer,
+        billyResponse: aiResponse
+      }]);
+    }
+
     if (prompts.length > 1) {
       setCurrentPromptIndex(prev => prev + 1);
       setCurrentAnswer('');

@@ -375,7 +375,9 @@ export const submitJournalEntry = async (req: Request, res: Response) => {
       remainingPrompts,
       allCompleted: remainingPrompts === 0,
       answeredPromptIndex: promptIndex,
-      totalPrompts: journalPrompts.length
+      totalPrompts: journalPrompts.length,
+      // Include updated prompts so frontend can refresh
+      updatedPrompts: journalPrompts
     };
 
     // Send success response
