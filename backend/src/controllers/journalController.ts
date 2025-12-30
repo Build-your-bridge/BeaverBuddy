@@ -3,12 +3,55 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// Type definitions
+interface JournalPromptObject {
+  question: string;
+  answer: string | null;
+  answeredAt: string | null;
+}
+
+// Helper function to normalize prompts
+function normalizePrompts(prompts: any[]): JournalPromptObject[] {
+  return prompts.map((jp: any) => {
+    if (typeof jp === 'string') {
+      return {
+        question: jp,
+        answer: null,
+        answeredAt: null,
+      };
+    }
+    return {
+      question: jp.question || String(jp),
+      answer: jp.answer || null,
+      answeredAt: jp.answeredAt || null,
+    };
+  });
+}
+
+// Helper function to get today's date range (UTC)
+function getTodayDateRange() {
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const tomorrow = new Date(today);
+  tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+  return { start: today, end: tomorrow };
+}
+
+// Helper function to sanitize user input
+function sanitizeAnswer(answer: string): string {
+  return answer
+    .trim()
+    .replace(/[<>]/g, '') // Basic XSS prevention
+    .slice(0, 5000); // Max length enforcement
+}
+
 // Submit a journal entry
 export const submitJournalEntry = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
     const { promptIndex, prompt, answer } = req.body;
 
+    // === VALIDATION ===
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
@@ -17,119 +60,150 @@ export const submitJournalEntry = async (req: Request, res: Response) => {
       return res.status(400).json({ error: 'promptIndex is required' });
     }
 
-    if (!answer || answer.trim().length === 0) {
+    if (typeof promptIndex !== 'number' || promptIndex < 0) {
+      return res.status(400).json({ error: 'Invalid promptIndex format' });
+    }
+
+    if (!answer || typeof answer !== 'string' || answer.trim().length === 0) {
       return res.status(400).json({ error: 'Answer is required' });
     }
 
-    // Get today's date
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    if (answer.trim().length < 10) {
+      return res.status(400).json({ 
+        error: 'Answer must be at least 10 characters long' 
+      });
+    }
 
-    // Get user's daily quest entry for today
-    const dailyQuest = await prisma.dailyQuest.findFirst({
-      where: {
-        userId,
-        date: {
-          gte: today,
-          lt: new Date(today.getTime() + 24 * 60 * 60 * 1000)
+    if (answer.length > 5000) {
+      return res.status(400).json({ 
+        error: 'Answer is too long (maximum 5000 characters)' 
+      });
+    }
+
+    // Sanitize the answer
+    const sanitizedAnswer = sanitizeAnswer(answer);
+
+    // === DATABASE TRANSACTION ===
+    const result = await prisma.$transaction(async (tx) => {
+      // Get today's date range
+      const { start, end } = getTodayDateRange();
+
+      // Find today's daily quest
+      const dailyQuest = await tx.dailyQuest.findFirst({
+        where: {
+          userId,
+          date: {
+            gte: start,
+            lt: end
+          }
+        }
+      });
+
+      if (!dailyQuest) {
+        throw new Error('No journal prompts found for today');
+      }
+
+      // Get and normalize journal prompts
+      const rawPrompts = dailyQuest.journalPrompts as any[];
+      
+      if (!Array.isArray(rawPrompts) || rawPrompts.length === 0) {
+        throw new Error('Invalid journal prompts data');
+      }
+
+      const journalPrompts = normalizePrompts(rawPrompts);
+
+      // Validate prompt index
+      if (promptIndex >= journalPrompts.length) {
+        throw new Error(
+          `Invalid prompt index: ${promptIndex}. Only ${journalPrompts.length} prompts available.`
+        );
+      }
+
+      // Additional validation: check if prompt text matches (if provided)
+      if (prompt && journalPrompts[promptIndex].question !== prompt) {
+        console.warn(
+          `Prompt mismatch at index ${promptIndex}. Expected: "${journalPrompts[promptIndex].question}", Got: "${prompt}"`
+        );
+        // Try to find by question text as fallback
+        const foundIndex = journalPrompts.findIndex(
+          (jp) => jp.question === prompt
+        );
+        if (foundIndex !== -1 && foundIndex !== promptIndex) {
+          throw new Error(
+            'Prompt index mismatch. Please refresh and try again.'
+          );
         }
       }
-    });
 
-    if (!dailyQuest) {
-      return res.status(404).json({ error: 'No journal prompts found for today' });
-    }
-
-    // Get current journal prompts
-    let journalPrompts = dailyQuest.journalPrompts as any;
-    
-    if (!Array.isArray(journalPrompts) || journalPrompts.length === 0) {
-      return res.status(400).json({ error: 'Invalid journal prompts data' });
-    }
-
-    // Migrate old string format to object format if needed
-    journalPrompts = journalPrompts.map((jp: any, index: number) => {
-      // If it's already an object with question property, ensure it has the right structure
-      if (typeof jp === 'object' && jp.question !== undefined) {
-        return {
-          question: jp.question,
-          answer: jp.answer || null,
-          answeredAt: jp.answeredAt || null,
-        };
+      // Check if already answered
+      if (journalPrompts[promptIndex].answer !== null) {
+        return res.status(400).json({
+          error: 'This prompt has already been answered',
+          alreadyAnswered: true
+        });
       }
-      // If it's a string (old format), convert to object format
-      if (typeof jp === 'string') {
-        return {
-          question: jp,
-          answer: null,
-          answeredAt: null,
-        };
-      }
-      // Fallback: ensure proper structure
+
+      // Update the answer
+      journalPrompts[promptIndex] = {
+        question: journalPrompts[promptIndex].question,
+        answer: sanitizedAnswer,
+        answeredAt: new Date().toISOString(),
+      };
+
+      // Count remaining unanswered prompts
+      const remainingPrompts = journalPrompts.filter(
+        (jp) => jp.answer === null
+      ).length;
+
+      // Update in database
+      const updatedQuest = await tx.dailyQuest.update({
+        where: { id: dailyQuest.id },
+        data: {
+          journalPrompts: journalPrompts as any,
+          // Optionally update a completedAt timestamp if all done
+          ...(remainingPrompts === 0 && { 
+            completedAt: new Date() 
+          })
+        }
+      });
+
       return {
-        question: String(jp),
-        answer: null,
-        answeredAt: null,
+        success: true,
+        remainingPrompts,
+        allCompleted: remainingPrompts === 0,
+        answeredPromptIndex: promptIndex,
+        totalPrompts: journalPrompts.length
       };
     });
 
-    // Find the prompt by index or by question text (more reliable)
-    let promptToUpdate: any = null;
-    let updateIndex = -1;
-
-    // First try to use the provided index if it's valid
-    if (promptIndex >= 0 && promptIndex < journalPrompts.length) {
-      updateIndex = promptIndex;
-      promptToUpdate = journalPrompts[promptIndex];
-    }
-
-    // If index didn't work or if question text is provided, try to find by question
-    if (!promptToUpdate && prompt) {
-      updateIndex = journalPrompts.findIndex((jp: any) => {
-        const jpQuestion = typeof jp === 'string' ? jp : jp.question;
-        return jpQuestion === prompt;
-      });
-      
-      if (updateIndex !== -1) {
-        promptToUpdate = journalPrompts[updateIndex];
-      }
-    }
-
-    if (updateIndex === -1 || !promptToUpdate) {
-      console.error(`Could not find prompt. Index: ${promptIndex}, Question: ${prompt}, Array length: ${journalPrompts.length}`);
-      return res.status(400).json({ 
-        error: 'Could not find the specified journal prompt' 
-      });
-    }
-
-    // Update the answer for the specific prompt
-    journalPrompts[updateIndex] = {
-      question: typeof promptToUpdate === 'string' ? promptToUpdate : promptToUpdate.question,
-      answer: answer || null,
-      answeredAt: answer ? new Date().toISOString() : null,
-    };
-
-    // Count remaining prompts (those with answer === null)
-    const remainingPrompts = journalPrompts.filter((jp: any) => jp.answer === null).length;
-
-    // Update the daily quest with the new answers
-    await prisma.dailyQuest.update({
-      where: { id: dailyQuest.id },
-      data: {
-        journalPrompts: journalPrompts
-      }
-    });
-
-    res.json({
-      success: true,
-      remainingPrompts,
-      allCompleted: remainingPrompts === 0
-    });
+    // Send success response
+    res.json(result);
 
   } catch (error: any) {
-    console.error('Error submitting journal entry:', error);
-    res.status(500).json({ 
-      error: 'Failed to submit journal entry',
+    console.error('Error submitting journal entry:', {
+      error: error.message,
+      stack: error.stack,
+      userId: (req as any).userId,
+      promptIndex: req.body.promptIndex
+    });
+
+    // Determine status code based on error type
+    let statusCode = 500;
+    let errorMessage = 'Failed to submit journal entry';
+
+    if (error.message.includes('No journal prompts found')) {
+      statusCode = 404;
+      errorMessage = error.message;
+    } else if (
+      error.message.includes('Invalid') || 
+      error.message.includes('mismatch')
+    ) {
+      statusCode = 400;
+      errorMessage = error.message;
+    }
+
+    res.status(statusCode).json({ 
+      error: errorMessage,
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
@@ -139,23 +213,145 @@ export const submitJournalEntry = async (req: Request, res: Response) => {
 export const getJournalEntries = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
-    const limit = parseInt(req.query.limit as string) || 10;
+    
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
 
+    // Parse and validate limit
+    const limitParam = req.query.limit as string;
+    let limit = 10; // default
+    
+    if (limitParam) {
+      const parsedLimit = parseInt(limitParam, 10);
+      if (isNaN(parsedLimit) || parsedLimit < 1) {
+        return res.status(400).json({ 
+          error: 'Invalid limit parameter. Must be a positive number.' 
+        });
+      }
+      limit = Math.min(parsedLimit, 100); // Cap at 100 to prevent abuse
+    }
+
+    // Optional: Add date range filtering
+    const startDate = req.query.startDate as string;
+    const endDate = req.query.endDate as string;
+
+    const whereClause: any = { userId };
+
+    if (startDate || endDate) {
+      whereClause.date = {};
+      if (startDate) {
+        whereClause.date.gte = new Date(startDate);
+      }
+      if (endDate) {
+        whereClause.date.lte = new Date(endDate);
+      }
+    }
+
+    // Fetch entries
     const entries = await prisma.dailyQuest.findMany({
-      where: { userId },
+      where: whereClause,
       orderBy: { date: 'desc' },
       take: limit,
       select: {
         id: true,
         date: true,
-        journalPrompts: true
+        journalPrompts: true,
+        completedAt: true,
+        createdAt: true
       }
     });
 
-    res.json(entries);
+    // Normalize prompts in response
+    const normalizedEntries = entries.map(entry => ({
+      ...entry,
+      journalPrompts: normalizePrompts(entry.journalPrompts as any[]),
+      // Add completion stats
+      totalPrompts: Array.isArray(entry.journalPrompts) ? entry.journalPrompts.length : 0,
+      answeredPrompts: Array.isArray(entry.journalPrompts) 
+        ? (entry.journalPrompts as any[]).filter((jp: any) => {
+            const normalized = typeof jp === 'string' ? { answer: null } : jp;
+            return normalized.answer !== null;
+          }).length 
+        : 0
+    }));
 
-  } catch (error) {
-    console.error('Error fetching journal entries:', error);
-    res.status(500).json({ error: 'Failed to fetch journal entries' });
+    res.json({
+      entries: normalizedEntries,
+      count: normalizedEntries.length,
+      limit
+    });
+
+  } catch (error: any) {
+    console.error('Error fetching journal entries:', {
+      error: error.message,
+      stack: error.stack,
+      userId: (req as any).userId
+    });
+
+    res.status(500).json({ 
+      error: 'Failed to fetch journal entries',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+// Optional: Get today's journal status
+export const getTodayJournalStatus = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { start, end } = getTodayDateRange();
+
+    const dailyQuest = await prisma.dailyQuest.findFirst({
+      where: {
+        userId,
+        date: {
+          gte: start,
+          lt: end
+        }
+      },
+      select: {
+        id: true,
+        date: true,
+        journalPrompts: true,
+        completedAt: true
+      }
+    });
+
+    if (!dailyQuest) {
+      return res.json({
+        hasJournal: false,
+        message: 'No journal prompts for today'
+      });
+    }
+
+    const prompts = normalizePrompts(dailyQuest.journalPrompts as any[]);
+    const answeredCount = prompts.filter(jp => jp.answer !== null).length;
+
+    res.json({
+      hasJournal: true,
+      totalPrompts: prompts.length,
+      answeredPrompts: answeredCount,
+      remainingPrompts: prompts.length - answeredCount,
+      isCompleted: answeredCount === prompts.length,
+      completedAt: dailyQuest.completedAt,
+      prompts: prompts.map(jp => ({
+        question: jp.question,
+        isAnswered: jp.answer !== null,
+        answeredAt: jp.answeredAt
+      }))
+    });
+
+  } catch (error: any) {
+    console.error('Error fetching today\'s journal status:', error);
+    res.status(500).json({ 
+      error: 'Failed to fetch journal status',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
