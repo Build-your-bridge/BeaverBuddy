@@ -145,35 +145,35 @@ export const generateQuests = async (req: Request, res: Response) => {
           {
             role: 'user',
             content: `Part One - Daily Quests
-Your job is to help Canadian immigrants with mental health and cultural isolation. The user will tell you how they're feeling today and why, and you will generate EXACTLY 4 personalized Daily Quests:
-- 2 Emotional Quests that DIRECTLY address their current feelings and situation
-- 2 Cultural Quests that help them explore Canadian culture (completely unrelated to their current mood)
+Your job is to help Canadian immigrants with mental health and cultural isolation. The user will tell you how they're feeling today and why, and you will generate EXACTLY 4 Daily Quests:
+- 2 Personalized Quests that are tailored to the user's specific situation, background, and current feelings
+- 2 General Canadian Quests that are universal Canadian cultural experiences (not related to user's specific mood or situation)
 
 CRITICAL: All quests must be VERY SPECIFIC and ACTIONABLE. Include exact steps, numbers, locations, or specific actions the user should take.
 
 Here's a full comprehensive example:
 The user says: "I'm feeling sad today because I'm really struggling to find a job".
 
-4 Daily Quests (2 Emotional + 2 Cultural):
-1. [Emotional] 📝 Resume Review: Spend 30 minutes updating your resume with 3 new skills you've learned, then ask a friend to review it. (Reward: 25🍁)
-2. [Emotional] 💼 Job Search Strategy: Research 5 companies in your field today and write down 2 specific reasons why you'd want to work at each. (Reward: 30🍁)
-3. [Cultural] ☕ Tim Hortons Visit: Go to your nearest Tim Hortons, order a double-double coffee, and try a Timbits box (pick your favorite flavor!). (Reward: 20🍁)
-4. [Cultural] 🎵 Canadian Music Discovery: Listen to "Waves of Blue" by Majid Jordan on Spotify, then find 2 more songs by Canadian artists and add them to a playlist. (Reward: 15🍁)
+4 Daily Quests (2 Personalized + 2 General Canadian):
+1. [Personalized] 📝 Resume Review: Spend 30 minutes updating your resume with 3 new skills you've learned, then ask a friend to review it. (Reward: 25🍁)
+2. [Personalized] 💼 Job Search Strategy: Research 5 companies in your field today and write down 2 specific reasons why you'd want to work at each. (Reward: 30🍁)
+3. [General Canadian] ☕ Tim Hortons Visit: Go to your nearest Tim Hortons, order a double-double coffee, and try a Timbits box (pick your favorite flavor!). (Reward: 20🍁)
+4. [General Canadian] 🎵 Canadian Music Discovery: Listen to "Waves of Blue" by Majid Jordan on Spotify, then find 2 more songs by Canadian artists and add them to a playlist. (Reward: 15🍁)
 
-More Emotional Quest Examples (be VERY specific):
+More Personalized Quest Examples (be VERY specific):
 "I'm feeling bored and lonely, I haven't seen my friends in a while because everyone is so busy with life."
-- [Emotional] 📱 Reconnect: Text 3 friends you haven't talked to in a while and suggest a specific activity for this weekend (coffee, walk, or video call). (Reward: 30🍁)
+- [Personalized] 📱 Reconnect: Text 3 friends you haven't talked to in a while and suggest a specific activity for this weekend (coffee, walk, or video call). (Reward: 30🍁)
 
 "I'm really mad, I studied so hard for my test yesterday but I didn't get the grade I wanted."
-- [Emotional] 🧘 Calm Down Session: Do 10 minutes of deep breathing (4-7-8 technique: inhale 4, hold 7, exhale 8), then write down 3 things you learned from studying. (Reward: 25🍁)
+- [Personalized] 🧘 Calm Down Session: Do 10 minutes of deep breathing (4-7-8 technique: inhale 4, hold 7, exhale 8), then write down 3 things you learned from studying. (Reward: 25🍁)
 
 "I'm feeling great! I just had a fun Christmas party with all of my friends and I won some cool prizes!"
-- [Emotional] ✍️ Gratitude Journal: Write down 5 specific things you're grateful for from today, including why each one matters to you. (Reward: 20🍁)
+- [Personalized] ✍️ Gratitude Journal: Write down 5 specific things you're grateful for from today, including why each one matters to you. (Reward: 20🍁)
 
-Cultural Quest Examples (be VERY specific):
-- [Cultural] 🏒 Hockey Night: Watch at least 1 period of a Toronto Maple Leafs game tonight (or any NHL game), and learn 2 new hockey terms. (Reward: 25🍁)
-- [Cultural] 🍁 Canadian History: Visit the Royal Ontario Museum website, read about 1 Canadian historical event, and share one interesting fact with someone. (Reward: 20🍁)
-- [Cultural] 🎬 Canadian Film: Watch a movie by a Canadian director (like "The Grand Seduction" or "Bon Cop, Bad Cop") and note 2 things that show Canadian culture. (Reward: 30🍁)
+General Canadian Quest Examples (be VERY specific):
+- [General Canadian] 🏒 Hockey Night: Watch at least 1 period of a Toronto Maple Leafs game tonight (or any NHL game), and learn 2 new hockey terms. (Reward: 25🍁)
+- [General Canadian] 🍁 Canadian History: Visit the Royal Ontario Museum website, read about 1 Canadian historical event, and share one interesting fact with someone. (Reward: 20🍁)
+- [General Canadian] 🎬 Canadian Film: Watch a movie by a Canadian director (like "The Grand Seduction" or "Bon Cop, Bad Cop") and note 2 things that show Canadian culture. (Reward: 30🍁)
 
 Part Two - Monthly Quests (EVENT-BASED, SAME FOR EVERYONE)
 IMPORTANT: Monthly quests are EVENT-BASED experiences that are THE SAME for ALL users. They represent major Canadian cultural events, festivals, or experiences that happen during this month. These should be like attending events, festivals, or major cultural experiences.
@@ -241,13 +241,13 @@ For Song quests, ALWAYS suggest a specific Canadian song:
 User's feeling: "${feeling}"
 
 CRITICAL INSTRUCTIONS:
-- Generate EXACTLY 4 daily quests: 2 Emotional (very specific to their feeling) + 2 Cultural (very specific Canadian experiences)
+- Generate EXACTLY 4 daily quests: 2 Personalized (very specific to their feeling and situation) + 2 General Canadian (universal Canadian experiences)
 - Make ALL quests VERY SPECIFIC with exact actions, numbers, locations, or steps
 - Generate 2 monthly quests that are EVENT-BASED and appropriate for the current month (${new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })})
 - Monthly quests should be the SAME for everyone (event-based experiences, not personalized)
 - Return ONLY a JSON object. DO NOT copy the example quests below - they are just to show the format and length!
 
-Example format (GENERATE YOUR OWN based on user's feeling for daily quests, general Canadian experiences for monthly quests):
+Example format (GENERATE YOUR OWN based on user's feeling for personalized quests, general Canadian experiences for general Canadian quests):
 {
   "quests": [
     {"id": 1, "title": "☕ Quest Title", "description": "Detailed description that helps with their specific feeling (80-120 chars).", "reward": 20},
@@ -434,6 +434,85 @@ Example format (GENERATE YOUR OWN based on user's feeling for daily quests, gene
     console.error('Generate quests error:', error);
     return res.status(500).json({
       error: error.message || 'Failed to generate quests. Please try again.',
+    });
+  }
+};
+
+export const updateQuestCompletion = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { questIndex, completed, isMonthly = false } = req.body;
+
+    if (typeof questIndex !== 'number' || typeof completed !== 'boolean') {
+      return res.status(400).json({ error: 'Invalid quest index or completion status' });
+    }
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    if (isMonthly) {
+      // Update monthly quest completion
+      const monthlyQuest = await prisma.monthlyQuest.findFirst({
+        where: {
+          userId,
+          month: currentMonthStr,
+        },
+      });
+
+      if (!monthlyQuest) {
+        return res.status(404).json({ error: 'Monthly quests not found' });
+      }
+
+      const monthlyQuests = monthlyQuest.monthlyQuests as any[];
+      if (questIndex < 0 || questIndex >= monthlyQuests.length) {
+        return res.status(400).json({ error: 'Invalid quest index' });
+      }
+
+      monthlyQuests[questIndex].completed = completed;
+
+      await prisma.monthlyQuest.update({
+        where: { id: monthlyQuest.id },
+        data: { monthlyQuests: monthlyQuests },
+      });
+    } else {
+      // Update daily quest completion
+      const dailyQuest = await prisma.dailyQuest.findUnique({
+        where: {
+          userId_date: {
+            userId,
+            date: today,
+          },
+        },
+      });
+
+      if (!dailyQuest) {
+        return res.status(404).json({ error: 'Daily quests not found' });
+      }
+
+      const quests = dailyQuest.quests as any[];
+      if (questIndex < 0 || questIndex >= quests.length) {
+        return res.status(400).json({ error: 'Invalid quest index' });
+      }
+
+      quests[questIndex].completed = completed;
+
+      await prisma.dailyQuest.update({
+        where: { id: dailyQuest.id },
+        data: { quests: quests },
+      });
+    }
+
+    return res.status(200).json({ success: true });
+
+  } catch (error: any) {
+    console.error('Update quest completion error:', error);
+    return res.status(500).json({
+      error: 'Failed to update quest completion',
     });
   }
 };

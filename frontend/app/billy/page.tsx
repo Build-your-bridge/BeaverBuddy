@@ -180,7 +180,7 @@ export default function BillyPage() {
         ...o,
         equipped: o.id === outfitId ? result.equipped : false
       })));
-      setSelectedOutfit(outfitId.toString());
+      setSelectedOutfit(result.equipped ? outfitId.toString() : 'default');
 
       // Update user data in localStorage with new equipped outfit
       if (user) {
@@ -279,57 +279,53 @@ export default function BillyPage() {
             <span className="text-2xl">🍁</span>
             <span className="text-lg font-black text-gray-800">{points}</span>
           </div>
+          <div className="flex items-center gap-2 bg-white/60 backdrop-blur-md rounded-full px-4 py-2 shadow-lg border border-white/40">
+            <span className="text-2xl">🔥</span>
+            <span className="text-lg font-black text-gray-800">12</span>
+          </div>
         </div>
       </div>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col px-6 pb-28 relative z-10">
+      <div className="flex-1 flex flex-col px-6 pb-4 relative z-10">
         {/* Billy Display */}
         <div className="flex justify-center mb-6 mt-6">
-          <div className="relative w-48 h-48 flex items-center justify-center">
+          <div className="relative w-48 h-48 md:w-80 md:h-44 flex items-center justify-center">
             <Image
               src={user?.equippedOutfit?.image || "/images/beaver/default/default.png"}
               alt="Billy the Beaver"
-              width={200}
-              height={200}
+              width={220}
+              height={220}
               className="object-contain drop-shadow-2xl"
               priority
               style={{ animation: 'float 3s ease-in-out infinite' }}
             />
-            {/* Show equipped outfit overlay */}
-            {selectedOutfit !== 'default' && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-4xl">✨</span>
-              </div>
-            )}
           </div>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex justify-center mb-6">
-          <div className="bg-white/80 backdrop-blur-md rounded-2xl p-1 shadow-lg border border-white/50">
-            <div className="flex gap-1">
-              <button
-                onClick={() => setActiveTab('shop')}
-                className={`px-6 py-2 rounded-xl font-bold text-sm transition-all ${
-                  activeTab === 'shop'
-                    ? 'bg-red-500 text-white shadow-md'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                🛍️ Shop
-              </button>
-              <button
-                onClick={() => setActiveTab('inventory')}
-                className={`px-6 py-2 rounded-xl font-bold text-sm transition-all ${
-                  activeTab === 'inventory'
-                    ? 'bg-red-500 text-white shadow-md'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                🎒 Inventory
-              </button>
-            </div>
+        <div className="p-4 rounded-t-[40px] mt-auto max-w-md mx-auto w-full">
+          <div className="flex gap-4 max-w-xs mx-auto">
+            <button
+              onClick={() => setActiveTab('shop')}
+              className={`flex-1 py-3 rounded-full font-bold text-sm shadow-lg transition-all duration-300 ${
+                activeTab === 'shop'
+                  ? 'bg-[#CE5C5C] text-white scale-105'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              🛍️ SHOP
+            </button>
+            <button
+              onClick={() => setActiveTab('inventory')}
+              className={`flex-1 py-3 rounded-full font-bold text-sm shadow-lg transition-all duration-300 ${
+                activeTab === 'inventory'
+                  ? 'bg-[#CE5C5C] text-white scale-105'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              🎒 INVENTORY
+            </button>
           </div>
         </div>
 
@@ -339,13 +335,13 @@ export default function BillyPage() {
             <div className="space-y-4">
               <h3 className="text-xl font-bold text-gray-800 text-center mb-4">Available Outfits</h3>
               {filteredOutfits.length === 0 ? (
-                <div className="bg-white/90 backdrop-blur rounded-3xl p-8 text-center shadow-xl border-2 border-white/50">
+                <div className="bg-[#E2C9A6] rounded-3xl p-6 border-4 border-amber-800 shadow-2xl max-w-4xl mx-auto text-center">
                   <span className="text-4xl block mb-4">🎉</span>
                   <h3 className="font-bold text-gray-800">All outfits purchased!</h3>
                   <p className="text-sm text-gray-600">Check back later for new items.</p>
                 </div>
               ) : (
-                <div className="bg-[#c68649] rounded-3xl p-6 border-2 border-amber-900/30 max-w-4xl mx-auto">
+                <div className="bg-[#E2C9A6] rounded-3xl p-6 border-4 border-amber-800 shadow-2xl max-w-4xl mx-auto">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
                     {filteredOutfits.map((outfit) => (
                       <div
@@ -374,7 +370,7 @@ export default function BillyPage() {
                         </div>
                     </div>
                   ))}
-                </div>
+                  </div>
                 </div>
               )}
             </div>
@@ -388,7 +384,7 @@ export default function BillyPage() {
                   <p className="text-sm text-gray-600">Visit the shop to buy some outfits for Billy.</p>
                 </div>
               ) : (
-                <div className="bg-[#c68649] rounded-3xl p-6 border-2 border-amber-900/30 max-w-4xl mx-auto">
+                <div className="bg-[#E2C9A6] rounded-3xl p-6 border-4 border-amber-800 shadow-2xl max-w-4xl mx-auto">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
                     {filteredOutfits.map((outfit) => (
                       <div

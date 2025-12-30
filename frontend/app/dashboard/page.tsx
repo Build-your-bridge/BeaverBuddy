@@ -25,6 +25,7 @@ export default function DashboardPage() {
   const [remainingJournalCount, setRemainingJournalCount] = useState(0);
   const [hasGeneratedToday, setHasGeneratedToday] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(false);
+  const [currentPoints, setCurrentPoints] = useState(500);
   const router = useRouter();
 
   useEffect(() => {
@@ -48,6 +49,7 @@ export default function DashboardPage() {
 
     if (existingQuests && questGeneratedDate === today) {
       setHasGeneratedToday(true);
+      fetchUserPoints(token);
     } else if (questGeneratedDate && questGeneratedDate !== today) {
       sessionStorage.removeItem(`generatedQuests_${currentUserId}`);
       sessionStorage.removeItem(`monthlyQuests_${currentUserId}`);
@@ -56,9 +58,11 @@ export default function DashboardPage() {
       setHasJournalPrompts(false);
       setCheckingStatus(true);
       checkTodayStatus(token);
+      fetchUserPoints(token);
     } else {
       setCheckingStatus(true);
       checkTodayStatus(token);
+      fetchUserPoints(token);
     }
   }, [router]);
 
@@ -157,6 +161,23 @@ export default function DashboardPage() {
       console.error('Error checking today status:', err);
     } finally {
       setCheckingStatus(false);
+    }
+  };
+
+  const fetchUserPoints = async (token: string) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/outfits/user/points', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const pointsData = await response.json();
+        setCurrentPoints(pointsData.points);
+      }
+    } catch (error) {
+      console.error('Error fetching user points:', error);
     }
   };
 
@@ -271,7 +292,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 bg-white/60 backdrop-blur-md rounded-full px-4 py-2 shadow-lg border border-white/40">
             <span className="text-2xl">🍁</span>
-            <span className="text-lg font-black text-gray-800">500</span>
+            <span className="text-lg font-black text-gray-800">{currentPoints}</span>
           </div>
           <div className="flex items-center gap-2 bg-white/60 backdrop-blur-md rounded-full px-4 py-2 shadow-lg border border-white/40">
             <span className="text-2xl">🔥</span>
