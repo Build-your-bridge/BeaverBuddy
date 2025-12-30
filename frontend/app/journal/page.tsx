@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import Header from '../components/Header';
+import BottomNav from '../components/BottomNav';
 
 // ============================================================================
 // INTERFACES
@@ -281,40 +283,18 @@ export default function JournalPage() {
       `}</style>
 
       {/* ===== HEADER ===== */}
-      <header className="flex-shrink-0 relative z-10" style={{ background: '#8B0000', borderBottom: '3px solid #660000' }}>
-        <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🍁</span>
-            <h1 className="text-lg font-black text-white">Journal Reflections</h1>
-          </div>
-          
-          {/* Points & Logout */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5 border border-white/30">
-              <span className="text-sm">🍁</span>
-              <span className="text-xs font-bold text-white">{user?.points || 500}</span>
-            </div>
-            <div className="flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5 border border-white/30">
-              <span className="text-sm">🔥</span>
-              <span className="text-xs font-bold text-white">12</span>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="px-3 py-1.5 bg-white/20 hover:bg-white/30 backdrop-blur-sm border border-white/30 rounded-full font-bold text-xs text-white transition-all"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      </header>
+      <Header 
+        title="Journal Reflections" 
+        points={user?.points || 500} 
+        onLogout={handleLogout}
+      />
 
       {/* ===== MAIN CONTENT ===== */}
-      <div className="flex-1 flex items-center justify-center p-6 overflow-hidden relative z-10">
-        <div className="w-full max-w-3xl h-full flex flex-col">
+      <div className="absolute inset-0 flex items-center justify-center p-6 overflow-hidden pointer-events-none" style={{ top: '80px', bottom: '112px' }}>
+        <div className="w-full max-w-3xl flex flex-col pointer-events-auto">
           
           {/* ===== CHAT CONTAINER ===== */}
-          <div className="flex-1 bg-white/95 backdrop-blur-md rounded-3xl border-3 flex flex-col overflow-hidden shadow-2xl" style={{ borderColor: '#8B4513' }}>
+          <div className="h-[70vh] bg-white/95 backdrop-blur-md rounded-3xl border-3 flex flex-col overflow-hidden shadow-2xl" style={{ borderColor: '#8B4513' }}>
             
             {/* ===== PROGRESS BAR ===== */}
             <div className="flex-shrink-0 px-6 py-4 bg-gradient-to-b from-gray-50 to-gray-100" style={{ borderBottom: '2px solid #D2B48C' }}>
@@ -468,37 +448,11 @@ export default function JournalPage() {
             )}
           </div>
 
-          {/* ===== BOTTOM NAVIGATION ===== */}
-          <div className="flex-shrink-0 flex items-center justify-center gap-4 mt-4 pb-2">
-            <button 
-              onClick={() => router.push('/billy')}
-              className="flex flex-col items-center gap-1 transition-transform hover:scale-110"
-            >
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-white shadow-lg border-2 border-gray-300">
-                <Image src="/images/icons/billy.png" alt="Billy" width={48} height={48} className="object-contain" />
-              </div>
-              <span className="text-xs font-bold text-gray-700">Billy</span>
-            </button>
-            
-            <button 
-              onClick={() => router.push('/dashboard')}
-              className="flex flex-col items-center gap-1 transition-transform hover:scale-110"
-            >
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-white shadow-lg border-2 border-gray-300">
-                <Image src="/images/icons/house.png" alt="Home" width={48} height={48} className="object-contain" />
-              </div>
-              <span className="text-xs font-bold text-gray-700">Home</span>
-            </button>
-            
-            <button className="flex flex-col items-center gap-1">
-              <div className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-xl border-3 bg-red-800 border-red-900">
-                <Image src="/images/icons/journal.png" alt="Journal" width={48} height={48} className="object-contain" />
-              </div>
-              <span className="text-xs font-bold text-white drop-shadow-md">Journal</span>
-            </button>
-          </div>
         </div>
       </div>
+
+      {/* Bottom Navigation */}
+      <BottomNav currentPage="journal" />
     </main>
   );
 }

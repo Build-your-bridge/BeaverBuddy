@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import Header from '../components/Header';
+import BottomNav from '../components/BottomNav';
 
 interface User {
   id: number;
@@ -34,6 +36,8 @@ export default function BillyPage() {
   const [outfits, setOutfits] = useState<Outfit[]>([]);
   const [selectedOutfit, setSelectedOutfit] = useState<string>('default');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [hasJournalPrompts, setHasJournalPrompts] = useState(false);
+  const [remainingJournalCount, setRemainingJournalCount] = useState(0);
   const router = useRouter();
 
   useEffect(() => {
@@ -45,7 +49,17 @@ export default function BillyPage() {
       return;
     }
 
-    setUser(JSON.parse(userData));
+    const parsedUser = JSON.parse(userData);
+    setUser(parsedUser);
+    
+    // Check journal prompts
+    const journalPromptsData = sessionStorage.getItem(`journalPrompts_${parsedUser.id}`);
+    if (journalPromptsData) {
+      const prompts = JSON.parse(journalPromptsData);
+      const unanswered = prompts.filter((p: any) => !p.answer || p.answer === null);
+      setHasJournalPrompts(unanswered.length > 0);
+      setRemainingJournalCount(unanswered.length);
+    }
 
     // Fetch all outfits and user data
     const fetchData = async () => {
@@ -234,7 +248,7 @@ export default function BillyPage() {
   }
 
   return (
-    <main className="h-screen flex flex-col relative bg-white">
+    <main className="h-screen flex flex-col overflow-hidden relative" style={{ background: 'linear-gradient(to bottom, #E8D4C0 0%, #F5E6D3 100%)' }}>
       <style jsx>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
@@ -259,35 +273,12 @@ export default function BillyPage() {
       <div className="absolute bottom-40 left-40 text-gray-400 text-2xl z-5" style={{ animation: 'sparkle 3s ease-in-out infinite', animationDelay: '2s' }}>✦</div>
 
       {/* Header - Glass */}
-      <div className="relative h-20 flex items-center justify-between px-6 z-10" style={{
-        background: 'rgba(255, 255, 255, 0.15)',
-        backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.2)'
-      }}>
-        <button
-          onClick={handleLogout}
-          className="text-sm font-bold text-gray-800 hover:text-gray-900 transition-all px-4 py-2 rounded-xl bg-white/60 backdrop-blur-md shadow-lg border border-white/40"
-        >
-          🪵 Logout
-        </button>
-
-        <div className="absolute left-1/2 transform -translate-x-1/2">
-          <h2 className="text-2xl font-black text-gray-800 drop-shadow-sm">
-            Billy's Wardrobe
-          </h2>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-white/60 backdrop-blur-md rounded-full px-4 py-2 shadow-lg border border-white/40">
-            <span className="text-2xl">🍁</span>
-            <span className="text-lg font-black text-gray-800">{points}</span>
-          </div>
-          <div className="flex items-center gap-2 bg-white/60 backdrop-blur-md rounded-full px-4 py-2 shadow-lg border border-white/40">
-            <span className="text-2xl">🔥</span>
-            <span className="text-lg font-black text-gray-800">12</span>
-          </div>
-        </div>
-      </div>
+      <Header 
+        title="Billy's Wardrobe" 
+        points={points} 
+        onLogout={handleLogout}
+        className="mb-10"
+      />
 
       {/* Main content */}
       <div className="flex-1 flex flex-col px-6 pb-4 relative z-10">
@@ -311,20 +302,20 @@ export default function BillyPage() {
           <div className="flex gap-4 max-w-xs mx-auto">
             <button
               onClick={() => setActiveTab('shop')}
-              className={`flex-1 py-3 rounded-full font-bold text-sm shadow-lg transition-all duration-300 ${
+              className={`flex-1 py-3 rounded-full font-bold text-sm shadow-lg transition-all duration-300 cursor-pointer ${
                 activeTab === 'shop'
-                  ? 'bg-[#CE5C5C] text-white scale-105'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-[#a12b2b] text-white scale-105'
+                  : 'bg-white text-gray-600 hover:bg-gray-200'
               }`}
             >
               🛍️ SHOP
             </button>
             <button
               onClick={() => setActiveTab('inventory')}
-              className={`flex-1 py-3 rounded-full font-bold text-sm shadow-lg transition-all duration-300 ${
+              className={`flex-1 py-3 rounded-full font-bold text-sm shadow-lg transition-all duration-300 cursor-pointer ${
                 activeTab === 'inventory'
-                  ? 'bg-[#CE5C5C] text-white scale-105'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  ? 'bg-[#a12b2b] text-white scale-105'
+                  : 'bg-white text-gray-600 hover:bg-gray-200'
               }`}
             >
               🎒 INVENTORY
@@ -344,15 +335,12 @@ export default function BillyPage() {
                   <p className="text-sm text-gray-600">Check back later for new items.</p>
                 </div>
               ) : (
-                <div className="bg-[#E2C9A6] rounded-3xl p-6 border-4 border-amber-800 shadow-2xl max-w-4xl mx-auto">
+                <div className="bg-[#E2C9A6] rounded-3xl p-6 border-4 border-amber-800 shadow-2xl max-w-4xl mx-auto max-h-[37rem] overflow-y-auto">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
                     {filteredOutfits.map((outfit) => (
                       <div
                         key={outfit.id}
-                        className={`flex flex-col items-center hover:scale-105 transition-transform ${
-                          points >= outfit.price ? 'cursor-pointer' : 'cursor-not-allowed'
-                        }`}
-                        onClick={() => handlePurchase(outfit)}
+                        className={`flex flex-col items-center hover:scale-105 transition-transform ${points < outfit.price ? 'cursor-not-allowed' : ''}`}
                       >
                         <div className="w-32 h-32 rounded-xl mb-2 shadow-md border-2 border-gray-200 bg-white flex items-center justify-center">
                           <Image
@@ -375,6 +363,7 @@ export default function BillyPage() {
                           
                           {/* Buy button */}
                           <button
+                            onClick={() => handlePurchase(outfit)}
                             disabled={points < outfit.price}
                             className={`px-5 py-1 rounded-full text-xs font-bold transition-all duration-200 ${
                               points >= outfit.price
@@ -401,7 +390,7 @@ export default function BillyPage() {
                   <p className="text-sm text-gray-600">Visit the shop to buy some outfits for Billy.</p>
                 </div>
               ) : (
-                <div className="bg-[#E2C9A6] rounded-3xl p-6 border-4 border-amber-800 shadow-2xl max-w-4xl mx-auto">
+                <div className="bg-[#E2C9A6] rounded-3xl p-6 border-4 border-amber-800 shadow-2xl max-w-4xl mx-auto max-h-[37rem] overflow-y-auto">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
                     {filteredOutfits.map((outfit) => (
                       <div
@@ -437,79 +426,8 @@ export default function BillyPage() {
         </div>
       </div>
 
-      {/* Bottom navigation - solid */}
-      <div className="fixed bottom-0 left-0 right-0 h-28 flex items-center justify-center px-4 z-10 bg-white border-t-2 border-gray-200 shadow-lg">
-        <div className="flex justify-center items-center gap-8 w-full max-w-2xl pb-4">
-          <button className="flex flex-col items-center">
-            <div className="w-24 h-24 flex flex-col items-center justify-center rounded-3xl px-3 py-2" style={{
-              background: 'rgba(255, 22, 22, 0.22)',
-              backdropFilter: 'blur(10px)',
-              border: '2px solid rgba(236, 72, 72, 0.4)',
-              boxShadow: '0 8px 24px rgba(236, 72, 153, 0.3)'
-            }}>
-              <Image
-                src="/images/icons/billy.png"
-                alt="Billy"
-                width={64}
-                height={64}
-                className="w-14 h-14 object-contain mb-1"
-              />
-              <span className="text-xs font-black text-pink-700">Billy</span>
-            </div>
-          </button>
-
-          <button
-            onClick={() => router.push('/dashboard')}
-            className="flex flex-col items-center transition-transform hover:scale-110"
-          >
-            <div className="w-24 h-24 flex flex-col items-center justify-center rounded-3xl px-3 py-2" style={{
-              background: 'rgba(255, 255, 255, 0.3)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.1)'
-            }}>
-              <Image
-                src="/images/icons/house.png"
-                alt="Home"
-                width={64}
-                height={64}
-                className="w-14 h-14 object-contain mb-1"
-              />
-              <span className="text-xs font-black text-gray-800">Home</span>
-            </div>
-          </button>
-
-          <button
-            onClick={() => router.push('/journal')}
-            className="flex flex-col items-center transition-transform hover:scale-110 relative"
-          >
-            {(() => {
-              const userData = localStorage.getItem('user');
-              const journalPrompts = userData ? sessionStorage.getItem(`journalPrompts_${JSON.parse(userData).id}`) : null;
-              return journalPrompts && (
-                <div className="absolute -top-2 -right-2 bg-gradient-to-r from-pink-500 to-pink-600 text-white text-xs font-black rounded-full w-7 h-7 flex items-center justify-center z-10 shadow-lg border-2 border-white animate-pulse">
-                  3
-                </div>
-              );
-            })()}
-            <div className="w-24 h-24 flex flex-col items-center justify-center rounded-3xl px-3 py-2" style={{
-              background: 'rgba(255, 255, 255, 0.3)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.1)'
-            }}>
-              <Image
-                src="/images/icons/journal.png"
-                alt="Journal"
-                width={64}
-                height={64}
-                className="w-14 h-14 object-contain mb-1"
-              />
-              <span className="text-xs font-black text-gray-800">Journal</span>
-            </div>
-          </button>
-        </div>
-      </div>
+      {/* Bottom Navigation */}
+      <BottomNav currentPage="billy" hasJournalPrompts={hasJournalPrompts} remainingJournalCount={remainingJournalCount} />
 
       {/* Toast Notification */}
       {toast && (

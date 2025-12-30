@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import Header from '../components/Header';
+import BottomNav from '../components/BottomNav';
 
 interface User {
   id: number;
@@ -259,7 +261,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="h-screen flex flex-col relative overflow-hidden bg-white">
+    <main className="h-screen flex flex-col overflow-hidden relative" style={{ background: 'linear-gradient(to bottom, #E8D4C0 0%, #F5E6D3 100%)' }}>
       <style jsx>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
@@ -276,30 +278,12 @@ export default function DashboardPage() {
       <div className="absolute top-32 right-32 text-gray-400 text-2xl z-5" style={{ animation: 'sparkle 3s ease-in-out infinite', animationDelay: '1s' }}>✦</div>
       <div className="absolute bottom-40 left-40 text-gray-400 text-2xl z-5" style={{ animation: 'sparkle 3s ease-in-out infinite', animationDelay: '2s' }}>✦</div>
 
-      {/* Header - Glass */}
-      <div className="relative h-20 flex items-center justify-between px-6 z-10" style={{ 
-        background: 'rgba(255, 255, 255, 0.15)', 
-        backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.2)'
-      }}>
-        <button
-          onClick={handleLogout}
-          className="text-sm font-bold text-gray-800 hover:text-gray-900 transition-all px-4 py-2 rounded-xl bg-white/60 backdrop-blur-md shadow-lg border border-white/40"
-        >
-          🪵 Logout
-        </button>
-        
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-white/60 backdrop-blur-md rounded-full px-4 py-2 shadow-lg border border-white/40">
-            <span className="text-2xl">🍁</span>
-            <span className="text-lg font-black text-gray-800">{currentPoints}</span>
-          </div>
-          <div className="flex items-center gap-2 bg-white/60 backdrop-blur-md rounded-full px-4 py-2 shadow-lg border border-white/40">
-            <span className="text-2xl">🔥</span>
-            <span className="text-lg font-black text-gray-800">12</span>
-          </div>
-        </div>
-      </div>
+      {/* Header */}
+      <Header 
+        title="Dashboard" 
+        points={currentPoints} 
+        onLogout={handleLogout}
+      />
 
       {/* Main content */}
       <div className="flex-1 flex items-center justify-center px-6 pb-28 relative z-10">
@@ -408,12 +392,11 @@ export default function DashboardPage() {
             <button
               onClick={handleSubmitFeeling}
               disabled={loading || (!hasGeneratedToday && feeling.trim().length < 20)}
-              className="w-full py-4 font-black text-lg tracking-wider transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className="w-full py-4 font-black text-lg tracking-wider transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none cursor-pointer"
               style={{ 
                 borderRadius: '20px',
-                background: '#ce5c5c',
-                color: 'white',
-                boxShadow: '0 10px 30px rgba(236, 72, 153, 0.4)'
+                background: '#a12b2b',
+                color: 'white'
               }}
             >
               {loading ? 'GENERATING...' : hasGeneratedToday ? 'VIEW MY QUESTS' : 'SUBMIT & VIEW QUESTS'}
@@ -428,75 +411,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Bottom navigation - solid */}
-      <div className="absolute bottom-0 left-0 right-0 h-28 flex items-center justify-center px-4 z-10 bg-white border-t-2 border-gray-200 shadow-lg">
-        <div className="flex justify-center items-center gap-8 w-full max-w-2xl pb-4">
-          <button 
-            onClick={() => router.push('/billy')}
-            className="flex flex-col items-center transition-transform hover:scale-110"
-          >
-            <div className="w-24 h-24 flex flex-col items-center justify-center rounded-3xl px-3 py-2" style={{
-              background: 'rgba(255, 255, 255, 0.3)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.1)'
-            }}>
-              <Image
-                src="/images/icons/billy.png"
-                alt="Billy"
-                width={64}
-                height={64}
-                className="w-14 h-14 object-contain mb-1"
-              />
-              <span className="text-xs font-black text-gray-800">Billy</span>
-            </div>
-          </button>
-          
-          <button className="flex flex-col items-center">
-            <div className="w-24 h-24 flex flex-col items-center justify-center rounded-3xl px-3 py-2" style={{
-              background: 'rgba(255, 22, 22, 0.22)',
-              backdropFilter: 'blur(10px)',
-              border: '2px solid rgba(236, 72, 72, 0.4)',
-              boxShadow: '0 8px 24px rgba(236, 72, 153, 0.3)'
-            }}>
-              <Image
-                src="/images/icons/house.png"
-                alt="Home"
-                width={64}
-                height={64}
-                className="w-14 h-14 object-contain mb-1"
-              />
-              <span className="text-xs font-black text-pink-700">Home</span>
-            </div>
-          </button>
-          
-          <button 
-            onClick={() => router.push('/journal')}
-            className="flex flex-col items-center transition-transform hover:scale-110 relative"
-          >
-            {hasJournalPrompts && remainingJournalCount > 0 && (
-              <div className="absolute -top-2 -right-2 bg-gradient-to-r from-pink-500 to-pink-600 text-white text-xs font-black rounded-full w-7 h-7 flex items-center justify-center z-10 shadow-lg border-2 border-white animate-pulse">
-                {remainingJournalCount}
-              </div>
-            )}
-            <div className="w-24 h-24 flex flex-col items-center justify-center rounded-3xl px-3 py-2" style={{
-              background: 'rgba(255, 255, 255, 0.3)',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.3)',
-              boxShadow: '0 8px 24px rgba(0, 0, 0, 0.1)'
-            }}>
-              <Image
-                src={hasJournalPrompts ? "/images/icons/journal.png" : "/images/icons/grey_journal.png"}
-                alt="Journal"
-                width={64}
-                height={64}
-                className="w-14 h-14 object-contain mb-1"
-              />
-              <span className="text-xs font-black text-gray-800">Journal</span>
-            </div>
-          </button>
-        </div>
-      </div>
+      {/* Bottom Navigation */}
+      <BottomNav currentPage="dashboard" hasJournalPrompts={hasJournalPrompts} remainingJournalCount={remainingJournalCount} />
     </main>
   );
 }

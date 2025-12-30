@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Header from '../components/Header';
 
 interface Quest {
   id: number;
@@ -169,6 +170,20 @@ export default function QuestsPage() {
     setTimeout(() => setToast(null), 3000); // Auto-hide after 3 seconds
   };
 
+  const handleLogout = () => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const currentUser = JSON.parse(userData);
+      localStorage.removeItem(`questGeneratedDate_${currentUser.id}`);
+      sessionStorage.removeItem(`generatedQuests_${currentUser.id}`);
+      sessionStorage.removeItem(`monthlyQuests_${currentUser.id}`);
+      sessionStorage.removeItem(`journalPrompts_${currentUser.id}`);
+    }
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    router.push('/');
+  };
+
   const removeQuest = (index: number) => {
     if (activeTab === 'daily') {
       setDailyQuests(prev => prev.filter((_, i) => i !== index));
@@ -179,7 +194,7 @@ export default function QuestsPage() {
 
   if (loading) {
     return (
-      <div className="h-screen flex items-center justify-center bg-red-500">
+      <div className="h-screen flex items-center justify-center" style={{ background: 'linear-gradient(to bottom, #E8D4C0 0%, #F5E6D3 100%)' }}>
         <div className="animate-bounce">
           <p className="text-white text-lg font-bold">Loading quests... 🍁</p>
         </div>
@@ -192,7 +207,7 @@ export default function QuestsPage() {
   const completedCount = currentQuests.filter(q => q.completed).length;
 
   return (
-    <main className="h-screen bg-[#f5f5f5] overflow-hidden flex flex-col relative">
+    <main className="h-screen overflow-hidden flex flex-col relative" style={{ background: 'linear-gradient(to bottom, #E8D4C0 0%, #F5E6D3 100%)' }}>
       <style jsx>{`
         @keyframes fade-in {
           0% { opacity: 0; transform: translateY(10px); }
@@ -202,31 +217,22 @@ export default function QuestsPage() {
           animation: fade-in 0.3s ease-out;
         }
       `}</style>
-      {/* Header - Glass */}
-      <div className="relative h-20 flex items-center justify-between px-6 z-10" style={{
-        background: 'rgba(255, 255, 255, 0.15)',
-        backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.2)'
-      }}>
-        {/* Dashboard Button - Top Left */}
+      {/* Header */}
+      <Header 
+        title="Daily Quests" 
+        points={currentPoints} 
+        onLogout={handleLogout}
+        className="mb-10"
+      />
+
+      {/* X Button positioned next to title */}
+      <div className="absolute top-24 left-1/2 ml-64 z-20">
         <button
           onClick={() => router.push('/dashboard')}
-          className="text-sm font-bold text-gray-800 hover:text-gray-900 transition-all px-4 py-2 rounded-xl bg-white/60 backdrop-blur-md shadow-lg border border-white/40"
+          className="w-16 h-16 bg-white/90 backdrop-blur-md rounded-full shadow-lg border border-white/50 flex items-center justify-center hover:bg-white/95 hover:scale-110 transition-all cursor-pointer"
         >
-          🪵 Dashboard
+          <span className="text-gray-700 font-bold text-4xl leading-none -mt-1">×</span>
         </button>
-
-        {/* Points and Streak - Top Right */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-white/60 backdrop-blur-md rounded-full px-4 py-2 shadow-lg border border-white/40">
-            <span className="text-2xl">🍁</span>
-            <span className="text-lg font-black text-gray-800">{currentPoints}</span>
-          </div>
-          <div className="flex items-center gap-2 bg-white/60 backdrop-blur-md rounded-full px-4 py-2 shadow-lg border border-white/40">
-            <span className="text-2xl">🔥</span>
-            <span className="text-lg font-black text-gray-800">12</span>
-          </div>
-        </div>
       </div>
 
       <div className="max-w-md mx-auto w-full flex flex-col h-full">
@@ -288,7 +294,7 @@ export default function QuestsPage() {
                         {!quest.completed && (
                           <button
                             onClick={() => toggleQuestCompletion(index)}
-                            className="absolute bottom-0 right-0 bg-[#CE5C5C] text-white px-3 py-1 rounded-full text-xs font-bold hover:bg-[#b54a4a] transition-colors"
+                            className="absolute bottom-0 right-0 bg-[#a12b2b] text-white px-3 py-1 rounded-full text-xs font-bold hover:bg-[#b54a4a] transition-colors cursor-pointer"
                           >
                             Mark as Done
                           </button>
@@ -339,7 +345,7 @@ export default function QuestsPage() {
                         {!quest.completed && (
                           <button
                             onClick={() => toggleQuestCompletion(index + 2)}
-                            className="absolute bottom-0 right-0 bg-[#CE5C5C] text-white px-3 py-1 rounded-full text-xs font-bold hover:bg-[#b54a4a] transition-colors"
+                            className="absolute bottom-0 right-0 bg-[#a12b2b] text-white px-3 py-1 rounded-full text-xs font-bold hover:bg-[#b54a4a] transition-colors cursor-pointer"
                           >
                             Mark as Done
                           </button>
@@ -395,14 +401,14 @@ export default function QuestsPage() {
                     {!quest.completed && (
                       <button
                         onClick={() => toggleQuestCompletion(index)}
-                        className="absolute bottom-0 right-0 bg-[#CE5C5C] text-white px-3 py-1 rounded-full text-xs font-bold hover:bg-[#b54a4a] transition-colors"
+                        className="absolute bottom-0 right-0 bg-[#a12b2b] text-white px-3 py-1 rounded-full text-xs font-bold hover:bg-[#b54a4a] transition-colors cursor-pointer"
                       >
                         Mark as Done
                       </button>
                     )}
                     {quest.completed && (
                       <button
-                        className="absolute bottom-0 right-0 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold"
+                        className="absolute bottom-0 right-0 bg-[#8B0000] text-white px-3 py-1 rounded-full text-xs font-bold"
                       >
                         Completed
                       </button>
@@ -414,28 +420,31 @@ export default function QuestsPage() {
           )}
         </div>
 
-        <div className="bg-white p-4 rounded-t-[40px] shadow-2xl mt-auto">
-          <div className="flex gap-4 max-w-xs mx-auto">
-            <button 
-              onClick={() => setActiveTab('daily')}
-              className={`flex-1 py-3 rounded-full font-bold text-sm shadow-lg transition-all duration-300 ${
-                activeTab === 'daily'
-                  ? 'bg-[#CE5C5C] text-white scale-105'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              DAILY
-            </button>
-            <button 
-              onClick={() => setActiveTab('monthly')}
-              className={`flex-1 py-3 rounded-full font-bold text-sm shadow-lg transition-all duration-300 ${
-                activeTab === 'monthly'
-                  ? 'bg-[#CE5C5C] text-white scale-105'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              MONTHLY
-            </button>
+        {/* Floating Daily/Monthly Tabs */}
+        <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-10">
+          <div className="bg-white p-4 rounded-[40px] shadow-2xl">
+            <div className="flex gap-4 w-80 mx-auto">
+              <button 
+                onClick={() => setActiveTab('daily')}
+                className={`flex-1 py-3 px-6 rounded-full font-bold text-sm shadow-lg transition-all duration-300 cursor-pointer ${
+                  activeTab === 'daily'
+                    ? 'bg-[#a12b2b] text-white scale-105'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                DAILY
+              </button>
+              <button 
+                onClick={() => setActiveTab('monthly')}
+                className={`flex-1 py-3 px-6 rounded-full font-bold text-sm shadow-lg transition-all duration-300 cursor-pointer ${
+                  activeTab === 'monthly'
+                    ? 'bg-[#a12b2b] text-white scale-105'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                MONTHLY
+              </button>
+            </div>
           </div>
         </div>
       </div>
