@@ -122,7 +122,7 @@ export default function BillyPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/outfits/user/${outfit.id}/buy`, {
+      const response = await fetch(`http://localhost:3000/api/outfits/user/${outfit.id}/buy`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

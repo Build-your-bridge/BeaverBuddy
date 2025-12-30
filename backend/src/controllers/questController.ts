@@ -202,19 +202,19 @@ Examples of event-based monthly quests:
 Generate 2 monthly quests that are appropriate for the current month and represent exciting Canadian cultural events.
 
 Part Three - Follow-Up Questions
-We also want you to generate 3 follow-up questions that are DIRECTLY RELATED to the user's mental health check-in. These questions should help the user:
-1. Explore WHY they are feeling this way - dig deeper into the root causes or triggers
-2. Think about HOW they can tackle or address the problems they mentioned
-3. Reflect on what they might need or want to help them feel better
+We also want you to generate EXACTLY 2 follow-up questions that are DIRECTLY RELATED to the user's mental health check-in. These questions should help the user:
+1. First question: Explore WHY they are feeling this way - dig deeper into the root causes or triggers
+2. Second question: Think about HOW they can tackle or address the problems they mentioned
 
-IMPORTANT: These questions MUST be personalized based on the specific feelings and emotions the user shared in their check-in. They should help the user process their emotions, understand their situation better, and think about potential solutions or coping strategies.
-
-The 3rd, final question should always be: "Is there anything else you'd like to talk about today?" - This gives the user the freedom to write down whatever they want.
+IMPORTANT: 
+- Generate ONLY 2 questions
+- DO NOT include "Is there anything else you'd like to talk about today?" - this will be added automatically as the 3rd question
+- These questions MUST be personalized based on the specific feelings and emotions the user shared in their check-in
+- They should help the user process their emotions, understand their situation better, and think about potential solutions or coping strategies
 
 Example: If the user says "I'm feeling sad because I'm struggling to find a job", the questions might be:
 1. "What specific challenges have you faced in your job search that have been most discouraging?"
 2. "What steps could you take this week to move forward with your job search, and what support do you need?"
-3. "Is there anything else you'd like to talk about today?"
 
 Quest Formatting and Improvements
 IMPORTANT RULES:
@@ -245,6 +245,7 @@ CRITICAL INSTRUCTIONS:
 - Make ALL quests VERY SPECIFIC with exact actions, numbers, locations, or steps
 - Generate 2 monthly quests that are EVENT-BASED and appropriate for the current month (${new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })})
 - Monthly quests should be the SAME for everyone (event-based experiences, not personalized)
+- Generate ONLY 2 journal prompts - do NOT include the 3rd "Is there anything else" question
 - Return ONLY a JSON object. DO NOT copy the example quests below - they are just to show the format and length!
 
 Example format (GENERATE YOUR OWN based on user's feeling for daily quests, general Canadian experiences for monthly quests):
@@ -259,7 +260,10 @@ Example format (GENERATE YOUR OWN based on user's feeling for daily quests, gene
     {"id": 1, "title": "🏒 Quest Title", "description": "Exciting general Canadian cultural experience (80-120 chars).", "reward": 500},
     {"id": 2, "title": "🌊 Quest Title", "description": "Another amazing Canadian adventure experience.", "reward": 400}
   ],
-  "journalPrompts": ["Personalized question about their feeling", "Deeper follow-up question", "Is there anything else you'd like to talk about today?"]
+  "journalPrompts": [
+    "Question 1: Personalized question about WHY you're feeling this way.",
+    "Question 2: Follow-up question about HOW to address what you shared."
+  ]
 }`,
           },
         ],
@@ -355,12 +359,22 @@ Example format (GENERATE YOUR OWN based on user's feeling for daily quests, gene
       });
     }
 
-    if (!questsData.journalPrompts || !Array.isArray(questsData.journalPrompts) || questsData.journalPrompts.length !== 3) {
+    if (!questsData.journalPrompts || !Array.isArray(questsData.journalPrompts) || questsData.journalPrompts.length === 0) {
       console.error('Invalid journalPrompts structure:', questsData);
       return res.status(500).json({
         error: 'AI generated invalid journal prompts. Please try again.',
       });
     }
+
+    // Take only the first journal prompt (AI sometimes generates 2 despite instructions)
+    const firstPrompt = questsData.journalPrompts[0];
+    questsData.journalPrompts = [firstPrompt];
+
+    // Add placeholder for question 2 (will be generated dynamically after question 1 is answered)
+    questsData.journalPrompts.push("This question will be personalized based on your previous answer");
+    
+    // ALWAYS add the 3rd question as the standard one
+    questsData.journalPrompts.push("Is there anything else you'd like to talk about today?");
 
     // Transform journalPrompts from strings to objects with question, answer, and answeredAt
     questsData.journalPrompts = questsData.journalPrompts.map((prompt: any) => {
