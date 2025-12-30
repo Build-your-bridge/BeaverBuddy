@@ -265,6 +265,8 @@ export default function JournalPage() {
   const answeredCount = totalQuestions - prompts.length;
   const progressPercentage = (answeredCount / totalQuestions) * 100;
 
+  // Comment
+
   // --------------------------------------------------------------------------
   // RENDER
   // --------------------------------------------------------------------------
