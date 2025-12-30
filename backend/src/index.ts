@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes';
 import questRoutes from './routes/questRoutes';
 import outfitRoutes from './routes/outfitRoutes';
+import journalRoutes from './routes/journalRoutes';
 import prisma from './db/prisma';
 
 dotenv.config();
@@ -29,7 +30,8 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/quests', questRoutes);
-app.use('/api/outfits', outfitRoutes); // ADD THIS LINE
+app.use('/api/outfits', outfitRoutes);
+app.use('/api/journal', journalRoutes);
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {

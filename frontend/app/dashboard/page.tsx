@@ -22,6 +22,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [hasJournalPrompts, setHasJournalPrompts] = useState(false);
+  const [remainingJournalCount, setRemainingJournalCount] = useState(0);
   const [hasGeneratedToday, setHasGeneratedToday] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(false);
   const router = useRouter();
@@ -35,11 +36,11 @@ export default function DashboardPage() {
       return;
     }
 
-    setUser(JSON.parse(userData));
-    const currentUserId = JSON.parse(userData).id;
+    const parsedUser = JSON.parse(userData);
+    setUser(parsedUser);
+    const currentUserId = parsedUser.id;
     
-    const journalPrompts = sessionStorage.getItem(`journalPrompts_${currentUserId}`);
-    setHasJournalPrompts(!!journalPrompts);
+    updateJournalCount(currentUserId);
 
     const existingQuests = sessionStorage.getItem(`generatedQuests_${currentUserId}`);
     const questGeneratedDate = localStorage.getItem(`questGeneratedDate_${currentUserId}`);
@@ -60,6 +61,65 @@ export default function DashboardPage() {
       checkTodayStatus(token);
     }
   }, [router]);
+
+  // Update journal count when component becomes visible (e.g., returning from journal page)
+  useEffect(() => {
+    const handleFocus = () => {
+      if (user) {
+        updateJournalCount(user.id);
+      }
+    };
+    
+    const handleJournalUpdate = () => {
+      if (user) {
+        updateJournalCount(user.id);
+      }
+    };
+    
+    const handleVisibilityChange = () => {
+      if (!document.hidden && user) {
+        updateJournalCount(user.id);
+      }
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    window.addEventListener('journalUpdated', handleJournalUpdate);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('journalUpdated', handleJournalUpdate);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user]);
+
+  const updateJournalCount = (userId: number) => {
+    const journalPromptsData = sessionStorage.getItem(`journalPrompts_${userId}`);
+    
+    if (journalPromptsData) {
+      try {
+        const prompts = JSON.parse(journalPromptsData);
+        // Handle both old string format and new object format
+        const normalizedPrompts = Array.isArray(prompts) ? prompts.map((p: any) => {
+          if (typeof p === 'string') {
+            return { question: p, answer: null, answeredAt: null };
+          }
+          return { question: p.question, answer: p.answer || null, answeredAt: p.answeredAt || null };
+        }) : [];
+        
+        const remaining = normalizedPrompts.filter((p: any) => p.answer === null).length;
+        setRemainingJournalCount(remaining);
+        setHasJournalPrompts(remaining > 0);
+      } catch (error) {
+        console.error('Error parsing journal prompts:', error);
+        setHasJournalPrompts(false);
+        setRemainingJournalCount(0);
+      }
+    } else {
+      setHasJournalPrompts(false);
+      setRemainingJournalCount(0);
+    }
+  };
 
   const checkTodayStatus = async (token: string) => {
     const timeoutId = setTimeout(() => {
@@ -88,7 +148,7 @@ export default function DashboardPage() {
             sessionStorage.setItem(`monthlyQuests_${currentUser.id}`, JSON.stringify(data.monthlyQuests || []));
             sessionStorage.setItem(`journalPrompts_${currentUser.id}`, JSON.stringify(data.journalPrompts));
             localStorage.setItem(`questGeneratedDate_${currentUser.id}`, new Date().toDateString());
-            setHasJournalPrompts(true);
+            updateJournalCount(currentUser.id);
           }
         }
       }
@@ -139,6 +199,7 @@ export default function DashboardPage() {
         sessionStorage.setItem(`monthlyQuests_${currentUser.id}`, JSON.stringify(data.monthlyQuests));
         sessionStorage.setItem(`journalPrompts_${currentUser.id}`, JSON.stringify(data.journalPrompts));
         localStorage.setItem(`questGeneratedDate_${currentUser.id}`, new Date().toDateString());
+        updateJournalCount(currentUser.id);
       }
 
       setHasGeneratedToday(true);
@@ -392,9 +453,9 @@ export default function DashboardPage() {
             onClick={() => router.push('/journal')}
             className="flex flex-col items-center transition-transform hover:scale-110 relative"
           >
-            {hasJournalPrompts && (
+            {hasJournalPrompts && remainingJournalCount > 0 && (
               <div className="absolute -top-2 -right-2 bg-gradient-to-r from-pink-500 to-pink-600 text-white text-xs font-black rounded-full w-7 h-7 flex items-center justify-center z-10 shadow-lg border-2 border-white animate-pulse">
-                3
+                {remainingJournalCount}
               </div>
             )}
             <div className="w-24 h-24 flex flex-col items-center justify-center rounded-3xl px-3 py-2" style={{

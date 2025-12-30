@@ -12,6 +12,7 @@ export const checkTodayStatus = async (req: Request, res: Response) => {
 
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
     const existingDaily = await prisma.dailyQuest.findUnique({
       where: {
@@ -23,9 +24,28 @@ export const checkTodayStatus = async (req: Request, res: Response) => {
     });
 
     if (existingDaily) {
+      // Get monthly quests (user's own or shared from another user for this month)
+      const userMonthly = await prisma.monthlyQuest.findUnique({
+        where: {
+          userId_month: {
+            userId,
+            month: currentMonthStr,
+          },
+        },
+      });
+
+      const sharedMonthly = await prisma.monthlyQuest.findFirst({
+        where: {
+          month: currentMonthStr,
+        },
+      });
+
+      const monthlyQuests = userMonthly?.monthlyQuests || sharedMonthly?.monthlyQuests || null;
+
       return res.status(200).json({
         hasGeneratedToday: true,
         quests: existingDaily.quests,
+        monthlyQuests: monthlyQuests,
         journalPrompts: existingDaily.journalPrompts,
       });
     }
@@ -71,7 +91,16 @@ export const generateQuests = async (req: Request, res: Response) => {
       },
     });
 
-    const existingMonthly = await prisma.monthlyQuest.findUnique({
+    // Check for existing monthly quests for this month (same for all users)
+    // Find any user's monthly quests for this month to reuse
+    const existingMonthly = await prisma.monthlyQuest.findFirst({
+      where: {
+        month: currentMonthStr,
+      },
+    });
+
+    // Also check if this user already has monthly quests
+    const userMonthly = await prisma.monthlyQuest.findUnique({
       where: {
         userId_month: {
           userId,
@@ -80,11 +109,14 @@ export const generateQuests = async (req: Request, res: Response) => {
       },
     });
 
-    if (existingDaily && existingMonthly) {
+    if (existingDaily && (userMonthly || existingMonthly)) {
+      // Use existing monthly quests (either user's own or shared from another user)
+      const monthlyQuestsToReturn = userMonthly?.monthlyQuests || existingMonthly?.monthlyQuests;
+      
       return res.status(200).json({
         success: true,
         quests: existingDaily.quests,
-        monthlyQuests: existingMonthly.monthlyQuests,
+        monthlyQuests: monthlyQuestsToReturn,
         journalPrompts: existingDaily.journalPrompts,
         generatedAt: today,
         monthGenerated: currentMonthStr,
@@ -113,44 +145,76 @@ export const generateQuests = async (req: Request, res: Response) => {
           {
             role: 'user',
             content: `Part One - Daily Quests
-Your job is to help Canadian immigrants with mental health and cultural isolation. The user will tell you how they're feeling today and why, and you will generate 4 personalized Daily Quests for them. 2 of them should be Emotional Quests that directly help with their current situation, and the other 2 should be Cultural Quests that have NOTHING to do with their current situation, and instead help them get familiar and comfortable with Canada's local culture.
+Your job is to help Canadian immigrants with mental health and cultural isolation. The user will tell you how they're feeling today and why, and you will generate EXACTLY 4 personalized Daily Quests:
+- 2 Emotional Quests that DIRECTLY address their current feelings and situation
+- 2 Cultural Quests that help them explore Canadian culture (completely unrelated to their current mood)
 
-Here's a full comprehensive example of what we're expecting:
-The user says this: "I'm feeling sad today because I'm really struggling to find a job".
+CRITICAL: All quests must be VERY SPECIFIC and ACTIONABLE. Include exact steps, numbers, locations, or specific actions the user should take.
 
-4 Daily Quests:
--[Emotional] Resume Editing: Spend 1 hour tweaking and improving your resume. (Reward: 20🍁)
--[Emotional] LinkedIn Connections: Make 3 LinkedIn connections to meet new people. (Reward: 30🍁)
--[Cultural] Coffee Break: Grab a coffee from Tim Hortons. (Reward: 20🍁)
--[Cultural] Song of the Day: Listen to a recent song from a small, Canadian artist. (Reward: 10🍁)
+Here's a full comprehensive example:
+The user says: "I'm feeling sad today because I'm really struggling to find a job".
 
-Here are some other examples for various Emotional Daily Quests:
-"I'm feeling bored and lonely, I haven't seen my friends in while because everyone is so busy with life."
--Suggested Emotional Quest: Listen to this song or check out this game! (Reward: 50🍁)
+4 Daily Quests (2 Emotional + 2 Cultural):
+1. [Emotional] 📝 Resume Review: Spend 30 minutes updating your resume with 3 new skills you've learned, then ask a friend to review it. (Reward: 25🍁)
+2. [Emotional] 💼 Job Search Strategy: Research 5 companies in your field today and write down 2 specific reasons why you'd want to work at each. (Reward: 30🍁)
+3. [Cultural] ☕ Tim Hortons Visit: Go to your nearest Tim Hortons, order a double-double coffee, and try a Timbits box (pick your favorite flavor!). (Reward: 20🍁)
+4. [Cultural] 🎵 Canadian Music Discovery: Listen to "Waves of Blue" by Majid Jordan on Spotify, then find 2 more songs by Canadian artists and add them to a playlist. (Reward: 15🍁)
+
+More Emotional Quest Examples (be VERY specific):
+"I'm feeling bored and lonely, I haven't seen my friends in a while because everyone is so busy with life."
+- [Emotional] 📱 Reconnect: Text 3 friends you haven't talked to in a while and suggest a specific activity for this weekend (coffee, walk, or video call). (Reward: 30🍁)
+
 "I'm really mad, I studied so hard for my test yesterday but I didn't get the grade I wanted."
--Suggested Emotional Quest: Breathing Exercises to calm you down. (Reward: 20🍁)
+- [Emotional] 🧘 Calm Down Session: Do 10 minutes of deep breathing (4-7-8 technique: inhale 4, hold 7, exhale 8), then write down 3 things you learned from studying. (Reward: 25🍁)
+
 "I'm feeling great! I just had a fun Christmas party with all of my friends and I won some cool prizes!"
--Suggested Emotional Quest: Write down something you're grateful for. (Reward: 25🍁)
+- [Emotional] ✍️ Gratitude Journal: Write down 5 specific things you're grateful for from today, including why each one matters to you. (Reward: 20🍁)
 
-Part Two - Monthly Quests
-In addition to generating 4 Daily Quests, we also want you to generate 2 Monthly Quests. Monthly Quests should be GENERAL Canadian cultural experiences that ANY Canadian immigrant would enjoy, regardless of their current mood or situation. These should be major events that are not done on a daily basis, and involve more money, people, and planning time in advance.
+Cultural Quest Examples (be VERY specific):
+- [Cultural] 🏒 Hockey Night: Watch at least 1 period of a Toronto Maple Leafs game tonight (or any NHL game), and learn 2 new hockey terms. (Reward: 25🍁)
+- [Cultural] 🍁 Canadian History: Visit the Royal Ontario Museum website, read about 1 Canadian historical event, and share one interesting fact with someone. (Reward: 20🍁)
+- [Cultural] 🎬 Canadian Film: Watch a movie by a Canadian director (like "The Grand Seduction" or "Bon Cop, Bad Cop") and note 2 things that show Canadian culture. (Reward: 30🍁)
 
-IMPORTANT: Monthly quests should be COMPLETELY INDEPENDENT of the user's current feeling. They should be exciting Canadian experiences that help with cultural integration and exploration.
+Part Two - Monthly Quests (EVENT-BASED, SAME FOR EVERYONE)
+IMPORTANT: Monthly quests are EVENT-BASED experiences that are THE SAME for ALL users. They represent major Canadian cultural events, festivals, or experiences that happen during this month. These should be like attending events, festivals, or major cultural experiences.
 
-Here are some examples of general Canadian monthly quests:
--Visit the CN Tower and enjoy the panoramic views of Toronto (Reward: 500🍁)
--Attend a Toronto Maple Leafs NHL hockey game at Scotiabank Arena (Reward: 600🍁)
--Explore the Royal Ontario Museum (ROM) and discover Canadian art and history (Reward: 400🍁)
--Visit Niagara Falls and take a boat tour to feel the mist (Reward: 550🍁)
--Attend the Toronto International Film Festival (TIFF) screening (Reward: 450🍁)
--Go to a concert at the Rogers Centre or another major venue (Reward: 500🍁)
--Visit the Art Gallery of Ontario (AGO) to see Canadian artists (Reward: 400🍁)
--Explore the Distillery District and enjoy local Canadian crafts and food (Reward: 350🍁)
--Attend a Canadian music festival like Veld Music Festival (Reward: 500🍁)
--Take a day trip to explore Ontario's beautiful national parks (Reward: 450🍁)
+Current Month: ${new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })}
+
+Monthly quests should be:
+- Major Canadian events, festivals, or cultural experiences
+- Things that require planning, tickets, or advance booking
+- Experiences that help with cultural integration
+- The SAME for every user (not personalized)
+- Event-based (like festivals, concerts, exhibitions, sports events, etc.)
+
+Examples of event-based monthly quests:
+- 🎭 Attend a performance at the Stratford Festival (if it's summer/fall) (Reward: 500🍁)
+- 🏒 Watch a Toronto Maple Leafs home game at Scotiabank Arena (Reward: 600🍁)
+- 🎬 Attend a screening at the Toronto International Film Festival (TIFF) (Reward: 550🍁)
+- 🎵 Go to a concert at Massey Hall or Roy Thomson Hall (Reward: 500🍁)
+- 🎨 Visit a special exhibition at the Art Gallery of Ontario (AGO) (Reward: 450🍁)
+- 🍁 Attend the Canadian National Exhibition (CNE) in Toronto (Reward: 500🍁)
+- 🎪 Go to a Cirque du Soleil show (if available) (Reward: 550🍁)
+- 🏛️ Visit the Royal Ontario Museum (ROM) and attend a special event or exhibition (Reward: 400🍁)
+- 🎤 Attend a comedy show at Second City Toronto (Reward: 400🍁)
+- 🎨 Explore the Distillery District during a special event or festival (Reward: 450🍁)
+
+Generate 2 monthly quests that are appropriate for the current month and represent exciting Canadian cultural events.
 
 Part Three - Follow-Up Questions
-We also want you to generate 3 follow-up questions based on the user's feelings today. These should be questions that allow the user to go deeper into detail about how they're feeling today, instead of just a brief 1-sentence summary. This is meant to act like a diary to the user, giving them a chance to thoroughly reflect through their emotions and relieve stress so that it's not all pent-up in their mind. The 3rd, final question should always be the same: "Is there anything else you'd like to talk about today?". This gives the user the freedom to write down whatever they want.
+We also want you to generate 3 follow-up questions that are DIRECTLY RELATED to the user's mental health check-in. These questions should help the user:
+1. Explore WHY they are feeling this way - dig deeper into the root causes or triggers
+2. Think about HOW they can tackle or address the problems they mentioned
+3. Reflect on what they might need or want to help them feel better
+
+IMPORTANT: These questions MUST be personalized based on the specific feelings and emotions the user shared in their check-in. They should help the user process their emotions, understand their situation better, and think about potential solutions or coping strategies.
+
+The 3rd, final question should always be: "Is there anything else you'd like to talk about today?" - This gives the user the freedom to write down whatever they want.
+
+Example: If the user says "I'm feeling sad because I'm struggling to find a job", the questions might be:
+1. "What specific challenges have you faced in your job search that have been most discouraging?"
+2. "What steps could you take this week to move forward with your job search, and what support do you need?"
+3. "Is there anything else you'd like to talk about today?"
 
 Quest Formatting and Improvements
 IMPORTANT RULES:
@@ -177,9 +241,10 @@ For Song quests, ALWAYS suggest a specific Canadian song:
 User's feeling: "${feeling}"
 
 CRITICAL INSTRUCTIONS:
-- Generate NEW personalized DAILY quests based on the user's feeling above
-- Generate COMPLETELY GENERAL monthly quests that are exciting Canadian experiences for ANY immigrant
-- Monthly quests should have NOTHING to do with the user's current mood or feeling
+- Generate EXACTLY 4 daily quests: 2 Emotional (very specific to their feeling) + 2 Cultural (very specific Canadian experiences)
+- Make ALL quests VERY SPECIFIC with exact actions, numbers, locations, or steps
+- Generate 2 monthly quests that are EVENT-BASED and appropriate for the current month (${new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })})
+- Monthly quests should be the SAME for everyone (event-based experiences, not personalized)
 - Return ONLY a JSON object. DO NOT copy the example quests below - they are just to show the format and length!
 
 Example format (GENERATE YOUR OWN based on user's feeling for daily quests, general Canadian experiences for monthly quests):
@@ -297,6 +362,24 @@ Example format (GENERATE YOUR OWN based on user's feeling for daily quests, gene
       });
     }
 
+    // Transform journalPrompts from strings to objects with question, answer, and answeredAt
+    questsData.journalPrompts = questsData.journalPrompts.map((prompt: any) => {
+      // If it's already an object with question property, use it; otherwise treat as string
+      if (typeof prompt === 'object' && prompt.question) {
+        return {
+          question: prompt.question,
+          answer: prompt.answer || null,
+          answeredAt: prompt.answeredAt || null,
+        };
+      }
+      // If it's a string, convert to object format
+      return {
+        question: typeof prompt === 'string' ? prompt : String(prompt),
+        answer: null,
+        answeredAt: null,
+      };
+    });
+
     // Add completed: false to all quests automatically
     questsData.quests = questsData.quests.map((q: any) => ({ ...q, completed: false }));
     questsData.monthlyQuests = questsData.monthlyQuests.map((q: any) => ({ ...q, completed: false }));
@@ -312,13 +395,24 @@ Example format (GENERATE YOUR OWN based on user's feeling for daily quests, gene
         },
       });
 
-      let monthly = existingMonthly;
+      // For monthly quests: reuse existing ones for this month if they exist, otherwise create new ones
+      let monthly = userMonthly || existingMonthly;
       if (!monthly) {
+        // Create new monthly quests for this user (will be reused by others)
         monthly = await tx.monthlyQuest.create({
           data: {
             userId,
             month: currentMonthStr,
             monthlyQuests: questsData.monthlyQuests,
+          },
+        });
+      } else if (!userMonthly && existingMonthly) {
+        // User doesn't have monthly quests but they exist for this month - create a copy for this user
+        monthly = await tx.monthlyQuest.create({
+          data: {
+            userId,
+            month: currentMonthStr,
+            monthlyQuests: existingMonthly.monthlyQuests as any, // Reuse the same quests
           },
         });
       }
