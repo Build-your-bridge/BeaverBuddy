@@ -4,14 +4,15 @@
     "module": "commonjs",
     "lib": ["ES2020"],
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "types": ["node"]  // Add this line
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "prisma/**/*"],  // Add prisma here
   "exclude": ["node_modules", "dist"]
 }
