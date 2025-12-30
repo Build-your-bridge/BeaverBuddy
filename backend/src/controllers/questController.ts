@@ -487,12 +487,22 @@ export const updateQuestCompletion = async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'Invalid quest index' });
       }
 
+      const wasCompleted = monthlyQuests[questIndex].completed;
+      const reward = monthlyQuests[questIndex].reward || 0;
       monthlyQuests[questIndex].completed = completed;
 
       await prisma.monthlyQuest.update({
         where: { id: monthlyQuest.id },
         data: { monthlyQuests: monthlyQuests },
       });
+
+      // Add points if quest was just completed
+      if (completed && !wasCompleted && reward > 0) {
+        await prisma.user.update({
+          where: { id: userId },
+          data: { points: { increment: reward } }
+        });
+      }
     } else {
       // Update daily quest completion
       const dailyQuest = await prisma.dailyQuest.findUnique({
@@ -513,12 +523,22 @@ export const updateQuestCompletion = async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'Invalid quest index' });
       }
 
+      const wasCompleted = quests[questIndex].completed;
+      const reward = quests[questIndex].reward || 0;
       quests[questIndex].completed = completed;
 
       await prisma.dailyQuest.update({
         where: { id: dailyQuest.id },
         data: { quests: quests },
       });
+
+      // Add points if quest was just completed
+      if (completed && !wasCompleted && reward > 0) {
+        await prisma.user.update({
+          where: { id: userId },
+          data: { points: { increment: reward } }
+        });
+      }
     }
 
     return res.status(200).json({ success: true });

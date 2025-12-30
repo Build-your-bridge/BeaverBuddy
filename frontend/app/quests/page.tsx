@@ -17,6 +17,7 @@ export default function QuestsPage() {
   const [activeTab, setActiveTab] = useState<'daily' | 'monthly'>('daily');
   const [loading, setLoading] = useState(true);
   const [currentPoints, setCurrentPoints] = useState(500);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -93,6 +94,7 @@ export default function QuestsPage() {
       }
 
       const isMonthly = activeTab === 'monthly';
+      const questReward = isMonthly ? monthlyQuests[index].reward : dailyQuests[index].reward;
       
       // Update local state immediately for better UX
       if (isMonthly) {
@@ -105,7 +107,7 @@ export default function QuestsPage() {
         setDailyQuests(updated);
       }
 
-      // Call API to persist the change
+      // Call API to persist the change and update points
       const response = await fetch('http://localhost:5000/api/quests/complete', {
         method: 'PUT',
         headers: {
@@ -124,6 +126,9 @@ export default function QuestsPage() {
       }
 
       console.log('Quest completion updated successfully');
+      
+      // Refresh points from server (backend now handles point updates)
+      fetchUserPoints(token);
     } catch (error) {
       console.error('Error updating quest completion:', error);
       // Revert local state on error
@@ -136,6 +141,9 @@ export default function QuestsPage() {
         updated[index].completed = false;
         setDailyQuests(updated);
       }
+      
+      // Note: Points are not reverted here since they're handled by the backend
+      // The next fetchUserPoints call will get the correct value from server
     }
   };
 
@@ -154,6 +162,11 @@ export default function QuestsPage() {
     } catch (error) {
       console.error('Error fetching user points:', error);
     }
+  };
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000); // Auto-hide after 3 seconds
   };
 
   const removeQuest = (index: number) => {
@@ -180,6 +193,15 @@ export default function QuestsPage() {
 
   return (
     <main className="h-screen bg-[#f5f5f5] overflow-hidden flex flex-col relative">
+      <style jsx>{`
+        @keyframes fade-in {
+          0% { opacity: 0; transform: translateY(10px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+          animation: fade-in 0.3s ease-out;
+        }
+      `}</style>
       {/* Header - Glass */}
       <div className="relative h-20 flex items-center justify-between px-6 z-10" style={{
         background: 'rgba(255, 255, 255, 0.15)',
@@ -417,6 +439,19 @@ export default function QuestsPage() {
           </div>
         </div>
       </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-4 right-4 z-50 animate-fade-in">
+          <div className={`px-6 py-3 rounded-lg shadow-lg border-2 backdrop-blur-md ${
+            toast.type === 'success'
+              ? 'bg-green-50 border-green-200 text-green-800'
+              : 'bg-red-50 border-red-200 text-red-800'
+          }`}>
+            <p className="font-medium">{toast.message}</p>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
