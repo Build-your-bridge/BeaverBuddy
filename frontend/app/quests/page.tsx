@@ -396,11 +396,11 @@ export default function QuestsPage() {
                   key={quest.id}
                   className={`w-full rounded-2xl p-3 md:p-2 lg:p-3 flex items-start gap-2 md:gap-1 lg:gap-2 shadow-md transition-all duration-300 ${
                     quest.completed 
-                      ? 'bg-purple-50'
+                      ? 'bg-green-50'
                       : 'bg-white'
                   } border-2 ${
                     quest.completed 
-                      ? 'border-purple-200'
+                      ? 'border-green-200'
                       : 'border-transparent'
                   }`}
                 >
@@ -427,7 +427,7 @@ export default function QuestsPage() {
                     )}
                     {quest.completed && (
                       <button
-                        className="absolute bottom-0 right-0 bg-[#8B0000] text-white px-2 py-1 rounded-full text-xs font-bold"
+                        className="absolute bottom-0 right-0 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold"
                       >
                         Completed
                       </button>
