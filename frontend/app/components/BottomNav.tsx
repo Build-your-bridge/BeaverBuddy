@@ -13,14 +13,14 @@ export default function BottomNav({ currentPage, hasJournalPrompts = false, rema
   const router = useRouter();
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-28 flex items-center justify-center px-4 z-10 border-t-2 border-gray-200 shadow-lg" style={{ background: 'linear-gradient(to bottom, #E8D4C0 0%, #F5E6D3 100%)' }}>
+    <div className="fixed bottom-0 left-0 right-0 h-20 md:h-24 flex items-center justify-center px-4 z-10 border-t-2 border-gray-200 shadow-lg" style={{ background: 'linear-gradient(to bottom, #E8D4C0 0%, #F5E6D3 100%)' }}>
       <div className="flex justify-center items-center gap-8 w-full max-w-2xl">
         {/* Billy Button */}
         <button 
           onClick={() => router.push('/billy')}
-          className="flex flex-col items-center gap-1 transition-transform hover:scale-110 cursor-pointer"
+          className="flex flex-col items-center gap-0.5 md:gap-1 transition-transform hover:scale-110 cursor-pointer"
         >
-          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg ${
+          <div className={`w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center shadow-lg ${
             currentPage === 'billy' 
               ? 'bg-white border-3 border-red-800' 
               : 'bg-white border border-gray-300'
@@ -28,9 +28,9 @@ export default function BottomNav({ currentPage, hasJournalPrompts = false, rema
             <Image 
               src="/images/icons/billy.png" 
               alt="Billy" 
-              width={42} 
-              height={42} 
-              className="object-contain" 
+              width={328} 
+              height={328}
+              className="w-8 h-8 md:w-10 md:h-10 object-contain" 
             />
           </div>
           <span className="text-xs font-bold text-gray-700">Billy</span>
@@ -39,9 +39,9 @@ export default function BottomNav({ currentPage, hasJournalPrompts = false, rema
         {/* Home Button */}
         <button 
           onClick={() => router.push('/dashboard')}
-          className="flex flex-col items-center gap-1 transition-transform hover:scale-110 cursor-pointer"
+          className="flex flex-col items-center gap-0.5 md:gap-1 transition-transform hover:scale-110 cursor-pointer"
         >
-          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg ${
+          <div className={`w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center shadow-lg ${
             currentPage === 'dashboard' 
               ? 'bg-white border-3 border-red-800' 
               : 'bg-white border border-gray-300'
@@ -49,9 +49,9 @@ export default function BottomNav({ currentPage, hasJournalPrompts = false, rema
             <Image 
               src="/images/icons/house.png" 
               alt="Home" 
-              width={85} 
-              height={85} 
-              className="object-contain" 
+              width={328} 
+              height={328}
+              className="w-8 h-8 md:w-10 md:h-10 object-contain" 
             />
           </div>
           <span className="text-xs font-bold text-gray-700">Home</span>
@@ -60,7 +60,7 @@ export default function BottomNav({ currentPage, hasJournalPrompts = false, rema
         {/* Journal Button */}
         <button 
           onClick={hasJournalPrompts || currentPage === 'journal' ? () => router.push('/journal') : undefined}
-          className={`flex flex-col items-center gap-1 transition-transform relative ${
+          className={`flex flex-col items-center gap-0.5 md:gap-1 transition-transform relative ${
             hasJournalPrompts || currentPage === 'journal' 
               ? 'hover:scale-110 cursor-pointer' 
               : 'cursor-not-allowed opacity-60'
@@ -71,7 +71,7 @@ export default function BottomNav({ currentPage, hasJournalPrompts = false, rema
               {remainingJournalCount}
             </div>
           )}
-          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg ${
+          <div className={`w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center shadow-lg ${
             currentPage === 'journal' 
               ? 'bg-white border-3 border-red-800' 
               : 'bg-white border border-gray-300'
@@ -79,9 +79,9 @@ export default function BottomNav({ currentPage, hasJournalPrompts = false, rema
             <Image 
               src={(hasJournalPrompts || currentPage === 'journal') ? "/images/icons/journal.png" : "/images/icons/grey_journal.png"}
               alt="Journal" 
-              width={85} 
-              height={85} 
-              className="object-contain" 
+              width={328} 
+              height={328}
+              className="w-8 h-8 md:w-10 md:h-10 object-contain" 
             />
           </div>
           <span className="text-xs font-bold text-gray-700 drop-shadow-md">Journal</span>

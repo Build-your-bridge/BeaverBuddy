@@ -317,7 +317,7 @@ export default function JournalPage() {
       />
 
       {/* ===== MAIN CONTENT ===== */}
-      <div className="absolute inset-0 flex items-center justify-center p-6 overflow-hidden pointer-events-none" style={{ top: '80px', bottom: '112px' }}>
+      <div className="absolute inset-0 flex items-center justify-center p-6 overflow-hidden pointer-events-none" style={{ top: '80px', bottom: '80px' }}>
         <div className="w-full max-w-3xl flex flex-col pointer-events-auto">
           
           {/* ===== CHAT CONTAINER ===== */}

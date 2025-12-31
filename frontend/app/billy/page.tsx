@@ -283,13 +283,13 @@ export default function BillyPage() {
       {/* Main content */}
       <div className="flex-1 flex flex-col px-6 pb-4 relative z-10">
         {/* Billy Display */}
-        <div className="flex justify-center mb-6 mt-6">
-          <div className="relative w-48 h-48 md:w-80 md:h-44 flex items-center justify-center">
+        <div className="flex justify-center mb-4 mt-2">
+          <div className="relative w-32 h-32 md:w-40 md:h-36 lg:w-48 lg:h-40 flex items-center justify-center">
             <Image
               src={user?.equippedOutfit?.image || "/images/beaver/default/default.png"}
               alt="Billy the Beaver"
-              width={220}
-              height={220}
+              width={160}
+              height={160}
               className="object-contain drop-shadow-2xl"
               priority
               style={{ animation: 'float 3s ease-in-out infinite' }}
@@ -298,11 +298,11 @@ export default function BillyPage() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="p-4 rounded-t-[40px] mt-auto max-w-md mx-auto w-full">
-          <div className="flex gap-4 max-w-xs mx-auto">
+        <div className="p-3 rounded-t-[40px] mt-auto max-w-md mx-auto w-full">
+          <div className="flex gap-3 max-w-xs mx-auto">
             <button
               onClick={() => setActiveTab('shop')}
-              className={`flex-1 py-3 rounded-full font-bold text-sm shadow-lg transition-all duration-300 cursor-pointer ${
+              className={`flex-1 py-2 rounded-full font-bold text-xs shadow-lg transition-all duration-300 cursor-pointer ${
                 activeTab === 'shop'
                   ? 'bg-[#a12b2b] text-white scale-105'
                   : 'bg-white text-gray-600 hover:bg-gray-200'
@@ -312,7 +312,7 @@ export default function BillyPage() {
             </button>
             <button
               onClick={() => setActiveTab('inventory')}
-              className={`flex-1 py-3 rounded-full font-bold text-sm shadow-lg transition-all duration-300 cursor-pointer ${
+              className={`flex-1 py-2 rounded-full font-bold text-xs shadow-lg transition-all duration-300 cursor-pointer ${
                 activeTab === 'inventory'
                   ? 'bg-[#a12b2b] text-white scale-105'
                   : 'bg-white text-gray-600 hover:bg-gray-200'
@@ -324,48 +324,48 @@ export default function BillyPage() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto pb-28">
+        <div className="flex-1 overflow-y-auto pb-28 md:pb-32">
           {activeTab === 'shop' ? (
             <div className="space-y-4">
-              <h3 className="text-xl font-bold text-gray-800 text-center mb-4">Available Outfits</h3>
+              <h3 className="text-lg md:text-xl font-bold text-gray-800 text-center mb-4">Available Outfits</h3>
               {filteredOutfits.length === 0 ? (
-                <div className="bg-[#ccab8b] rounded-3xl p-6 shadow-2xl max-w-4xl mx-auto text-center">
+                <div className="bg-[#ccab8b] rounded-3xl p-4 shadow-2xl max-w-4xl mx-auto text-center">
                   <span className="text-4xl block mb-4">🎉</span>
                   <h3 className="font-bold text-gray-800">All outfits purchased!</h3>
                   <p className="text-sm text-gray-600">Check back later for new items.</p>
                 </div>
               ) : (
-                <div className="bg-[#ccab8b] rounded-3xl p-6 shadow-2xl max-w-4xl mx-auto max-h-[37rem] overflow-y-auto">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+                <div className="bg-[#ccab8b] rounded-3xl p-4 shadow-2xl max-w-4xl mx-auto max-h-[calc(100vh-32rem)] md:max-h-[30rem] overflow-y-auto">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-w-4xl mx-auto">
                     {filteredOutfits.map((outfit) => (
                       <div
                         key={outfit.id}
                         className={`flex flex-col items-center hover:scale-105 transition-transform ${points < outfit.price ? 'cursor-default' : ''}`}
                       >
-                        <div className="w-44 h-44 rounded-xl mb-2 shadow-md border-2 border-gray-200 bg-white flex items-center justify-center">
+                        <div className="w-28 h-28 md:w-32 md:h-32 lg:w-36 lg:h-36 rounded-xl mb-2 shadow-md border-2 border-gray-200 bg-white flex items-center justify-center">
                           <Image
                             src={outfit.image}
                             alt={outfit.name}
-                            width={176}
-                            height={176}
+                            width={112}
+                            height={112}
                             className="w-full h-full object-contain"
                             priority
                           />
                         </div>
                         
                         {/* Text div with name, price, and buy button */}
-                        <div className="bg-white rounded-xl px-4 py-3 shadow-md border border-gray-200 text-center w-44">
-                          <h4 className="font-bold text-gray-800 text-sm mb-0.5">{outfit.name}</h4>
+                        <div className="bg-white rounded-xl px-2 py-2 shadow-md border border-gray-200 text-center w-28 md:w-32 lg:w-36">
+                          <h4 className="font-bold text-gray-800 text-xs md:text-sm mb-0.5">{outfit.name}</h4>
                           <div className="flex items-center justify-center gap-1 mb-1">
-                            <span className="text-lg">🍁</span>
-                            <span className="font-bold text-gray-800 text-sm">{outfit.price}</span>
+                            <span className="text-base md:text-lg">🍁</span>
+                            <span className="font-bold text-gray-800 text-xs md:text-sm">{outfit.price}</span>
                           </div>
                           
                           {/* Buy button */}
                           <button
                             onClick={() => handlePurchase(outfit)}
                             disabled={points < outfit.price}
-                            className={`px-5 py-1 rounded-full text-xs font-bold transition-all duration-200 ${
+                            className={`px-3 md:px-5 py-1 rounded-full text-xs font-bold transition-all duration-200 ${
                               points >= outfit.price
                                 ? 'bg-green-500 hover:bg-green-600 text-white shadow-sm hover:shadow-md cursor-pointer'
                                 : 'bg-gray-200 text-gray-600 cursor-default'
@@ -382,36 +382,36 @@ export default function BillyPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              <h3 className="text-xl font-bold text-gray-800 text-center mb-4">Your Collection</h3>
+              <h3 className="text-lg md:text-xl font-bold text-gray-800 text-center mb-4">Your Collection</h3>
               {filteredOutfits.length === 0 ? (
-                <div className="bg-[#ccab8b] rounded-3xl p-6 shadow-2xl max-w-4xl mx-auto text-center">
+                <div className="bg-[#ccab8b] rounded-3xl p-4 shadow-lg max-w-4xl mx-auto text-center">
                   <span className="text-4xl block mb-4">🛍️</span>
                   <h3 className="font-bold text-gray-800">No outfits yet!</h3>
                   <p className="text-sm text-gray-600">Visit the shop to buy some outfits for Billy.</p>
                 </div>
               ) : (
-                <div className="bg-[#ccab8b] rounded-3xl p-6 shadow-2xl max-w-4xl mx-auto max-h-[37rem] overflow-y-auto">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+                <div className="bg-[#ccab8b] rounded-3xl p-4 shadow-lg max-w-4xl mx-auto max-h-[calc(100vh-32rem)] md:max-h-[30rem] overflow-y-auto">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-w-4xl mx-auto">
                     {filteredOutfits.map((outfit) => (
                       <div
                         key={outfit.id}
                         className="flex flex-col items-center cursor-pointer hover:scale-105 transition-transform"
                         onClick={() => handleEquip(outfit.id)}
                       >
-                        <div className="w-44 h-44 rounded-xl mb-2 shadow-md border-2 border-gray-200 bg-white flex items-center justify-center">
+                        <div className="w-28 h-28 md:w-32 md:h-32 lg:w-36 lg:h-36 rounded-xl mb-2 shadow-md border-2 border-gray-200 bg-white flex items-center justify-center">
                           <Image
                             src={outfit.image}
                             alt={outfit.name}
-                            width={176}
-                            height={176}
+                            width={112}
+                            height={112}
                             className="w-full h-full object-contain"
                             priority
                           />
                         </div>
                         
                         {/* Text div with name and status */}
-                        <div className="bg-white rounded-xl px-4 py-2 shadow-md border border-gray-200 text-center w-44">
-                          <h4 className="font-bold text-gray-800 text-sm mb-1">{outfit.name}</h4>
+                        <div className="bg-white rounded-xl px-2 py-2 shadow-md border border-gray-200 text-center w-28 md:w-32 lg:w-36">
+                          <h4 className="font-bold text-gray-800 text-xs md:text-sm mb-1">{outfit.name}</h4>
                           <div className={`px-1 py-1 rounded-full text-xs font-bold ${outfit.equipped ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
                             {outfit.equipped ? 'Equipped' : 'Owned'}
                           </div>

@@ -286,7 +286,7 @@ export default function DashboardPage() {
       />
 
       {/* Main content */}
-      <div className="flex-1 flex items-center justify-center px-6 pb-28 relative z-10">
+      <div className="flex-1 flex items-center justify-center px-6 pb-20 md:pb-24 relative z-10">
         <div className="w-full max-w-lg">
           {/* Glass card - you can see Toronto through it! */}
           <div className="relative" style={{

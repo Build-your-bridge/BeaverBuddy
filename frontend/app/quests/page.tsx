@@ -257,7 +257,7 @@ export default function QuestsPage() {
           </p>
         </div>
 
-        <div className="flex-1 px-4 overflow-y-auto space-y-3 pb-24">
+        <div className="flex-1 px-4 overflow-y-auto space-y-3 pb-16 md:pb-20">
           {activeTab === 'daily' ? (
             // Daily quests - split into personalized and Canadian
             <div className="space-y-6">
