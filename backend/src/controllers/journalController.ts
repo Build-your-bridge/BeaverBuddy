@@ -3,14 +3,12 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// Type definitions
 interface JournalPromptObject {
   question: string;
   answer: string | null;
   answeredAt: string | null;
 }
 
-// Helper function to normalize prompts
 function normalizePrompts(prompts: any[]): JournalPromptObject[] {
   return prompts.map((jp: any) => {
     if (typeof jp === 'string') {
@@ -28,7 +26,6 @@ function normalizePrompts(prompts: any[]): JournalPromptObject[] {
   });
 }
 
-// Helper function to get today's date range (UTC)
 function getTodayDateRange() {
   const today = new Date();
   today.setUTCHours(0, 0, 0, 0);
@@ -37,15 +34,14 @@ function getTodayDateRange() {
   return { start: today, end: tomorrow };
 }
 
-// Helper function to sanitize user input
 function sanitizeAnswer(answer: string): string {
   return answer
     .trim()
-    .replace(/[<>]/g, '') // Basic XSS prevention
-    .slice(0, 5000); // Max length enforcement
+    .replace(/[<>]/g, '')
+    .slice(0, 5000);
 }
 
-// Generate next journal question based on previous answers
+// IMPROVED: Better question generation with more context
 async function generateNextQuestion(previousAnswers: { question: string; answer: string }[]): Promise<string> {
   try {
     const openRouterKey = process.env.OPENROUTER_API_KEY;
@@ -54,7 +50,6 @@ async function generateNextQuestion(previousAnswers: { question: string; answer:
       throw new Error('OpenRouter API key not configured');
     }
 
-    // Build context from previous answers
     const context = previousAnswers.map((qa, index) => 
       `Question ${index + 1}: ${qa.question}\nUser's answer: ${qa.answer}`
     ).join('\n\n');
@@ -70,15 +65,15 @@ async function generateNextQuestion(previousAnswers: { question: string; answer:
         'X-Title': 'BeaverBuddy'
       },
       body: JSON.stringify({
-        model: 'mistralai/mistral-7b-instruct:free',
+        model: 'meta-llama/llama-3.2-3b-instruct:free',
         messages: [
           {
             role: 'system',
-            content: 'You are Billy the Beaver, a mental health assistant. Generate ONE follow-up question based on what the user shared. The question should help them explore their feelings deeper or think about solutions. Return ONLY the question, nothing else.'
+            content: 'You are Billy the Beaver, a warm and understanding mental health assistant. Your job is to generate ONE thoughtful follow-up question that helps the user explore their feelings deeper. The question should be natural, conversational, and help them understand WHY they feel this way or HOW they can address it. Return ONLY the question, nothing else - no preamble, no explanation, just the question itself.'
           },
           {
             role: 'user',
-            content: `Based on this conversation:\n\n${context}\n\nGenerate a thoughtful follow-up question that helps the user explore WHY they feel this way or HOW they can address what they shared. Return ONLY the question text, no preamble or explanation.`
+            content: `Based on what the user shared:\n\n${context}\n\nGenerate a caring follow-up question that helps them explore their feelings deeper. Focus on understanding the root cause or finding ways to improve their situation. Return ONLY the question text.`
           }
         ]
       })
@@ -91,10 +86,10 @@ async function generateNextQuestion(previousAnswers: { question: string; answer:
     const data: any = await response.json();
     let question = data.choices?.[0]?.message?.content || "";
     
-    // Clean up the question
     question = question.trim()
-      .replace(/^(Question:|Here's a question:|Follow-up:)\s*/i, '')
-      .replace(/^["']|["']$/g, '');
+      .replace(/^(Question:|Here's a question:|Follow-up:|Billy asks?:?)\s*/i, '')
+      .replace(/^["']|["']$/g, '')
+      .replace(/\n/g, ' ');
     
     if (!question || question.length < 10) {
       throw new Error('Generated question too short');
@@ -103,12 +98,12 @@ async function generateNextQuestion(previousAnswers: { question: string; answer:
     return question;
   } catch (error: any) {
     console.error('Error generating next question:', error);
-    // Return a generic follow-up question if AI fails
     return "What do you think might help you feel better about this situation?";
   }
 }
-async function generateAIResponse(prompt: string, answer: string): Promise<string> {
-  // List of free models to try in order
+
+// IMPROVED: Better AI responses with more empathy and personalization
+async function generateAIResponse(prompt: string, answer: string, previousContext?: { question: string; answer: string }[]): Promise<string> {
   const freeModels = [
     'meta-llama/llama-3.2-3b-instruct:free',
     'mistralai/mistral-7b-instruct:free',
@@ -118,13 +113,19 @@ async function generateAIResponse(prompt: string, answer: string): Promise<strin
 
   let lastError: any = null;
 
-  // Try each model
+  // Build context from previous conversation if available
+  let contextString = '';
+  if (previousContext && previousContext.length > 0) {
+    contextString = '\n\nPrevious conversation:\n' + previousContext.map((qa, idx) => 
+      `Q${idx + 1}: ${qa.question}\nA${idx + 1}: ${qa.answer}`
+    ).join('\n\n') + '\n\n';
+  }
+
   for (const model of freeModels) {
     try {
       const openRouterKey = process.env.OPENROUTER_API_KEY;
       
       if (!openRouterKey) {
-        console.error('OpenRouter API key is not configured in environment variables');
         throw new Error('OpenRouter API key not configured');
       }
 
@@ -143,23 +144,36 @@ async function generateAIResponse(prompt: string, answer: string): Promise<strin
           messages: [
             {
               role: 'system',
-              content: 'You are Billy the Beaver, a warm and compassionate Canadian mental health assistant helping immigrants. You respond with genuine empathy, understanding, and encouragement. Your responses are always personalized, meaningful, and address specific things the user shared. You use natural Canadian expressions like "eh" occasionally, but focus on being supportive and understanding.'
+              content: `You are Billy the Beaver, a warm, compassionate Canadian mental health assistant who helps immigrants adjust to life in Canada. Your responses are:
+              
+- Deeply empathetic and validating - you acknowledge their feelings genuinely
+- Personalized and specific - you reference exactly what they shared
+- Supportive and encouraging - you offer hope and perspective
+- Naturally conversational - like a caring friend, not a therapist
+- Occasionally Canadian - you use "eh" sparingly and naturally
+- 4-6 sentences long - substantial but not overwhelming
+- Focused on emotional support first, practical advice second
+
+You never give generic responses. Every response should feel like it was written specifically for what this person shared.`
             },
             {
               role: 'user',
-              content: `The user answered this journal question: "${prompt}"\n\nHere's what they wrote: "${answer}"\n\nWrite a meaningful, personalized response (4-6 sentences) that specifically acknowledges what they shared, validates their feelings, shows empathy, and offers encouragement.`
+              content: `${contextString}Current question: "${prompt}"\n\nUser's answer: "${answer}"\n\nWrite a warm, personalized response that:
+1. Acknowledges the specific feelings and situation they described
+2. Validates their emotions (it's okay to feel this way)
+3. Offers empathy and understanding
+4. Provides gentle encouragement or a helpful perspective
+5. Feels genuine and conversational, not robotic
+
+Remember: Reference specific things they mentioned. Make it feel personal and caring.`
             }
           ]
         })
       });
 
-      console.log(`${model} response status:`, aiResponseFetch.status);
-
       if (aiResponseFetch.status === 429) {
-        // Rate limited, try next model
-        const errorData = await aiResponseFetch.json().catch(() => ({}));
         console.log(`${model} is rate-limited, trying next model...`);
-        lastError = errorData;
+        lastError = await aiResponseFetch.json().catch(() => ({}));
         continue;
       }
 
@@ -171,19 +185,12 @@ async function generateAIResponse(prompt: string, answer: string): Promise<strin
       }
 
       const aiData: any = await aiResponseFetch.json();
-      console.log(`${model} response received:`, { 
-        hasChoices: !!aiData.choices, 
-        choicesLength: aiData.choices?.length 
-      });
 
       let aiMessage = aiData.choices?.[0]?.message?.content || "";
       
-      // Clean up AI response
       aiMessage = aiMessage.trim()
         .replace(/^(Billy says?:?|Response:?|Here's what I think:?)\s*/i, '')
         .replace(/^["']|["']$/g, '');
-      
-      console.log('Cleaned AI message length:', aiMessage.length);
       
       if (!aiMessage || aiMessage.length < 50) {
         console.log(`${model} response too short, trying next model...`);
@@ -200,18 +207,16 @@ async function generateAIResponse(prompt: string, answer: string): Promise<strin
     }
   }
 
-  // All models failed
   console.error('All AI models failed or are rate-limited');
   throw new Error('AI service temporarily unavailable due to rate limits. Please try again in a few moments.');
 }
 
-// Submit a journal entry
 export const submitJournalEntry = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
     const { promptIndex, prompt, answer } = req.body;
 
-    // === VALIDATION ===
+    // Validation
     if (!userId) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
@@ -240,14 +245,11 @@ export const submitJournalEntry = async (req: Request, res: Response) => {
       });
     }
 
-    // Sanitize the answer
     const sanitizedAnswer = sanitizeAnswer(answer);
 
-    // === STEP 1: DATABASE OPERATIONS (FAST) ===
-    // Get today's date range
+    // Database operations
     const { start, end } = getTodayDateRange();
 
-    // Find today's daily quest
     const dailyQuest = await prisma.dailyQuest.findFirst({
       where: {
         userId,
@@ -262,7 +264,6 @@ export const submitJournalEntry = async (req: Request, res: Response) => {
       throw new Error('No journal prompts found for today');
     }
 
-    // Get and normalize journal prompts
     const rawPrompts = dailyQuest.journalPrompts as any[];
     
     if (!Array.isArray(rawPrompts) || rawPrompts.length === 0) {
@@ -271,19 +272,14 @@ export const submitJournalEntry = async (req: Request, res: Response) => {
 
     const journalPrompts = normalizePrompts(rawPrompts);
 
-    // Validate prompt index
     if (promptIndex >= journalPrompts.length) {
       throw new Error(
         `Invalid prompt index: ${promptIndex}. Only ${journalPrompts.length} prompts available.`
       );
     }
 
-    // Additional validation: check if prompt text matches (if provided)
     if (prompt && journalPrompts[promptIndex].question !== prompt) {
-      console.warn(
-        `Prompt mismatch at index ${promptIndex}. Expected: "${journalPrompts[promptIndex].question}", Got: "${prompt}"`
-      );
-      // Try to find by question text as fallback
+      console.warn(`Prompt mismatch at index ${promptIndex}`);
       const foundIndex = journalPrompts.findIndex(
         (jp) => jp.question === prompt
       );
@@ -294,7 +290,6 @@ export const submitJournalEntry = async (req: Request, res: Response) => {
       }
     }
 
-    // Check if already answered
     if (journalPrompts[promptIndex].answer !== null) {
       return res.status(400).json({
         error: 'This prompt has already been answered',
@@ -309,15 +304,9 @@ export const submitJournalEntry = async (req: Request, res: Response) => {
       answeredAt: new Date().toISOString(),
     };
 
-    // Count remaining unanswered prompts
-    const remainingPrompts = journalPrompts.filter(
-      (jp) => jp.answer === null
-    ).length;
-
-    // === DYNAMIC QUESTION GENERATION ===
-    // If this is question 1 and there are more questions, generate question 2 based on this answer
-    if (promptIndex === 0 && journalPrompts.length > 1 && journalPrompts[1].answer === null) {
-      console.log('Generating question 2 based on answer to question 1...');
+    // IMPROVED: Dynamic question generation for Q2
+    if (promptIndex === 0 && journalPrompts.length > 1) {
+      console.log('Generating personalized question 2 based on answer to question 1...');
       try {
         const previousAnswers = [{
           question: journalPrompts[0].question,
@@ -326,36 +315,48 @@ export const submitJournalEntry = async (req: Request, res: Response) => {
         
         const nextQuestion = await generateNextQuestion(previousAnswers);
         journalPrompts[1].question = nextQuestion;
-        console.log('Generated question 2:', nextQuestion);
+        console.log('Generated personalized question 2:', nextQuestion);
       } catch (error) {
-        console.error('Failed to generate dynamic question 2, keeping original');
+        console.error('Failed to generate dynamic question 2, using fallback');
+        journalPrompts[1].question = "What do you think is causing you to feel this way?";
       }
     }
 
-    // Update in database (quick operation)
+    const remainingPrompts = journalPrompts.filter(
+      (jp) => jp.answer === null
+    ).length;
+
+    // Update database
     await prisma.dailyQuest.update({
       where: { id: dailyQuest.id },
       data: {
         journalPrompts: journalPrompts as any,
-        // Optionally update a completedAt timestamp if all done
         ...(remainingPrompts === 0 && { 
           completedAt: new Date() 
         })
       }
     });
 
-    // === STEP 2: GENERATE AI RESPONSE (SLOW) ===
-    // This happens AFTER the database is updated, so no transaction timeout
+    // IMPROVED: Generate AI response with conversation context
     let aiResponse: string;
     try {
+      // Build context of previous Q&As
+      const previousContext = journalPrompts
+        .slice(0, promptIndex)
+        .filter(jp => jp.answer !== null)
+        .map(jp => ({
+          question: jp.question,
+          answer: jp.answer!
+        }));
+
       aiResponse = await generateAIResponse(
         journalPrompts[promptIndex].question,
-        sanitizedAnswer
+        sanitizedAnswer,
+        previousContext.length > 0 ? previousContext : undefined
       );
     } catch (aiError: any) {
       console.error('AI generation failed:', aiError);
       
-      // Check if it's a rate limit error
       if (aiError.message?.includes('rate limit') || aiError.message?.includes('temporarily unavailable')) {
         return res.status(503).json({ 
           error: 'Billy is taking a short break due to high demand. Please try again in a moment!',
@@ -376,11 +377,9 @@ export const submitJournalEntry = async (req: Request, res: Response) => {
       allCompleted: remainingPrompts === 0,
       answeredPromptIndex: promptIndex,
       totalPrompts: journalPrompts.length,
-      // Include updated prompts so frontend can refresh
       updatedPrompts: journalPrompts
     };
 
-    // Send success response
     res.json(result);
 
   } catch (error: any) {
@@ -391,7 +390,6 @@ export const submitJournalEntry = async (req: Request, res: Response) => {
       promptIndex: req.body.promptIndex
     });
 
-    // Determine status code based on error type
     let statusCode = 500;
     let errorMessage = 'Failed to submit journal entry';
 
@@ -416,7 +414,6 @@ export const submitJournalEntry = async (req: Request, res: Response) => {
   }
 };
 
-// Get journal entries for a user
 export const getJournalEntries = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
@@ -425,9 +422,8 @@ export const getJournalEntries = async (req: Request, res: Response) => {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
-    // Parse and validate limit
     const limitParam = req.query.limit as string;
-    let limit = 10; // default
+    let limit = 10;
     
     if (limitParam) {
       const parsedLimit = parseInt(limitParam, 10);
@@ -436,10 +432,9 @@ export const getJournalEntries = async (req: Request, res: Response) => {
           error: 'Invalid limit parameter. Must be a positive number.' 
         });
       }
-      limit = Math.min(parsedLimit, 100); // Cap at 100 to prevent abuse
+      limit = Math.min(parsedLimit, 100);
     }
 
-    // Optional: Add date range filtering
     const startDate = req.query.startDate as string;
     const endDate = req.query.endDate as string;
 
@@ -455,7 +450,6 @@ export const getJournalEntries = async (req: Request, res: Response) => {
       }
     }
 
-    // Fetch entries
     const entries = await prisma.dailyQuest.findMany({
       where: whereClause,
       orderBy: { date: 'desc' },
@@ -469,11 +463,9 @@ export const getJournalEntries = async (req: Request, res: Response) => {
       }
     });
 
-    // Normalize prompts in response
     const normalizedEntries = entries.map(entry => ({
       ...entry,
       journalPrompts: normalizePrompts(entry.journalPrompts as any[]),
-      // Add completion stats
       totalPrompts: Array.isArray(entry.journalPrompts) ? entry.journalPrompts.length : 0,
       answeredPrompts: Array.isArray(entry.journalPrompts) 
         ? (entry.journalPrompts as any[]).filter((jp: any) => {
@@ -503,7 +495,6 @@ export const getJournalEntries = async (req: Request, res: Response) => {
   }
 };
 
-// Optional: Get today's journal status
 export const getTodayJournalStatus = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).userId;
