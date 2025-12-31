@@ -1,11 +1,11 @@
 // app/Streak/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 
-export default function StreakPage() {
+function StreakContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isVisible, setIsVisible] = useState(false);
@@ -131,5 +131,12 @@ export default function StreakPage() {
         </div>
       </div>
     </div>
+  );
+}
+export default function StreakPage() {
+  return (
+    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-gradient-to-b from-red-200 to-red-100"><p>Loading...</p></div>}>
+      <StreakContent />
+    </Suspense>
   );
 }

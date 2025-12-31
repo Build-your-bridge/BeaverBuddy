@@ -12,10 +12,17 @@ model User {
   name             String
   email            String    @unique
   password         String
-  points           Int       @default(0)  // Changed from 500 to 0
-  currentStreak    Int       @default(0)  // NEW: Track current login streak
-  lastLoginDate    DateTime? // NEW: Track last login for streak calculation
-  equippedOutfitId Int?      // ID of currently equipped outfit
+  points           Int       @default(0)
+  currentStreak    Int       @default(0)
+  lastLoginDate    DateTime?
+  
+  // ADD LOCATION FIELDS
+  latitude         Float?
+  longitude        Float?
+  city             String?
+  province         String?
+  
+  equippedOutfitId Int?
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 

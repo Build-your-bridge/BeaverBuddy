@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Header from '../components/Header';
 import BottomNav from '../components/BottomNav';
+import LocationPermissionModal from '../components/LocationPermissionModal';
 
 interface User {
   id: number;
@@ -32,6 +33,7 @@ export default function DashboardPage() {
   const [isInCrisis, setIsInCrisis] = useState(false);
   const [crisisData, setCrisisData] = useState<any>(null);
   const [checkingStreak, setCheckingStreak] = useState(true);
+  const [showLocationModal, setShowLocationModal] = useState(false);
   
   const router = useRouter();
 
@@ -48,13 +50,26 @@ export default function DashboardPage() {
     setUser(parsedUser);
     const currentUserId = parsedUser.id;
 
-    // Check streak FIRST before doing anything else
-    checkStreakStatus(token).then((shouldRedirect) => {
-      if (!shouldRedirect) {
-        // Only proceed with other checks if we're not redirecting to streak page
-        checkCrisisAndQuests(token, currentUserId);
-      }
-    });
+    // Check if location has been set
+    const locationData = localStorage.getItem('userLocation');
+    if (!locationData) {
+      // Show location permission modal
+      setShowLocationModal(true);
+      // Still initialize dashboard checks, but don't wait for location
+      checkStreakStatus(token).then((shouldRedirect) => {
+        if (!shouldRedirect) {
+          // Only proceed with other checks if we're not redirecting to streak page
+          checkCrisisAndQuests(token, currentUserId);
+        }
+      });
+    } else {
+      // Location is set, proceed normally
+      checkStreakStatus(token).then((shouldRedirect) => {
+        if (!shouldRedirect) {
+          checkCrisisAndQuests(token, currentUserId);
+        }
+      });
+    }
   }, [router]);
 
   const checkCrisisAndQuests = async (token: string, currentUserId: number) => {
@@ -277,13 +292,26 @@ export default function DashboardPage() {
     try {
       const token = localStorage.getItem('token');
       
+      // Get user location
+      const locationData = localStorage.getItem('userLocation');
+      let city, province;
+      if (locationData) {
+        try {
+          const location = JSON.parse(locationData);
+          city = location.city;
+          province = location.province;
+        } catch (e) {
+          console.error('Failed to parse location:', e);
+        }
+      }
+      
       const response = await fetch('http://localhost:5000/api/quests/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ feeling })
+        body: JSON.stringify({ feeling, city, province }) // Include location
       });
 
       const data = await response.json();
@@ -361,7 +389,7 @@ export default function DashboardPage() {
     router.push('/');
   };
 
-  if (!user || checkingStreak) {
+  if (!user || (checkingStreak && !showLocationModal)) {
     return (
       <div className="h-screen flex items-center justify-center" style={{ 
         background: 'linear-gradient(135deg, #ffa69e 0%, #ffddd2 100%)'
@@ -372,7 +400,21 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="h-screen flex flex-col overflow-hidden relative" style={{ background: 'linear-gradient(to bottom, #E8D4C0 0%, #F5E6D3 100%)' }}>
+    <>
+      {/* Show only the location modal if it's needed */}
+      {showLocationModal && (
+        <LocationPermissionModal 
+          onClose={(success) => {
+            setShowLocationModal(false);
+            // Reload the page to reinitialize with location data
+            window.location.reload();
+          }}
+        />
+      )}
+
+      {/* Only show dashboard content if location is set */}
+      {!showLocationModal && (
+      <main className="h-screen flex flex-col overflow-hidden relative" style={{ background: 'linear-gradient(to bottom, #E8D4C0 0%, #F5E6D3 100%)' }}>
       <style jsx>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
@@ -402,7 +444,7 @@ export default function DashboardPage() {
         <div className="w-full max-w-md py-4">
           {/* Glass card */}
           <div className="relative" style={{
-            background: 'rgba(236, 234, 234, 1)',
+            background: 'rgba(255, 255, 255, 1)',
             backdropFilter: 'blur(20px)',
             borderRadius: '40px',
             padding: '24px',
@@ -428,14 +470,14 @@ export default function DashboardPage() {
                   <path d="M 5 0 Q 15 10 25 0 L 18 15 L 12 15 Z" fill={isInCrisis ? 'rgba(254, 226, 226, 0.8)' : 'white'}/>
                 </svg>
               </div>
-              <h1 className={`text-xl font-black leading-tight text-center ${isInCrisis ? 'text-red-900' : 'text-gray-800'}`}>
+              <h1 className={`text-xl font-black leading-tight ${isInCrisis ? 'text-red-900' : 'text-gray-800'}`}>
                 {isInCrisis 
                   ? "🆘 Emergency Support Active" 
                   : hasGeneratedToday 
                     ? "Today's Check-in Complete! ✓" 
                     : `Hi ${user.name}, how are you feeling today?`}
               </h1>
-              <p className="text-xs text-gray-700 mt-1 font-semibold text-center">
+              <p className="text-xs text-gray-700 mt-1 font-semibold">
                 {isInCrisis 
                   ? "You're in our crisis support mode. Help resources are available." 
                   : hasGeneratedToday 
@@ -565,5 +607,7 @@ export default function DashboardPage() {
       {/* Bottom Navigation */}
       <BottomNav currentPage="dashboard" hasJournalPrompts={hasJournalPrompts} remainingJournalCount={remainingJournalCount} />
     </main>
+      )}
+    </>
   );
 }

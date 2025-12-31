@@ -6,7 +6,8 @@ import authRoutes from './routes/authRoutes';
 import questRoutes from './routes/questRoutes';
 import outfitRoutes from './routes/outfitRoutes';
 import journalRoutes from './routes/journalRoutes';
-import streakRoutes from './routes/streakRoutes'; // ADD THIS
+import streakRoutes from './routes/streakRoutes';
+import locationRoutes from './routes/locationRoutes'; // ADD THIS
 import prisma from './db/prisma';
 
 dotenv.config({ override: true });
@@ -33,7 +34,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/quests', questRoutes);
 app.use('/api/outfits', outfitRoutes);
 app.use('/api/journal', journalRoutes);
-app.use('/api/streak', streakRoutes); // ADD THIS
+app.use('/api/streak', streakRoutes);
+app.use('/api/location', locationRoutes); // ADD THIS
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {

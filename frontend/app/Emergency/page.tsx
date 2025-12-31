@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Header from '../components/Header';
@@ -19,7 +19,7 @@ interface EmergencyData {
   crisisType: string;
 }
 
-export default function EmergencyPage() {
+function EmergencyContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [emergencyData, setEmergencyData] = useState<EmergencyData | null>(null);
@@ -231,5 +231,13 @@ export default function EmergencyPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function EmergencyPage() {
+  return (
+    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-gradient-to-b from-[#ffa69e] to-[#ffddd2]"><p>Loading...</p></div>}>
+      <EmergencyContent />
+    </Suspense>
   );
 }
