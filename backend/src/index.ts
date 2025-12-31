@@ -9,7 +9,7 @@ import journalRoutes from './routes/journalRoutes';
 import streakRoutes from './routes/streakRoutes'; // ADD THIS
 import prisma from './db/prisma';
 
-dotenv.config();
+dotenv.config({ override: true });
 
 const app: Application = express();
 const PORT = process.env.PORT || 5000;

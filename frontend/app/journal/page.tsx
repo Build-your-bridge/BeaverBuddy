@@ -59,7 +59,7 @@ export default function JournalPage() {
   }>>([]);
 
   // --------------------------------------------------------------------------
-  // INITIALIZE - Load user and prompts from storage
+  // INITIALIZE - Load user and prompts from backend
   // --------------------------------------------------------------------------
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -73,41 +73,98 @@ export default function JournalPage() {
     
     // Fetch current points from server
     const token = localStorage.getItem('token');
-    if (token) {
-      fetchUserPoints(token);
-    }
-    
-    const journalPromptsData = sessionStorage.getItem(`journalPrompts_${currentUser.id}`);
-    if (!journalPromptsData) {
-      router.push('/dashboard');
-      return;
-    }
-
-    const promptsData = JSON.parse(journalPromptsData);
-    
-    // Normalize prompts (handle both string and object formats)
-    const normalizedPrompts: JournalPrompt[] = promptsData.map((prompt: any) => {
-      if (typeof prompt === 'string') {
-        return { question: prompt, answer: null, answeredAt: null };
-      }
-      return {
-        question: prompt.question || String(prompt),
-        answer: prompt.answer || null,
-        answeredAt: prompt.answeredAt || null,
-      };
-    });
-    
-    setAllPrompts(normalizedPrompts);
-    
-    // Filter to only show unanswered prompts
-    const unansweredPrompts = normalizedPrompts.filter((p: JournalPrompt) => p.answer === null);
-    if (unansweredPrompts.length === 0) {
-      router.push('/dashboard');
+    if (!token) {
+      router.push('/login');
       return;
     }
     
-    setPrompts(unansweredPrompts);
+    fetchUserPoints(token);
+    
+    // Fetch fresh prompts from backend instead of sessionStorage
+    fetchJournalPrompts(token, currentUser.id);
   }, [router]);
+
+  // --------------------------------------------------------------------------
+  // FETCH JOURNAL PROMPTS - Get latest prompts from backend
+  // --------------------------------------------------------------------------
+  const fetchJournalPrompts = async (token: string, userId: number) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/quests/check-today', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch journal prompts');
+      }
+
+      const data = await response.json();
+      
+      if (!data.journalPrompts || data.journalPrompts.length === 0) {
+        router.push('/dashboard');
+        return;
+      }
+
+      // Normalize prompts
+      const normalizedPrompts: JournalPrompt[] = data.journalPrompts.map((prompt: any) => {
+        if (typeof prompt === 'string') {
+          return { question: prompt, answer: null, answeredAt: null };
+        }
+        return {
+          question: prompt.question || String(prompt),
+          answer: prompt.answer || null,
+          answeredAt: prompt.answeredAt || null,
+        };
+      });
+      
+      console.log('📥 Fetched fresh prompts from backend:', normalizedPrompts);
+      
+      setAllPrompts(normalizedPrompts);
+      
+      // Update sessionStorage with fresh data
+      sessionStorage.setItem(`journalPrompts_${userId}`, JSON.stringify(normalizedPrompts));
+      
+      // Filter to only show unanswered prompts
+      const unansweredPrompts = normalizedPrompts.filter((p: JournalPrompt) => p.answer === null);
+      
+      console.log('📋 Unanswered prompts:', unansweredPrompts);
+      
+      if (unansweredPrompts.length === 0) {
+        router.push('/dashboard');
+        return;
+      }
+      
+      setPrompts(unansweredPrompts);
+    } catch (error) {
+      console.error('Error fetching journal prompts:', error);
+      // Fallback to sessionStorage if backend fails
+      const journalPromptsData = sessionStorage.getItem(`journalPrompts_${userId}`);
+      if (journalPromptsData) {
+        const promptsData = JSON.parse(journalPromptsData);
+        const normalizedPrompts: JournalPrompt[] = promptsData.map((prompt: any) => {
+          if (typeof prompt === 'string') {
+            return { question: prompt, answer: null, answeredAt: null };
+          }
+          return {
+            question: prompt.question || String(prompt),
+            answer: prompt.answer || null,
+            answeredAt: prompt.answeredAt || null,
+          };
+        });
+        
+        setAllPrompts(normalizedPrompts);
+        const unansweredPrompts = normalizedPrompts.filter((p: JournalPrompt) => p.answer === null);
+        if (unansweredPrompts.length === 0) {
+          router.push('/dashboard');
+          return;
+        }
+        setPrompts(unansweredPrompts);
+      } else {
+        router.push('/dashboard');
+      }
+    }
+  };
 
   // --------------------------------------------------------------------------
   // SUBMIT ANSWER - Save to backend and get AI response
@@ -186,6 +243,10 @@ export default function JournalPage() {
         
         // Update remaining prompts
         const remainingPrompts = updatedPrompts.filter((p: JournalPrompt) => p.answer === null);
+        console.log('=== FILTERING REMAINING PROMPTS ===');
+        console.log('All updated prompts:', updatedPrompts);
+        console.log('Remaining (unanswered) prompts:', remainingPrompts);
+        console.log('===================================');
         setPrompts(remainingPrompts);
         
         if (remainingPrompts.length > 0) {
@@ -222,18 +283,14 @@ export default function JournalPage() {
       }]);
     }
 
-    if (prompts.length > 1) {
-      setCurrentPromptIndex(prev => prev + 1);
-      setCurrentAnswer('');
-      setShowResponse(false);
-      setAiResponse('');
-    } else {
-      if (user) {
-        sessionStorage.removeItem(`journalPrompts_${user.id}`);
-      }
-      alert('🎉 Journal completed! Great job reflecting today.');
-      router.push('/dashboard');
-    }
+    // Clear current answer and response for next question
+    setCurrentAnswer('');
+    setShowResponse(false);
+    setAiResponse('');
+    
+    // The prompts array has already been filtered to only unanswered questions
+    // after submitting the previous answer, and currentPromptIndex is already 0
+    // So we just need to hide the response screen and the next question will show
   };
 
   // --------------------------------------------------------------------------

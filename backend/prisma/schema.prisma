@@ -33,9 +33,10 @@ model DailyQuest {
   date           DateTime
   quests         Json
   journalPrompts Json
-  completedAt    DateTime? @map("completed_at")
-  createdAt      DateTime  @default(now()) @map("created_at")
-  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at")
+  originalFeeling String?  // Store the user's original mental health check-in answer
+  completedAt   DateTime? @map("completed_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at")  // Add @default(now())
 
   user User @relation(fields: [userId], references: [id])
 

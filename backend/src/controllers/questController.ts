@@ -248,6 +248,7 @@ export const checkTodayStatus = async (req: Request, res: Response) => {
 };
 
 export const generateQuests = async (req: Request, res: Response) => {
+  const openaiKey = process.env.OPENAI_API_KEY;
   try {
     const userId = (req as any).userId;
     if (!userId) {
@@ -379,16 +380,14 @@ export const generateQuests = async (req: Request, res: Response) => {
 
     // FIRST: Ask AI to perform safety check before generating quests
     console.log('🤖 Performing AI safety check...');
-    const safetyCheckResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const safetyCheckResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Authorization': `Bearer ${openaiKey}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'http://localhost:3000',
-        'X-Title': 'BeaverBuddy',
       },
       body: JSON.stringify({
-        model: 'meta-llama/llama-3.2-3b-instruct:free',
+        model: 'gpt-4o-mini',
         max_tokens: 200,
         temperature: 0.3,
         messages: [
@@ -464,16 +463,14 @@ Your response (one word only):`
 
     // If AI says SAFE, proceed with quest generation
     console.log('✅ Safety check passed, generating quests...');
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        'Authorization': `Bearer ${openaiKey}`,
         'Content-Type': 'application/json',
-        'HTTP-Referer': 'http://localhost:3000',
-        'X-Title': 'BeaverBuddy',
       },
       body: JSON.stringify({
-        model: 'meta-llama/llama-3.2-3b-instruct:free',
+        model: 'gpt-4o-mini',
         max_tokens: 2500,
         temperature: 0.7,
         messages: [
@@ -490,7 +487,7 @@ User's feeling: "${feeling}"
 You must generate EXACTLY:
 - 4 daily quests (2 personalized to their feeling, 2 general Canadian experiences)
 - 2 monthly quests (Canadian cultural events for ${new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })})
-- 2 journal prompts (questions related to their feelings)
+- 1 personalized journal prompt (a caring question specifically about what they shared in their feeling - reference their specific situation)
 
 Output ONLY this JSON structure with NO extra text:
 
@@ -506,12 +503,14 @@ Output ONLY this JSON structure with NO extra text:
     {"id": 2, "title": "🎿 Monthly Quest 2", "description": "Canadian cultural experience description", "reward": 400}
   ],
   "journalPrompts": [
-    "Why do you think you're feeling this way today?",
-    "What's one small thing that could help improve your mood?"
+    "A personalized question based on what they shared about their feelings - be specific and caring"
   ]
 }
 
-CRITICAL: Output ONLY the JSON above. No other text.`,
+CRITICAL: 
+- The journal prompt MUST be personalized to their specific feeling, not generic
+- Reference what they actually said in their feeling
+- Output ONLY the JSON above. No other text.`,
           },
         ],
       }),
@@ -556,21 +555,17 @@ CRITICAL: Output ONLY the JSON above. No other text.`,
       });
     }
 
-    if (!questsData.journalPrompts || !Array.isArray(questsData.journalPrompts) || questsData.journalPrompts.length === 0) {
+    if (!questsData.journalPrompts || !Array.isArray(questsData.journalPrompts) || questsData.journalPrompts.length !== 1) {
       console.error('Invalid journalPrompts structure:', questsData);
       return res.status(500).json({
         error: 'AI generated invalid journal prompts. Please try again.',
       });
     }
 
-    // Take only the first journal prompt
-    const firstPrompt = questsData.journalPrompts[0];
-    questsData.journalPrompts = [firstPrompt];
-
-    // Add placeholder for question 2
-    questsData.journalPrompts.push("This question will be personalized based on your previous answer");
-    
-    // Add the 3rd question
+    // Use the AI-generated journal prompt as Question 1
+    // Add a placeholder for Question 2 (will be generated dynamically after user answers Q1)
+    questsData.journalPrompts.push("What do you think might help you feel better about this situation?");
+    // Add the hardcoded Question 3
     questsData.journalPrompts.push("Is there anything else you'd like to talk about today?");
 
     // Transform journalPrompts to objects
@@ -601,6 +596,7 @@ CRITICAL: Output ONLY the JSON above. No other text.`,
           date: today,
           quests: questsData.quests,
           journalPrompts: questsData.journalPrompts,
+          originalFeeling: feeling,
         },
       });
 

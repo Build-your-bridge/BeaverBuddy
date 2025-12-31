@@ -41,77 +41,72 @@ function sanitizeAnswer(answer: string): string {
     .slice(0, 5000);
 }
 
-// IMPROVED: Better question generation with more context
+// IMPROVED: Better question generation with more context and multiple model fallback
 async function generateNextQuestion(previousAnswers: { question: string; answer: string }[]): Promise<string> {
-  try {
-    const openRouterKey = process.env.OPENROUTER_API_KEY;
-    
-    if (!openRouterKey) {
-      throw new Error('OpenRouter API key not configured');
-    }
-
-    const context = previousAnswers.map((qa, index) => 
-      `Question ${index + 1}: ${qa.question}\nUser's answer: ${qa.answer}`
-    ).join('\n\n');
-
-    console.log('Generating next journal question based on previous answers...');
-
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openRouterKey}`,
-        'Content-Type': 'application/json',
-        'HTTP-Referer': 'http://localhost:3000',
-        'X-Title': 'BeaverBuddy'
-      },
-      body: JSON.stringify({
-        model: 'meta-llama/llama-3.2-3b-instruct:free',
-        messages: [
-          {
-            role: 'system',
-            content: 'You are Billy the Beaver, a warm and understanding mental health assistant. Your job is to generate ONE thoughtful follow-up question that helps the user explore their feelings deeper. The question should be natural, conversational, and help them understand WHY they feel this way or HOW they can address it. Return ONLY the question, nothing else - no preamble, no explanation, just the question itself.'
-          },
-          {
-            role: 'user',
-            content: `Based on what the user shared:\n\n${context}\n\nGenerate a caring follow-up question that helps them explore their feelings deeper. Focus on understanding the root cause or finding ways to improve their situation. Return ONLY the question text.`
-          }
-        ]
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to generate question: ${response.status}`);
-    }
-
-    const data: any = await response.json();
-    let question = data.choices?.[0]?.message?.content || "";
-    
-    question = question.trim()
-      .replace(/^(Question:|Here's a question:|Follow-up:|Billy asks?:?)\s*/i, '')
-      .replace(/^["']|["']$/g, '')
-      .replace(/\n/g, ' ');
-    
-    if (!question || question.length < 10) {
-      throw new Error('Generated question too short');
-    }
-    
-    return question;
-  } catch (error: any) {
-    console.error('Error generating next question:', error);
-    return "What do you think might help you feel better about this situation?";
+  const openaiKey = process.env.OPENAI_API_KEY;
+  
+  if (!openaiKey) {
+    throw new Error('OpenAI API key not configured');
   }
+
+  const context = previousAnswers.map((qa, index) => 
+    `Question ${index + 1}: ${qa.question}\nUser's answer: ${qa.answer}`
+  ).join('\n\n');
+
+  console.log(`Using GPT-4o-mini for question generation...`);
+
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openaiKey}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are Billy the Beaver, a warm and understanding mental health assistant. Your job is to generate ONE thoughtful follow-up question that helps the user explore their feelings deeper. The question should be natural, conversational, and help them understand WHY they feel this way or HOW they can address it. Return ONLY the question, nothing else - no preamble, no explanation, just the question itself.'
+        },
+        {
+          role: 'user',
+          content: `Based on what the user shared in their initial mental health check-in and their response to the first journal question:\n\n${context}\n\nGenerate a caring follow-up question that helps them explore their feelings deeper, considering both their original emotional state and their specific response. Focus on understanding the root cause or finding ways to improve their situation. Return ONLY the question text.`
+        }
+      ]
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to generate question: ${response.status}`);
+  }
+
+  const data: any = await response.json();
+  let question = data.choices?.[0]?.message?.content || "";
+  
+  console.log('Raw AI response:', question);
+  
+  question = question.trim()
+    .replace(/^(Question:|Here's a question:|Follow-up:|Billy asks?:?)\s*/i, '')
+    .replace(/^["']|["']$/g, '')
+    .replace(/\n/g, ' ');
+  
+  console.log('Cleaned question:', question);
+  
+  if (!question || question.length < 10) {
+    throw new Error('Generated question too short');
+  }
+  
+  console.log(`Successfully generated question using GPT-4o-mini`);
+  return question;
 }
 
 // IMPROVED: Better AI responses with more empathy and personalization
 async function generateAIResponse(prompt: string, answer: string, previousContext?: { question: string; answer: string }[]): Promise<string> {
-  const freeModels = [
-    'meta-llama/llama-3.2-3b-instruct:free',
-    'mistralai/mistral-7b-instruct:free',
-    'google/gemma-2-9b-it:free',
-    'nousresearch/hermes-3-llama-3.1-405b:free'
-  ];
-
-  let lastError: any = null;
+  const openaiKey = process.env.OPENAI_API_KEY;
+  
+  if (!openaiKey) {
+    throw new Error('OpenAI API key not configured');
+  }
 
   // Build context from previous conversation if available
   let contextString = '';
@@ -121,26 +116,16 @@ async function generateAIResponse(prompt: string, answer: string, previousContex
     ).join('\n\n') + '\n\n';
   }
 
-  for (const model of freeModels) {
-    try {
-      const openRouterKey = process.env.OPENROUTER_API_KEY;
-      
-      if (!openRouterKey) {
-        throw new Error('OpenRouter API key not configured');
-      }
+  console.log(`Using GPT-4o-mini for AI response generation...`);
 
-      console.log(`Trying OpenRouter model: ${model}...`);
-
-      const aiResponseFetch = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${openRouterKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': 'http://localhost:3000',
-          'X-Title': 'BeaverBuddy'
-        },
+  const aiResponseFetch = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${openaiKey}`,
+      'Content-Type': 'application/json'
+    },
         body: JSON.stringify({
-          model: model,
+          model: 'gpt-4o-mini',
           messages: [
             {
               role: 'system',
@@ -164,51 +149,34 @@ You never give generic responses. Every response should feel like it was written
 3. Offers empathy and understanding
 4. Provides gentle encouragement or a helpful perspective
 5. Feels genuine and conversational, not robotic
+6. DO NOT ask any follow up questions
 
 Remember: Reference specific things they mentioned. Make it feel personal and caring.`
             }
           ]
         })
-      });
+  });
 
-      if (aiResponseFetch.status === 429) {
-        console.log(`${model} is rate-limited, trying next model...`);
-        lastError = await aiResponseFetch.json().catch(() => ({}));
-        continue;
-      }
-
-      if (!aiResponseFetch.ok) {
-        const errorData = await aiResponseFetch.json().catch(() => ({}));
-        console.error(`${model} API error:`, errorData);
-        lastError = errorData;
-        continue;
-      }
-
-      const aiData: any = await aiResponseFetch.json();
-
-      let aiMessage = aiData.choices?.[0]?.message?.content || "";
-      
-      aiMessage = aiMessage.trim()
-        .replace(/^(Billy says?:?|Response:?|Here's what I think:?)\s*/i, '')
-        .replace(/^["']|["']$/g, '');
-      
-      if (!aiMessage || aiMessage.length < 50) {
-        console.log(`${model} response too short, trying next model...`);
-        continue;
-      }
-      
-      console.log(`Successfully generated AI response using ${model}`);
-      return aiMessage;
-
-    } catch (error: any) {
-      console.error(`Error with ${model}:`, error.message);
-      lastError = error;
-      continue;
-    }
+  if (!aiResponseFetch.ok) {
+    const errorData = await aiResponseFetch.json().catch(() => ({}));
+    console.error(`OpenAI API error:`, errorData);
+    throw new Error(`Failed to generate AI response: ${aiResponseFetch.status}`);
   }
 
-  console.error('All AI models failed or are rate-limited');
-  throw new Error('AI service temporarily unavailable due to rate limits. Please try again in a few moments.');
+  const aiData: any = await aiResponseFetch.json();
+
+  let aiMessage = aiData.choices?.[0]?.message?.content || "";
+  
+  aiMessage = aiMessage.trim()
+    .replace(/^(Billy says?:?|Response:?|Here's what I think:?)\s*/i, '')
+    .replace(/^["']|["']$/g, '');
+  
+  if (!aiMessage || aiMessage.length < 50) {
+    throw new Error('Generated AI response too short');
+  }
+  
+  console.log(`Successfully generated AI response using GPT-4o-mini`);
+  return aiMessage;
 }
 
 export const submitJournalEntry = async (req: Request, res: Response) => {
@@ -257,6 +225,11 @@ export const submitJournalEntry = async (req: Request, res: Response) => {
           gte: start,
           lt: end
         }
+      },
+      select: {
+        id: true,
+        journalPrompts: true,
+        originalFeeling: true
       }
     });
 
@@ -306,25 +279,72 @@ export const submitJournalEntry = async (req: Request, res: Response) => {
 
     // IMPROVED: Dynamic question generation for Q2
     if (promptIndex === 0 && journalPrompts.length > 1) {
-      console.log('Generating personalized question 2 based on answer to question 1...');
+      console.log('🔄 === DYNAMIC Q2 GENERATION START ===');
+      console.log('Original feeling:', dailyQuest.originalFeeling);
+      console.log('User answer to Q1:', sanitizedAnswer);
+      console.log('BEFORE UPDATE - journalPrompts[1].question:', journalPrompts[1].question);
+      console.log('BEFORE UPDATE - journalPrompts[2].question:', journalPrompts[2]?.question);
+      
       try {
-        const previousAnswers = [{
-          question: journalPrompts[0].question,
-          answer: sanitizedAnswer
-        }];
+        const previousAnswers = [
+          {
+            question: "Original mental health check-in",
+            answer: dailyQuest.originalFeeling || "User shared how they were feeling"
+          },
+          {
+            question: journalPrompts[0].question,
+            answer: sanitizedAnswer
+          }
+        ];
         
         const nextQuestion = await generateNextQuestion(previousAnswers);
+        console.log('✅ Generated dynamic question:', nextQuestion);
         journalPrompts[1].question = nextQuestion;
-        console.log('Generated personalized question 2:', nextQuestion);
-      } catch (error) {
-        console.error('Failed to generate dynamic question 2, using fallback');
-        journalPrompts[1].question = "What do you think is causing you to feel this way?";
+        console.log('AFTER UPDATE - journalPrompts[1].question:', journalPrompts[1].question);
+        console.log('AFTER UPDATE - journalPrompts[2].question:', journalPrompts[2]?.question);
+      } catch (error: any) {
+        console.error('Failed to generate dynamic question 2:', error.message);
+        
+        // Use smart fallback based on sentiment
+        const lowerAnswer = sanitizedAnswer.toLowerCase();
+        const lowerFeeling = (dailyQuest.originalFeeling || '').toLowerCase();
+        
+        if (lowerAnswer.includes('stress') || lowerFeeling.includes('stress') || 
+            lowerAnswer.includes('anxious') || lowerFeeling.includes('anxious')) {
+          journalPrompts[1].question = "What helps you feel calmer when you're stressed?";
+        } else if (lowerAnswer.includes('lonely') || lowerFeeling.includes('lonely') ||
+                   lowerAnswer.includes('isolated') || lowerFeeling.includes('isolated')) {
+          journalPrompts[1].question = "What connections or relationships would you like to strengthen?";
+        } else if (lowerAnswer.includes('overwhelm') || lowerFeeling.includes('overwhelm')) {
+          journalPrompts[1].question = "What's one small thing you could do today to feel less overwhelmed?";
+        } else if (lowerAnswer.includes('sad') || lowerFeeling.includes('sad') ||
+                   lowerAnswer.includes('depressed') || lowerFeeling.includes('depressed')) {
+          journalPrompts[1].question = "What usually helps lift your mood, even just a little?";
+        } else {
+          journalPrompts[1].question = "What do you think might help you feel better about this situation?";
+        }
+        
+        console.log('⚠️ Using fallback question:', journalPrompts[1].question);
       }
+      
+      console.log('🔄 === DYNAMIC Q2 GENERATION END ===');
+      console.log('Final Q1:', journalPrompts[0].question.substring(0, 60) + '...');
+      console.log('Final Q2:', journalPrompts[1].question.substring(0, 60) + '...');
+      console.log('Final Q3:', journalPrompts[2]?.question.substring(0, 60) + '...');
+      console.log('=====================================');
     }
 
     const remainingPrompts = journalPrompts.filter(
       (jp) => jp.answer === null
     ).length;
+
+    console.log('=== BEFORE DATABASE UPDATE ===');
+    console.log('Full journalPrompts array:');
+    journalPrompts.forEach((jp, idx) => {
+      console.log(`  [${idx}] Question: ${jp.question.substring(0, 50)}...`);
+      console.log(`       Answered: ${jp.answer !== null}`);
+    });
+    console.log('==============================');
 
     // Update database
     await prisma.dailyQuest.update({
@@ -379,6 +399,15 @@ export const submitJournalEntry = async (req: Request, res: Response) => {
       totalPrompts: journalPrompts.length,
       updatedPrompts: journalPrompts
     };
+
+    console.log('=== RESPONSE BEING SENT ===');
+    console.log('Total prompts:', result.totalPrompts);
+    console.log('Remaining prompts:', result.remainingPrompts);
+    console.log('Updated prompts array:');
+    result.updatedPrompts.forEach((jp, idx) => {
+      console.log(`  [${idx}] ${jp.question.substring(0, 60)}... (answered: ${jp.answer !== null})`);
+    });
+    console.log('===========================');
 
     res.json(result);
 
