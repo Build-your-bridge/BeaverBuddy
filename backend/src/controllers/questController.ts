@@ -1,6 +1,7 @@
 // src/controllers/questController.ts
 import { Request, Response } from 'express';
 import prisma from '../db/prisma';
+import { getHelplinesByType } from '../controllers/helpline';
 
 // Safety check function for crisis detection
 function detectCrisisKeywords(text: string): { isCrisis: boolean; type: string } {
@@ -140,7 +141,7 @@ export const generateQuests = async (req: Request, res: Response) => {
 
     // CRISIS DETECTION CHECK
     const crisisCheck = detectCrisisKeywords(feeling);
-    
+    console.log('🔍 CRISIS CHECK DEBUG:', { feeling, isCrisis: crisisCheck.isCrisis, type: crisisCheck.type });
     if (crisisCheck.isCrisis) {
       // Log the crisis event for safety monitoring
       console.log(`🚨 CRISIS DETECTED - User ${userId} - Type: ${crisisCheck.type} - Time: ${new Date().toISOString()}`);
@@ -157,64 +158,26 @@ export const generateQuests = async (req: Request, res: Response) => {
           date: today,
           quests: [],
           journalPrompts: [],
-          completedAt: new Date(), // Mark as completed to prevent re-submission
-          // We'll use a special note in the database
+          completedAt: new Date(),
         },
       });
       
-      // Return crisis resources instead of generating quests
-      let crisisMessage = '';
-      let helplines: any[] = [];
+      // Get helplines from config
+      const helplineData = getHelplinesByType(crisisCheck.type);
       
-      switch (crisisCheck.type) {
-        case 'harm_others':
-          crisisMessage = 'I\'m very concerned about what you shared. Thoughts about hurting others are serious and need immediate professional help. Please reach out to these resources right away, or call 911 if there is an immediate risk:';
-          helplines = [
-            { name: '🚨 Emergency Services', number: '911', available: '24/7', description: 'For immediate safety concerns - call now' },
-            { name: '🇨🇦 Canada Suicide Prevention Service', number: '1-833-456-4566', available: '24/7', description: 'Crisis counseling and immediate support' },
-            { name: '💙 ConnexOntario Mental Health', number: '1-866-531-2600', available: '24/7', description: 'Mental health crisis services' },
-            { name: '🏥 Local Hospital Emergency', number: 'Visit nearest ER', available: '24/7', description: 'In-person crisis intervention' }
-          ];
-          break;
-          
-        case 'suicidal':
-          crisisMessage = 'I\'m really concerned about what you shared. Your safety is the most important thing right now. Please reach out to one of these crisis resources immediately - they\'re available 24/7 and want to help you, eh.';
-          helplines = [
-            { name: '🇨🇦 Canada Suicide Prevention Service', number: '1-833-456-4566', available: '24/7', description: 'Call or text for immediate support' },
-            { name: '📱 Crisis Text Line', number: 'Text CONNECT to 686868', available: '24/7', description: 'Text-based crisis support' },
-            { name: '🆘 Kids Help Phone (under 29)', number: '1-800-668-6868', available: '24/7', description: 'Support for youth and young adults' },
-            { name: '🏥 Emergency Services', number: '911', available: '24/7', description: 'For immediate life-threatening emergencies' }
-          ];
-          break;
-          
-        case 'self_harm':
-          crisisMessage = 'Thank you for sharing this with me. I\'m worried about you, and I want you to know that you deserve support and care. Please reach out to these resources:';
-          helplines = [
-            { name: '🇨🇦 Canada Suicide Prevention Service', number: '1-833-456-4566', available: '24/7', description: 'Crisis support for self-harm' },
-            { name: '📱 Crisis Text Line', number: 'Text CONNECT to 686868', available: '24/7', description: 'Text-based support' },
-            { name: '🆘 Kids Help Phone (under 29)', number: '1-800-668-6868', available: '24/7', description: 'Youth crisis support' },
-            { name: '💙 ConnexOntario Mental Health', number: '1-866-531-2600', available: '24/7', description: 'Mental health services' }
-          ];
-          break;
-          
-        case 'severe_distress':
-          crisisMessage = 'I can hear that you\'re going through a really tough time. You don\'t have to face this alone. Here are some resources that can provide support:';
-          helplines = [
-            { name: '🇨🇦 Canada Suicide Prevention Service', number: '1-833-456-4566', available: '24/7', description: 'Someone to talk to anytime' },
-            { name: '📱 Crisis Text Line', number: 'Text CONNECT to 686868', available: '24/7', description: 'Text-based support' },
-            { name: '💙 ConnexOntario Mental Health', number: '1-866-531-2600', available: '24/7', description: 'Mental health resources' },
-            { name: '🌍 Distress Centres Ontario', number: 'Visit ontario.cmha.ca/find-help', available: 'Various', description: 'Find local support' }
-          ];
-          break;
+      if (!helplineData) {
+        return res.status(500).json({
+          error: 'Crisis resources unavailable. Please call 911 or contact emergency services.',
+        });
       }
       
       return res.status(200).json({
         isCrisis: true,
         crisisType: crisisCheck.type,
-        message: crisisMessage,
-        helplines: helplines,
-        additionalMessage: 'You matter, and your life has value. Please reach out to one of these resources - they care about you and want to help, eh. 🍁',
-        lockedOut: true, // Flag to frontend that user is locked out for 24 hours
+        message: helplineData.message,
+        helplines: helplineData.helplines,
+        additionalMessage: helplineData.additionalMessage,
+        lockedOut: true,
         lockoutMessage: 'For your safety, you won\'t be able to submit another check-in until tomorrow. Please reach out to the resources above.'
       });
     }
@@ -285,7 +248,28 @@ export const generateQuests = async (req: Request, res: Response) => {
           },
           {
             role: 'user',
-            content: `Part One - Daily Quests
+            content: `⚠️ EMERGENCY SAFETY PROTOCOL ⚠️
+CRITICAL: If the user mentions ANY of the following emergency keywords, DO NOT generate quests. The system has already detected this is a crisis and will show emergency resources instead.
+
+EMERGENCY KEYWORDS (DO NOT GENERATE QUESTS IF PRESENT):
+- Suicide, suicidal, kill myself, end my life, want to die
+- Self-harm, cutting, hurt myself, burn myself, self-injure
+- Harming others, kill someone, hurt people, violence, attack
+- Any mention of weapons, explosives, or plans to harm themselves or others
+- Hopelessness combined with multiple expressions of despair
+
+If you detect emergency keywords above, respond ONLY with:
+{
+  "isEmergency": true,
+  "quests": [],
+  "monthlyQuests": [],
+  "journalPrompts": []
+}
+
+---
+
+NORMAL MODE (No emergency keywords detected):
+
 Your job is to help Canadian immigrants with mental health and cultural isolation. The user will tell you how they're feeling today and why, and you will generate EXACTLY 4 Daily Quests:
 - 2 Personalized Quests that are tailored to the user's specific situation, background, and current feelings
 - 2 General Canadian Quests that are universal Canadian cultural experiences (not related to user's specific mood or situation)
@@ -316,6 +300,7 @@ CRITICAL INSTRUCTIONS:
 - Generate 2 monthly quests that are EVENT-BASED
 - Generate ONLY 2 journal prompts
 - Return ONLY a JSON object
+- Do NOT include emergency keywords in quest descriptions
 
 Example format:
 {
