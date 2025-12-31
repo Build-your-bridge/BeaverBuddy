@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 interface HeaderProps {
   title: string;
   points: number;
+  streak?: number; // Add streak prop
   onLogout: () => void;
   backgroundColor?: string;
   borderColor?: string;
@@ -14,6 +15,7 @@ interface HeaderProps {
 export default function Header({ 
   title, 
   points, 
+  streak = 0, // Default to 0 if not provided
   onLogout, 
   backgroundColor = '#a12b2b', 
   borderColor = '#660000',
@@ -36,7 +38,7 @@ export default function Header({
           </div>
           <div className="flex items-center gap-1 md:gap-1.5 bg-white/20 backdrop-blur-sm rounded-full px-2 py-1 md:px-3 md:py-1.5 border border-white/30">
             <span className="text-xs md:text-sm">🔥</span>
-            <span className="text-[10px] md:text-xs font-bold text-white">12</span>
+            <span className="text-[10px] md:text-xs font-bold text-white">{streak}</span>
           </div>
           <button
             onClick={onLogout}

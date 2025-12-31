@@ -8,14 +8,16 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String
-  points    Int      @default(500)
-  equippedOutfitId Int?  // ID of currently equipped outfit
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id               Int       @id @default(autoincrement())
+  name             String
+  email            String    @unique
+  password         String
+  points           Int       @default(0)  // Changed from 500 to 0
+  currentStreak    Int       @default(0)  // NEW: Track current login streak
+  lastLoginDate    DateTime? // NEW: Track last login for streak calculation
+  equippedOutfitId Int?      // ID of currently equipped outfit
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
 
   dailyQuests   DailyQuest[]
   monthlyQuests MonthlyQuest[]
@@ -26,42 +28,42 @@ model User {
 }
 
 model DailyQuest {
-  id            Int       @id @default(autoincrement())
-  userId        Int
-  date          DateTime
-  quests        Json
+  id             Int       @id @default(autoincrement())
+  userId         Int
+  date           DateTime
+  quests         Json
   journalPrompts Json
-  completedAt   DateTime? @map("completed_at")
-  createdAt     DateTime  @default(now()) @map("created_at")
-  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at")  // Add @default(now())
+  completedAt    DateTime? @map("completed_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at")
 
-  user          User      @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   @@unique([userId, date])
   @@map("daily_quests")
 }
 
 model MonthlyQuest {
-  id           Int       @id @default(autoincrement())
-  userId       Int
-  month        String    // format: YYYY-MM
+  id            Int    @id @default(autoincrement())
+  userId        Int
+  month         String // format: YYYY-MM
   monthlyQuests Json
 
-  user         User      @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id])
 
   @@unique([userId, month])
   @@map("monthly_quests")
 }
 
 model Outfit {
-  id          Int         @id @default(autoincrement())
+  id          Int          @id @default(autoincrement())
   name        String
   description String
   image       String
   price       Int
   rarity      OutfitRarity
-  createdAt   DateTime    @default(now()) @map("created_at")
-  updatedAt   DateTime    @updatedAt @map("updated_at")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
 
   userOutfits UserOutfit[]
 

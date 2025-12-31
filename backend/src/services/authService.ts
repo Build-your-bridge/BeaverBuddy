@@ -26,18 +26,23 @@ export class AuthService {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create user
+    // Create user with new fields
     const user = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
+        points: 0,
+        currentStreak: 0,
+        lastLoginDate: null,
       },
       select: {
         id: true,
         name: true,
         email: true,
         points: true,
+        currentStreak: true,
+        lastLoginDate: true,
         equippedOutfitId: true,
         createdAt: true,
         updatedAt: true,
@@ -113,7 +118,14 @@ export class AuthService {
       image: userOutfits[0].outfit.image
     } : null;
 
-    return { user: { ...userWithoutPassword, equippedOutfitId: user.equippedOutfitId, equippedOutfit }, token };
+    return { 
+      user: { 
+        ...userWithoutPassword, 
+        equippedOutfitId: user.equippedOutfitId, 
+        equippedOutfit 
+      }, 
+      token 
+    };
   }
 
   async getUserById(userId: number): Promise<UserResponse | null> {
@@ -124,6 +136,8 @@ export class AuthService {
         name: true,
         email: true,
         points: true,
+        currentStreak: true,
+        lastLoginDate: true,
         equippedOutfitId: true,
         createdAt: true,
         updatedAt: true,

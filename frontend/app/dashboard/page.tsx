@@ -27,9 +27,12 @@ export default function DashboardPage() {
   const [remainingJournalCount, setRemainingJournalCount] = useState(0);
   const [hasGeneratedToday, setHasGeneratedToday] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(false);
-  const [currentPoints, setCurrentPoints] = useState(500);
+  const [currentPoints, setCurrentPoints] = useState(0);
+  const [currentStreak, setCurrentStreak] = useState(0);
   const [isInCrisis, setIsInCrisis] = useState(false);
   const [crisisData, setCrisisData] = useState<any>(null);
+  const [checkingStreak, setCheckingStreak] = useState(true);
+  
   const router = useRouter();
 
   useEffect(() => {
@@ -44,7 +47,17 @@ export default function DashboardPage() {
     const parsedUser = JSON.parse(userData);
     setUser(parsedUser);
     const currentUserId = parsedUser.id;
-    
+
+    // Check streak FIRST before doing anything else
+    checkStreakStatus(token).then((shouldRedirect) => {
+      if (!shouldRedirect) {
+        // Only proceed with other checks if we're not redirecting to streak page
+        checkCrisisAndQuests(token, currentUserId);
+      }
+    });
+  }, [router]);
+
+  const checkCrisisAndQuests = async (token: string, currentUserId: number) => {
     // Check for crisis lockout
     const crisisLockout = localStorage.getItem(`crisisLockout_${currentUserId}`);
     const crisisDataStored = localStorage.getItem(`crisisData_${currentUserId}`);
@@ -93,7 +106,7 @@ export default function DashboardPage() {
     } else {
       fetchUserPoints(token);
     }
-  }, [router]);
+  };
 
   useEffect(() => {
     const handleFocus = () => {
@@ -124,6 +137,37 @@ export default function DashboardPage() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [user]);
+
+  const checkStreakStatus = async (token: string): Promise<boolean> => {
+    try {
+      const response = await fetch('http://localhost:5000/api/streak/check', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setCurrentStreak(data.currentStreak); // Update streak state
+        setCheckingStreak(false);
+        
+        if (data.shouldShowPopup) {
+          // Redirect to Streak page
+          router.push(`/Streak?streak=${data.currentStreak}&prize=${data.todayPrize}`);
+          return true; // Indicate we're redirecting
+        }
+        return false; // No redirect needed
+      }
+      
+      setCheckingStreak(false);
+      return false;
+    } catch (error) {
+      console.error('Error checking streak:', error);
+      setCheckingStreak(false);
+      return false;
+    }
+  };
 
   const updateJournalCount = (userId: number) => {
     const journalPromptsData = sessionStorage.getItem(`journalPrompts_${userId}`);
@@ -317,7 +361,7 @@ export default function DashboardPage() {
     router.push('/');
   };
 
-  if (!user) {
+  if (!user || checkingStreak) {
     return (
       <div className="h-screen flex items-center justify-center" style={{ 
         background: 'linear-gradient(135deg, #ffa69e 0%, #ffddd2 100%)'
@@ -348,7 +392,8 @@ export default function DashboardPage() {
       {/* Header */}
       <Header 
         title="Dashboard" 
-        points={currentPoints} 
+        points={currentPoints}
+        streak={currentStreak}
         onLogout={handleLogout}
       />
 
