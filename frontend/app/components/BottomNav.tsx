@@ -20,10 +20,10 @@ export default function BottomNav({ currentPage, hasJournalPrompts = false, rema
           onClick={() => router.push('/billy')}
           className="flex flex-col items-center gap-1 transition-transform hover:scale-110 cursor-pointer"
         >
-          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg border-2 ${
+          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg ${
             currentPage === 'billy' 
-              ? 'bg-white border-red-800' 
-              : 'bg-white border-gray-300'
+              ? 'bg-white border-3 border-red-800' 
+              : 'bg-white border border-gray-300'
           }`}>
             <Image 
               src="/images/icons/billy.png" 
@@ -41,10 +41,10 @@ export default function BottomNav({ currentPage, hasJournalPrompts = false, rema
           onClick={() => router.push('/dashboard')}
           className="flex flex-col items-center gap-1 transition-transform hover:scale-110 cursor-pointer"
         >
-          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg border-2 ${
+          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg ${
             currentPage === 'dashboard' 
-              ? 'bg-white border-red-800' 
-              : 'bg-white border-gray-300'
+              ? 'bg-white border-3 border-red-800' 
+              : 'bg-white border border-gray-300'
           }`}>
             <Image 
               src="/images/icons/house.png" 
@@ -59,18 +59,22 @@ export default function BottomNav({ currentPage, hasJournalPrompts = false, rema
         
         {/* Journal Button */}
         <button 
-          onClick={() => router.push('/journal')}
-          className="flex flex-col items-center gap-1 transition-transform hover:scale-110 relative cursor-pointer"
+          onClick={hasJournalPrompts || currentPage === 'journal' ? () => router.push('/journal') : undefined}
+          className={`flex flex-col items-center gap-1 transition-transform relative ${
+            hasJournalPrompts || currentPage === 'journal' 
+              ? 'hover:scale-110 cursor-pointer' 
+              : 'cursor-not-allowed opacity-60'
+          }`}
         >
           {hasJournalPrompts && remainingJournalCount > 0 && (
             <div className="absolute -top-2 -right-2 bg-gradient-to-r from-pink-500 to-pink-600 text-white text-xs font-black rounded-full w-7 h-7 flex items-center justify-center z-10 shadow-lg border-2 border-white animate-pulse">
               {remainingJournalCount}
             </div>
           )}
-          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg border-2 ${
+          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg ${
             currentPage === 'journal' 
-              ? 'bg-white border-red-800' 
-              : 'bg-white border-gray-300'
+              ? 'bg-white border-3 border-red-800' 
+              : 'bg-white border border-gray-300'
           }`}>
             <Image 
               src={(hasJournalPrompts || currentPage === 'journal') ? "/images/icons/journal.png" : "/images/icons/grey_journal.png"}

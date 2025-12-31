@@ -392,10 +392,12 @@ export default function DashboardPage() {
             <button
               onClick={handleSubmitFeeling}
               disabled={loading || (!hasGeneratedToday && feeling.trim().length < 20)}
-              className="w-full py-4 font-black text-lg tracking-wider transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none cursor-pointer"
+              className={`w-full py-4 font-black text-lg tracking-wider transition-all transform disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none cursor-pointer ${
+                hasGeneratedToday || (!loading && feeling.trim().length >= 20) ? 'hover:scale-105' : ''
+              }`}
               style={{ 
                 borderRadius: '20px',
-                background: '#a12b2b',
+                background: loading || (!hasGeneratedToday && feeling.trim().length < 20) ? '#9CA3AF' : '#a12b2b',
                 color: 'white'
               }}
             >

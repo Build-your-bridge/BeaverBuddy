@@ -329,32 +329,32 @@ export default function BillyPage() {
             <div className="space-y-4">
               <h3 className="text-xl font-bold text-gray-800 text-center mb-4">Available Outfits</h3>
               {filteredOutfits.length === 0 ? (
-                <div className="bg-[#E2C9A6] rounded-3xl p-6 border-4 border-amber-800 shadow-2xl max-w-4xl mx-auto text-center">
+                <div className="bg-[#ccab8b] rounded-3xl p-6 shadow-2xl max-w-4xl mx-auto text-center">
                   <span className="text-4xl block mb-4">🎉</span>
                   <h3 className="font-bold text-gray-800">All outfits purchased!</h3>
                   <p className="text-sm text-gray-600">Check back later for new items.</p>
                 </div>
               ) : (
-                <div className="bg-[#E2C9A6] rounded-3xl p-6 border-4 border-amber-800 shadow-2xl max-w-4xl mx-auto max-h-[37rem] overflow-y-auto">
+                <div className="bg-[#ccab8b] rounded-3xl p-6 shadow-2xl max-w-4xl mx-auto max-h-[37rem] overflow-y-auto">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
                     {filteredOutfits.map((outfit) => (
                       <div
                         key={outfit.id}
-                        className={`flex flex-col items-center hover:scale-105 transition-transform ${points < outfit.price ? 'cursor-not-allowed' : ''}`}
+                        className={`flex flex-col items-center hover:scale-105 transition-transform ${points < outfit.price ? 'cursor-default' : ''}`}
                       >
-                        <div className="w-32 h-32 rounded-xl mb-2 shadow-md border-2 border-gray-200 bg-white flex items-center justify-center">
+                        <div className="w-44 h-44 rounded-xl mb-2 shadow-md border-2 border-gray-200 bg-white flex items-center justify-center">
                           <Image
                             src={outfit.image}
                             alt={outfit.name}
-                            width={128}
-                            height={128}
+                            width={176}
+                            height={176}
                             className="w-full h-full object-contain"
                             priority
                           />
                         </div>
                         
                         {/* Text div with name, price, and buy button */}
-                        <div className="bg-white rounded-xl px-4 py-3 shadow-md border border-gray-200 text-center">
+                        <div className="bg-white rounded-xl px-4 py-3 shadow-md border border-gray-200 text-center w-44">
                           <h4 className="font-bold text-gray-800 text-sm mb-0.5">{outfit.name}</h4>
                           <div className="flex items-center justify-center gap-1 mb-1">
                             <span className="text-lg">🍁</span>
@@ -368,7 +368,7 @@ export default function BillyPage() {
                             className={`px-5 py-1 rounded-full text-xs font-bold transition-all duration-200 ${
                               points >= outfit.price
                                 ? 'bg-green-500 hover:bg-green-600 text-white shadow-sm hover:shadow-md cursor-pointer'
-                                : 'bg-gray-200 text-gray-600 cursor-not-allowed'
+                                : 'bg-gray-200 text-gray-600 cursor-default'
                             }`}
                           >
                             {points >= outfit.price ? 'Buy' : 'Not enough 🍁'}
@@ -384,13 +384,13 @@ export default function BillyPage() {
             <div className="space-y-4">
               <h3 className="text-xl font-bold text-gray-800 text-center mb-4">Your Collection</h3>
               {filteredOutfits.length === 0 ? (
-                <div className="bg-white/90 backdrop-blur rounded-3xl p-8 text-center shadow-xl border-2 border-white/50">
+                <div className="bg-[#ccab8b] rounded-3xl p-6 shadow-2xl max-w-4xl mx-auto text-center">
                   <span className="text-4xl block mb-4">🛍️</span>
                   <h3 className="font-bold text-gray-800">No outfits yet!</h3>
                   <p className="text-sm text-gray-600">Visit the shop to buy some outfits for Billy.</p>
                 </div>
               ) : (
-                <div className="bg-[#E2C9A6] rounded-3xl p-6 border-4 border-amber-800 shadow-2xl max-w-4xl mx-auto max-h-[37rem] overflow-y-auto">
+                <div className="bg-[#ccab8b] rounded-3xl p-6 shadow-2xl max-w-4xl mx-auto max-h-[37rem] overflow-y-auto">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
                     {filteredOutfits.map((outfit) => (
                       <div
@@ -398,19 +398,19 @@ export default function BillyPage() {
                         className="flex flex-col items-center cursor-pointer hover:scale-105 transition-transform"
                         onClick={() => handleEquip(outfit.id)}
                       >
-                        <div className="w-32 h-32 rounded-xl mb-2 shadow-md border-2 border-gray-200 bg-white flex items-center justify-center">
+                        <div className="w-44 h-44 rounded-xl mb-2 shadow-md border-2 border-gray-200 bg-white flex items-center justify-center">
                           <Image
                             src={outfit.image}
                             alt={outfit.name}
-                            width={128}
-                            height={128}
+                            width={176}
+                            height={176}
                             className="w-full h-full object-contain"
                             priority
                           />
                         </div>
                         
                         {/* Text div with name and status */}
-                        <div className="bg-white rounded-xl px-4 py-2 shadow-md border border-gray-200 text-center">
+                        <div className="bg-white rounded-xl px-4 py-2 shadow-md border border-gray-200 text-center w-44">
                           <h4 className="font-bold text-gray-800 text-sm mb-1">{outfit.name}</h4>
                           <div className={`px-1 py-1 rounded-full text-xs font-bold ${outfit.equipped ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
                             {outfit.equipped ? 'Equipped' : 'Owned'}
