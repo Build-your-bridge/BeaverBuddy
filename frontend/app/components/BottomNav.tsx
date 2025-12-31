@@ -14,7 +14,7 @@ export default function BottomNav({ currentPage, hasJournalPrompts = false, rema
 
   return (
     <div className="fixed bottom-0 left-0 right-0 h-28 flex items-center justify-center px-4 z-10 border-t-2 border-gray-200 shadow-lg" style={{ background: 'linear-gradient(to bottom, #E8D4C0 0%, #F5E6D3 100%)' }}>
-      <div className="flex justify-center items-center gap-8 w-full max-w-2xl pb-4">
+      <div className="flex justify-center items-center gap-8 w-full max-w-2xl">
         {/* Billy Button */}
         <button 
           onClick={() => router.push('/billy')}
