@@ -335,19 +335,19 @@ export default function BillyPage() {
                   <p className="text-sm text-gray-600">Check back later for new items.</p>
                 </div>
               ) : (
-                <div className="bg-[#ccab8b] rounded-3xl p-4 shadow-2xl max-w-4xl mx-auto max-h-[calc(100vh-32rem)] md:max-h-[30rem] overflow-y-auto">
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-w-4xl mx-auto">
+                <div className="bg-[#ccab8b] rounded-3xl p-6 shadow-xl max-w-4xl md:max-w-2xl lg:max-w-4xl mx-auto max-h-[calc(100vh-30rem)] md:max-h-[calc(100vh-28rem)] overflow-y-auto">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-4xl md:max-w-2xl lg:max-w-4xl mx-auto">
                     {filteredOutfits.map((outfit) => (
                       <div
                         key={outfit.id}
                         className={`flex flex-col items-center hover:scale-105 transition-transform ${points < outfit.price ? 'cursor-default' : ''}`}
                       >
-                        <div className="w-28 h-28 md:w-32 md:h-32 lg:w-36 lg:h-36 rounded-xl mb-2 shadow-md border-2 border-gray-200 bg-white flex items-center justify-center">
+                        <div className="w-28 h-24 md:w-32 md:h-28 lg:w-36 lg:h-32 rounded-xl mb-2 shadow-md border-2 border-gray-200 bg-white flex items-center justify-center">
                           <Image
                             src={outfit.image}
                             alt={outfit.name}
                             width={112}
-                            height={112}
+                            height={96}
                             className="w-full h-full object-contain"
                             priority
                           />
@@ -355,17 +355,17 @@ export default function BillyPage() {
                         
                         {/* Text div with name, price, and buy button */}
                         <div className="bg-white rounded-xl px-2 py-2 shadow-md border border-gray-200 text-center w-28 md:w-32 lg:w-36">
-                          <h4 className="font-bold text-gray-800 text-xs md:text-sm mb-0.5">{outfit.name}</h4>
+                          <h4 className="font-bold text-gray-800 text-[10px] md:text-xs mb-0.5">{outfit.name}</h4>
                           <div className="flex items-center justify-center gap-1 mb-1">
-                            <span className="text-base md:text-lg">🍁</span>
-                            <span className="font-bold text-gray-800 text-xs md:text-sm">{outfit.price}</span>
+                            <span className="text-sm md:text-base">🍁</span>
+                            <span className="font-bold text-gray-800 text-[10px] md:text-xs">{outfit.price}</span>
                           </div>
                           
                           {/* Buy button */}
                           <button
                             onClick={() => handlePurchase(outfit)}
                             disabled={points < outfit.price}
-                            className={`px-3 md:px-5 py-1 rounded-full text-xs font-bold transition-all duration-200 ${
+                            className={`px-2 md:px-3 py-1 rounded-full text-[10px] font-bold transition-all duration-200 ${
                               points >= outfit.price
                                 ? 'bg-green-500 hover:bg-green-600 text-white shadow-sm hover:shadow-md cursor-pointer'
                                 : 'bg-gray-200 text-gray-600 cursor-default'
@@ -390,20 +390,20 @@ export default function BillyPage() {
                   <p className="text-sm text-gray-600">Visit the shop to buy some outfits for Billy.</p>
                 </div>
               ) : (
-                <div className="bg-[#ccab8b] rounded-3xl p-4 shadow-lg max-w-4xl mx-auto max-h-[calc(100vh-32rem)] md:max-h-[30rem] overflow-y-auto">
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-w-4xl mx-auto">
+                <div className="bg-[#ccab8b] rounded-3xl p-6 shadow-md max-w-4xl md:max-w-2xl lg:max-w-4xl mx-auto max-h-[calc(100vh-30rem)] md:max-h-[calc(100vh-28rem)] overflow-y-auto">
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-4xl md:max-w-2xl lg:max-w-4xl mx-auto">
                     {filteredOutfits.map((outfit) => (
                       <div
                         key={outfit.id}
                         className="flex flex-col items-center cursor-pointer hover:scale-105 transition-transform"
                         onClick={() => handleEquip(outfit.id)}
                       >
-                        <div className="w-28 h-28 md:w-32 md:h-32 lg:w-36 lg:h-36 rounded-xl mb-2 shadow-md border-2 border-gray-200 bg-white flex items-center justify-center">
+                        <div className="w-28 h-24 md:w-32 md:h-28 lg:w-36 lg:h-32 rounded-xl mb-2 shadow-md border-2 border-gray-200 bg-white flex items-center justify-center">
                           <Image
                             src={outfit.image}
                             alt={outfit.name}
                             width={112}
-                            height={112}
+                            height={96}
                             className="w-full h-full object-contain"
                             priority
                           />
@@ -411,8 +411,8 @@ export default function BillyPage() {
                         
                         {/* Text div with name and status */}
                         <div className="bg-white rounded-xl px-2 py-2 shadow-md border border-gray-200 text-center w-28 md:w-32 lg:w-36">
-                          <h4 className="font-bold text-gray-800 text-xs md:text-sm mb-1">{outfit.name}</h4>
-                          <div className={`px-1 py-1 rounded-full text-xs font-bold ${outfit.equipped ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                          <h4 className="font-bold text-gray-800 text-[10px] md:text-xs mb-1">{outfit.name}</h4>
+                          <div className={`px-1 py-1 rounded-full text-[10px] font-bold ${outfit.equipped ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
                             {outfit.equipped ? 'Equipped' : 'Owned'}
                           </div>
                         </div>
