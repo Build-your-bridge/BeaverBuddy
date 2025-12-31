@@ -50,6 +50,7 @@ export default function JournalPage() {
   const [aiResponse, setAiResponse] = useState('');
   const [showResponse, setShowResponse] = useState(false);
   const [user, setUser] = useState<User | null>(null);
+  const [currentPoints, setCurrentPoints] = useState(500);
   // Store conversation history for display
   const [conversationHistory, setConversationHistory] = useState<Array<{
     question: string;
@@ -69,6 +70,12 @@ export default function JournalPage() {
     
     const currentUser = JSON.parse(userData);
     setUser(currentUser);
+    
+    // Fetch current points from server
+    const token = localStorage.getItem('token');
+    if (token) {
+      fetchUserPoints(token);
+    }
     
     const journalPromptsData = sessionStorage.getItem(`journalPrompts_${currentUser.id}`);
     if (!journalPromptsData) {
@@ -247,6 +254,26 @@ export default function JournalPage() {
   };
 
   // --------------------------------------------------------------------------
+  // FETCH USER POINTS - Get current points from server
+  // --------------------------------------------------------------------------  
+  const fetchUserPoints = async (token: string) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/outfits/user/points', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const pointsData = await response.json();
+        setCurrentPoints(pointsData.points);
+      }
+    } catch (error) {
+      console.error('Error fetching user points:', error);
+    }
+  };
+
+  // --------------------------------------------------------------------------
   // LOADING STATE
   // --------------------------------------------------------------------------
   if (prompts.length === 0) {
@@ -285,7 +312,7 @@ export default function JournalPage() {
       {/* ===== HEADER ===== */}
       <Header 
         title="Journal Reflections" 
-        points={user?.points || 500} 
+        points={currentPoints} 
         onLogout={handleLogout}
       />
 

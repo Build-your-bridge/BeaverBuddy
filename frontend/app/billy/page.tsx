@@ -252,7 +252,7 @@ export default function BillyPage() {
       <style jsx>{`
         @keyframes float {
           0%, 100% { transform: translateY(0px); }
-          50% { transform: translateY(-15px); }
+          50% { transform: translateY(-8px); }
         }
         @keyframes sparkle {
           0%, 100% { opacity: 0.3; transform: scale(1); }
