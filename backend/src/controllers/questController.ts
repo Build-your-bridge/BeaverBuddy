@@ -2,6 +2,67 @@
 import { Request, Response } from 'express';
 import prisma from '../db/prisma';
 
+// Safety check function for crisis detection
+function detectCrisisKeywords(text: string): { isCrisis: boolean; type: string } {
+  const lowerText = text.toLowerCase();
+  
+  // Suicidal ideation keywords
+  const suicidalKeywords = [
+    'kill myself', 'suicide', 'end my life', 'want to die', 'better off dead',
+    'no reason to live', 'can\'t go on', 'end it all', 'take my life',
+    'rather be dead', 'wish i was dead', 'don\'t want to be alive',
+    'not worth living', 'ending it', 'jump off', 'overdose', 'hang myself'
+  ];
+  
+  // Harm to others keywords - EXPANDED
+  const harmOthersKeywords = [
+    'kill someone', 'hurt someone', 'harm others', 'want to hurt', 'going to hurt',
+    'murder', 'going to kill', 'make them pay', 'get revenge', 'shoot up',
+    'bomb the', 'blow up', 'mass shooting', 'school shooting', 'attack the',
+    'stab someone', 'hurt people', 'kill people', 'violence against',
+    'planning to hurt', 'going to attack', 'make them suffer', 'teach them a lesson',
+    'they deserve to die', 'want them dead', 'explosive', 'weapon to',
+    'going to shoot', 'gun to school', 'knife to', 'hurt my', 'kill my',
+    'harm my classmates', 'harm my coworkers', 'hurt everyone', 'kill everyone'
+  ];
+  
+  // Self-harm keywords
+  const selfHarmKeywords = [
+    'cut myself', 'hurt myself', 'self harm', 'self-harm', 'burning myself',
+    'starve myself', 'punish myself', 'harm myself', 'cutting', 'burn my skin',
+    'scratch myself', 'hit myself', 'bang my head', 'pulling my hair out'
+  ];
+  
+  // Severe crisis keywords
+  const severeDistressKeywords = [
+    'can\'t take it anymore', 'give up', 'no hope', 'hopeless', 'worthless',
+    'nobody cares', 'everyone hates me', 'better without me', 'can\'t do this',
+    'want to disappear', 'wish i didn\'t exist', 'life is meaningless',
+    'nothing matters', 'why bother', 'pointless to try'
+  ];
+  
+  // Check for each crisis type (prioritize harm to others)
+  if (harmOthersKeywords.some(keyword => lowerText.includes(keyword))) {
+    return { isCrisis: true, type: 'harm_others' };
+  }
+  
+  if (suicidalKeywords.some(keyword => lowerText.includes(keyword))) {
+    return { isCrisis: true, type: 'suicidal' };
+  }
+  
+  if (selfHarmKeywords.some(keyword => lowerText.includes(keyword))) {
+    return { isCrisis: true, type: 'self_harm' };
+  }
+  
+  // Check for severe distress (less urgent but still important)
+  const distressCount = severeDistressKeywords.filter(keyword => lowerText.includes(keyword)).length;
+  if (distressCount >= 2) {
+    return { isCrisis: true, type: 'severe_distress' };
+  }
+  
+  return { isCrisis: false, type: 'none' };
+}
+
 // New endpoint to check if user has generated quests today
 export const checkTodayStatus = async (req: Request, res: Response) => {
   try {
@@ -77,6 +138,87 @@ export const generateQuests = async (req: Request, res: Response) => {
       });
     }
 
+    // CRISIS DETECTION CHECK
+    const crisisCheck = detectCrisisKeywords(feeling);
+    
+    if (crisisCheck.isCrisis) {
+      // Log the crisis event for safety monitoring
+      console.log(`🚨 CRISIS DETECTED - User ${userId} - Type: ${crisisCheck.type} - Time: ${new Date().toISOString()}`);
+      console.log(`Crisis message content: ${feeling.substring(0, 100)}...`);
+      
+      // Create a crisis flag in the database to lock them out for 24 hours
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      
+      // Store crisis flag in DailyQuest table with special marker
+      await prisma.dailyQuest.create({
+        data: {
+          userId,
+          date: today,
+          quests: [],
+          journalPrompts: [],
+          completedAt: new Date(), // Mark as completed to prevent re-submission
+          // We'll use a special note in the database
+        },
+      });
+      
+      // Return crisis resources instead of generating quests
+      let crisisMessage = '';
+      let helplines: any[] = [];
+      
+      switch (crisisCheck.type) {
+        case 'harm_others':
+          crisisMessage = 'I\'m very concerned about what you shared. Thoughts about hurting others are serious and need immediate professional help. Please reach out to these resources right away, or call 911 if there is an immediate risk:';
+          helplines = [
+            { name: '🚨 Emergency Services', number: '911', available: '24/7', description: 'For immediate safety concerns - call now' },
+            { name: '🇨🇦 Canada Suicide Prevention Service', number: '1-833-456-4566', available: '24/7', description: 'Crisis counseling and immediate support' },
+            { name: '💙 ConnexOntario Mental Health', number: '1-866-531-2600', available: '24/7', description: 'Mental health crisis services' },
+            { name: '🏥 Local Hospital Emergency', number: 'Visit nearest ER', available: '24/7', description: 'In-person crisis intervention' }
+          ];
+          break;
+          
+        case 'suicidal':
+          crisisMessage = 'I\'m really concerned about what you shared. Your safety is the most important thing right now. Please reach out to one of these crisis resources immediately - they\'re available 24/7 and want to help you, eh.';
+          helplines = [
+            { name: '🇨🇦 Canada Suicide Prevention Service', number: '1-833-456-4566', available: '24/7', description: 'Call or text for immediate support' },
+            { name: '📱 Crisis Text Line', number: 'Text CONNECT to 686868', available: '24/7', description: 'Text-based crisis support' },
+            { name: '🆘 Kids Help Phone (under 29)', number: '1-800-668-6868', available: '24/7', description: 'Support for youth and young adults' },
+            { name: '🏥 Emergency Services', number: '911', available: '24/7', description: 'For immediate life-threatening emergencies' }
+          ];
+          break;
+          
+        case 'self_harm':
+          crisisMessage = 'Thank you for sharing this with me. I\'m worried about you, and I want you to know that you deserve support and care. Please reach out to these resources:';
+          helplines = [
+            { name: '🇨🇦 Canada Suicide Prevention Service', number: '1-833-456-4566', available: '24/7', description: 'Crisis support for self-harm' },
+            { name: '📱 Crisis Text Line', number: 'Text CONNECT to 686868', available: '24/7', description: 'Text-based support' },
+            { name: '🆘 Kids Help Phone (under 29)', number: '1-800-668-6868', available: '24/7', description: 'Youth crisis support' },
+            { name: '💙 ConnexOntario Mental Health', number: '1-866-531-2600', available: '24/7', description: 'Mental health services' }
+          ];
+          break;
+          
+        case 'severe_distress':
+          crisisMessage = 'I can hear that you\'re going through a really tough time. You don\'t have to face this alone. Here are some resources that can provide support:';
+          helplines = [
+            { name: '🇨🇦 Canada Suicide Prevention Service', number: '1-833-456-4566', available: '24/7', description: 'Someone to talk to anytime' },
+            { name: '📱 Crisis Text Line', number: 'Text CONNECT to 686868', available: '24/7', description: 'Text-based support' },
+            { name: '💙 ConnexOntario Mental Health', number: '1-866-531-2600', available: '24/7', description: 'Mental health resources' },
+            { name: '🌍 Distress Centres Ontario', number: 'Visit ontario.cmha.ca/find-help', available: 'Various', description: 'Find local support' }
+          ];
+          break;
+      }
+      
+      return res.status(200).json({
+        isCrisis: true,
+        crisisType: crisisCheck.type,
+        message: crisisMessage,
+        helplines: helplines,
+        additionalMessage: 'You matter, and your life has value. Please reach out to one of these resources - they care about you and want to help, eh. 🍁',
+        lockedOut: true, // Flag to frontend that user is locked out for 24 hours
+        lockoutMessage: 'For your safety, you won\'t be able to submit another check-in until tomorrow. Please reach out to the resources above.'
+      });
+    }
+
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
@@ -92,7 +234,6 @@ export const generateQuests = async (req: Request, res: Response) => {
     });
 
     // Check for existing monthly quests for this month (same for all users)
-    // Find any user's monthly quests for this month to reuse
     const existingMonthly = await prisma.monthlyQuest.findFirst({
       where: {
         month: currentMonthStr,
@@ -124,7 +265,7 @@ export const generateQuests = async (req: Request, res: Response) => {
       });
     }
 
-    // Call AI to generate quests with the improved prompt
+    // Call AI to generate quests
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -160,109 +301,37 @@ The user says: "I'm feeling sad today because I'm really struggling to find a jo
 3. [General Canadian] ☕ Tim Hortons Visit: Go to your nearest Tim Hortons, order a double-double coffee, and try a Timbits box (pick your favorite flavor!). (Reward: 20🍁)
 4. [General Canadian] 🎵 Canadian Music Discovery: Listen to "Waves of Blue" by Majid Jordan on Spotify, then find 2 more songs by Canadian artists and add them to a playlist. (Reward: 15🍁)
 
-More Personalized Quest Examples (be VERY specific):
-"I'm feeling bored and lonely, I haven't seen my friends in a while because everyone is so busy with life."
-- [Personalized] 📱 Reconnect: Text 3 friends you haven't talked to in a while and suggest a specific activity for this weekend (coffee, walk, or video call). (Reward: 30🍁)
-
-"I'm really mad, I studied so hard for my test yesterday but I didn't get the grade I wanted."
-- [Personalized] 🧘 Calm Down Session: Do 10 minutes of deep breathing (4-7-8 technique: inhale 4, hold 7, exhale 8), then write down 3 things you learned from studying. (Reward: 25🍁)
-
-"I'm feeling great! I just had a fun Christmas party with all of my friends and I won some cool prizes!"
-- [Personalized] ✍️ Gratitude Journal: Write down 5 specific things you're grateful for from today, including why each one matters to you. (Reward: 20🍁)
-
-General Canadian Quest Examples (be VERY specific):
-- [General Canadian] 🏒 Hockey Night: Watch at least 1 period of a Toronto Maple Leafs game tonight (or any NHL game), and learn 2 new hockey terms. (Reward: 25🍁)
-- [General Canadian] 🍁 Canadian History: Visit the Royal Ontario Museum website, read about 1 Canadian historical event, and share one interesting fact with someone. (Reward: 20🍁)
-- [General Canadian] 🎬 Canadian Film: Watch a movie by a Canadian director (like "The Grand Seduction" or "Bon Cop, Bad Cop") and note 2 things that show Canadian culture. (Reward: 30🍁)
-
 Part Two - Monthly Quests (EVENT-BASED, SAME FOR EVERYONE)
-IMPORTANT: Monthly quests are EVENT-BASED experiences that are THE SAME for ALL users. They represent major Canadian cultural events, festivals, or experiences that happen during this month. These should be like attending events, festivals, or major cultural experiences.
-
 Current Month: ${new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })}
-
-Monthly quests should be:
-- Major Canadian events, festivals, or cultural experiences
-- Things that require planning, tickets, or advance booking
-- Experiences that help with cultural integration
-- The SAME for every user (not personalized)
-- Event-based (like festivals, concerts, exhibitions, sports events, etc.)
-
-Examples of event-based monthly quests:
-- 🎭 Attend a performance at the Stratford Festival (if it's summer/fall) (Reward: 500🍁)
-- 🏒 Watch a Toronto Maple Leafs home game at Scotiabank Arena (Reward: 600🍁)
-- 🎬 Attend a screening at the Toronto International Film Festival (TIFF) (Reward: 550🍁)
-- 🎵 Go to a concert at Massey Hall or Roy Thomson Hall (Reward: 500🍁)
-- 🎨 Visit a special exhibition at the Art Gallery of Ontario (AGO) (Reward: 450🍁)
-- 🍁 Attend the Canadian National Exhibition (CNE) in Toronto (Reward: 500🍁)
-- 🎪 Go to a Cirque du Soleil show (if available) (Reward: 550🍁)
-- 🏛️ Visit the Royal Ontario Museum (ROM) and attend a special event or exhibition (Reward: 400🍁)
-- 🎤 Attend a comedy show at Second City Toronto (Reward: 400🍁)
-- 🎨 Explore the Distillery District during a special event or festival (Reward: 450🍁)
 
 Generate 2 monthly quests that are appropriate for the current month and represent exciting Canadian cultural events.
 
 Part Three - Follow-Up Questions
-We also want you to generate EXACTLY 2 follow-up questions that are DIRECTLY RELATED to the user's mental health check-in. These questions should help the user:
-1. First question: Explore WHY they are feeling this way - dig deeper into the root causes or triggers
-2. Second question: Think about HOW they can tackle or address the problems they mentioned
-
-IMPORTANT: 
-- Generate ONLY 2 questions
-- DO NOT include "Is there anything else you'd like to talk about today?" - this will be added automatically as the 3rd question
-- These questions MUST be personalized based on the specific feelings and emotions the user shared in their check-in
-- They should help the user process their emotions, understand their situation better, and think about potential solutions or coping strategies
-
-Example: If the user says "I'm feeling sad because I'm struggling to find a job", the questions might be:
-1. "What specific challenges have you faced in your job search that have been most discouraging?"
-2. "What steps could you take this week to move forward with your job search, and what support do you need?"
-
-Quest Formatting and Improvements
-IMPORTANT RULES:
-- ALL quest titles MUST start with an emoji
-- ALL 4 daily quests must be UNIQUE and DIFFERENT from each other
-- Quest descriptions should be detailed and engaging, approximately 80-120 characters
-- Make quest titles playful and fun! Examples: "☕ Timmies Time", "🏒 We The North", "🌊 Under The Sea", "🎵 Jam Session"
-- Add extra details to make quests more interesting and actionable
-- IMPORTANT: Generate NEW quests based on the user's feeling, don't copy these examples!
-
-Quest Description Style Examples (GENERATE YOUR OWN, DON'T COPY THESE):
-- Coffee quest style: "Grab a coffee from Tim Hortons and [add personalized action based on user's mood]."
-- Song quest style: "Listen to [specific Canadian song] and [action related to user's feeling]."
-- Activity quest style: "[Activity] and [specific detail that helps with their emotional state]."
-
-For Song quests, ALWAYS suggest a specific Canadian song:
--Waves of Blue by Majid Jordan
--Crazy For You by Hedley
--She's All I Wanna Be by Tate McRae
--Sound of Your Heart by Shawn Hook
--I'm Not Alright by Loud Luxury and Bryce Vine
--2 Heads by Coleman Hell
+Generate EXACTLY 2 follow-up questions that are DIRECTLY RELATED to the user's mental health check-in.
 
 User's feeling: "${feeling}"
 
 CRITICAL INSTRUCTIONS:
-- Generate EXACTLY 4 daily quests: 2 Personalized (very specific to their feeling and situation) + 2 General Canadian (universal Canadian experiences)
-- Make ALL quests VERY SPECIFIC with exact actions, numbers, locations, or steps
-- Generate 2 monthly quests that are EVENT-BASED and appropriate for the current month (${new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })})
-- Monthly quests should be the SAME for everyone (event-based experiences, not personalized)
-- Generate ONLY 2 journal prompts - do NOT include the 3rd "Is there anything else" question
-- Return ONLY a JSON object. DO NOT copy the example quests below - they are just to show the format and length!
+- Generate EXACTLY 4 daily quests: 2 Personalized + 2 General Canadian
+- Generate 2 monthly quests that are EVENT-BASED
+- Generate ONLY 2 journal prompts
+- Return ONLY a JSON object
 
-Example format (GENERATE YOUR OWN based on user's feeling for personalized quests, general Canadian experiences for general Canadian quests):
+Example format:
 {
   "quests": [
-    {"id": 1, "title": "☕ Quest Title", "description": "Detailed description that helps with their specific feeling (80-120 chars).", "reward": 20},
-    {"id": 2, "title": "🎵 Quest Title", "description": "Another personalized description addressing their emotion.", "reward": 30},
-    {"id": 3, "title": "🏃 Quest Title", "description": "Activity description tailored to their current state.", "reward": 20},
-    {"id": 4, "title": "📝 Quest Title", "description": "Fourth unique quest relevant to their feeling.", "reward": 10}
+    {"id": 1, "title": "☕ Quest Title", "description": "Detailed description (80-120 chars).", "reward": 20},
+    {"id": 2, "title": "🎵 Quest Title", "description": "Another description.", "reward": 30},
+    {"id": 3, "title": "🏃 Quest Title", "description": "Activity description.", "reward": 20},
+    {"id": 4, "title": "📝 Quest Title", "description": "Fourth quest.", "reward": 10}
   ],
   "monthlyQuests": [
-    {"id": 1, "title": "🏒 Quest Title", "description": "Exciting general Canadian cultural experience (80-120 chars).", "reward": 500},
-    {"id": 2, "title": "🌊 Quest Title", "description": "Another amazing Canadian adventure experience.", "reward": 400}
+    {"id": 1, "title": "🏒 Quest Title", "description": "Canadian cultural experience.", "reward": 500},
+    {"id": 2, "title": "🌊 Quest Title", "description": "Another experience.", "reward": 400}
   ],
   "journalPrompts": [
-    "Question 1: Personalized question about WHY you're feeling this way.",
-    "Question 2: Follow-up question about HOW to address what you shared."
+    "Question 1: Why question.",
+    "Question 2: How question."
   ]
 }`,
           },
@@ -280,9 +349,6 @@ Example format (GENERATE YOUR OWN based on user's feeling for personalized quest
     }
 
     let content = data.choices[0].message.content;
-
-    // Debug: log the raw content
-    console.log('AI Response Content:', content);
 
     // Parse AI JSON safely
     const startIndex = content.indexOf('{');
@@ -303,43 +369,32 @@ Example format (GENERATE YOUR OWN based on user's feeling for personalized quest
       .replace(/,\s*}/g, '}')
       .replace(/,\s*]/g, ']');
 
-    console.log('Extracted JSON string:', jsonStr);
-
     let questsData;
     try {
-      // Try to parse the JSON
       questsData = JSON.parse(jsonStr);
     } catch (parseError) {
       console.error('Initial JSON parse error:', parseError);
       
-      // Try to fix common JSON issues
       try {
-        // Attempt to fix incomplete JSON by adding missing closing brackets
         let fixedJson = jsonStr;
-        
-        // Count opening and closing braces/brackets
         const openBraces = (fixedJson.match(/{/g) || []).length;
         const closeBraces = (fixedJson.match(/}/g) || []).length;
         const openBrackets = (fixedJson.match(/\[/g) || []).length;
         const closeBrackets = (fixedJson.match(/]/g) || []).length;
         
-        // Add missing closing brackets
         for (let i = 0; i < openBrackets - closeBrackets; i++) {
           fixedJson += ']';
         }
         
-        // Add missing closing braces
         for (let i = 0; i < openBraces - closeBraces; i++) {
           fixedJson += '}';
         }
         
-        console.log('Attempting to parse fixed JSON:', fixedJson);
         questsData = JSON.parse(fixedJson);
       } catch (fixError) {
         console.error('Failed to fix JSON:', fixError);
-        console.error('Original JSON:', jsonStr);
         return res.status(500).json({
-          error: 'Failed to parse AI response. The AI generated incomplete JSON. Please try again.',
+          error: 'Failed to parse AI response. Please try again.',
         });
       }
     }
@@ -366,19 +421,18 @@ Example format (GENERATE YOUR OWN based on user's feeling for personalized quest
       });
     }
 
-    // Take only the first journal prompt (AI sometimes generates 2 despite instructions)
+    // Take only the first journal prompt
     const firstPrompt = questsData.journalPrompts[0];
     questsData.journalPrompts = [firstPrompt];
 
-    // Add placeholder for question 2 (will be generated dynamically after question 1 is answered)
+    // Add placeholder for question 2
     questsData.journalPrompts.push("This question will be personalized based on your previous answer");
     
-    // ALWAYS add the 3rd question as the standard one
+    // Add the 3rd question
     questsData.journalPrompts.push("Is there anything else you'd like to talk about today?");
 
-    // Transform journalPrompts from strings to objects with question, answer, and answeredAt
+    // Transform journalPrompts to objects
     questsData.journalPrompts = questsData.journalPrompts.map((prompt: any) => {
-      // If it's already an object with question property, use it; otherwise treat as string
       if (typeof prompt === 'object' && prompt.question) {
         return {
           question: prompt.question,
@@ -386,7 +440,6 @@ Example format (GENERATE YOUR OWN based on user's feeling for personalized quest
           answeredAt: prompt.answeredAt || null,
         };
       }
-      // If it's a string, convert to object format
       return {
         question: typeof prompt === 'string' ? prompt : String(prompt),
         answer: null,
@@ -394,11 +447,11 @@ Example format (GENERATE YOUR OWN based on user's feeling for personalized quest
       };
     });
 
-    // Add completed: false to all quests automatically
+    // Add completed: false to all quests
     questsData.quests = questsData.quests.map((q: any) => ({ ...q, completed: false }));
     questsData.monthlyQuests = questsData.monthlyQuests.map((q: any) => ({ ...q, completed: false }));
 
-    // Save quests to DB using Transaction
+    // Save quests to DB
     const result = await prisma.$transaction(async (tx) => {
       const daily = await tx.dailyQuest.create({
         data: {
@@ -409,10 +462,8 @@ Example format (GENERATE YOUR OWN based on user's feeling for personalized quest
         },
       });
 
-      // For monthly quests: reuse existing ones for this month if they exist, otherwise create new ones
       let monthly = userMonthly || existingMonthly;
       if (!monthly) {
-        // Create new monthly quests for this user (will be reused by others)
         monthly = await tx.monthlyQuest.create({
           data: {
             userId,
@@ -421,12 +472,11 @@ Example format (GENERATE YOUR OWN based on user's feeling for personalized quest
           },
         });
       } else if (!userMonthly && existingMonthly) {
-        // User doesn't have monthly quests but they exist for this month - create a copy for this user
         monthly = await tx.monthlyQuest.create({
           data: {
             userId,
             month: currentMonthStr,
-            monthlyQuests: existingMonthly.monthlyQuests as any, // Reuse the same quests
+            monthlyQuests: existingMonthly.monthlyQuests as any,
           },
         });
       }
@@ -470,7 +520,6 @@ export const updateQuestCompletion = async (req: Request, res: Response) => {
     const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
     if (isMonthly) {
-      // Update monthly quest completion
       const monthlyQuest = await prisma.monthlyQuest.findFirst({
         where: {
           userId,
@@ -496,7 +545,6 @@ export const updateQuestCompletion = async (req: Request, res: Response) => {
         data: { monthlyQuests: monthlyQuests },
       });
 
-      // Add points if quest was just completed
       if (completed && !wasCompleted && reward > 0) {
         await prisma.user.update({
           where: { id: userId },
@@ -504,7 +552,6 @@ export const updateQuestCompletion = async (req: Request, res: Response) => {
         });
       }
     } else {
-      // Update daily quest completion
       const dailyQuest = await prisma.dailyQuest.findUnique({
         where: {
           userId_date: {
@@ -532,7 +579,6 @@ export const updateQuestCompletion = async (req: Request, res: Response) => {
         data: { quests: quests },
       });
 
-      // Add points if quest was just completed
       if (completed && !wasCompleted && reward > 0) {
         await prisma.user.update({
           where: { id: userId },
