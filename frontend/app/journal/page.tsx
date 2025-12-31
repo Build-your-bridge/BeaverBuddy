@@ -85,6 +85,16 @@ export default function JournalPage() {
   }, [router]);
 
   // --------------------------------------------------------------------------
+  // CHECK IF ALL PROMPTS COMPLETED - Redirect to dashboard when done
+  // --------------------------------------------------------------------------
+  useEffect(() => {
+    // If we have allPrompts loaded but no unanswered prompts, redirect to dashboard
+    if (allPrompts.length > 0 && prompts.length === 0) {
+      router.push('/dashboard');
+    }
+  }, [prompts, allPrompts, router]);
+
+  // --------------------------------------------------------------------------
   // FETCH JOURNAL PROMPTS - Get latest prompts from backend
   // --------------------------------------------------------------------------
   const fetchJournalPrompts = async (token: string, userId: number) => {
@@ -526,7 +536,7 @@ export default function JournalPage() {
                   onClick={handleNextPrompt}
                   className="w-full py-3 rounded-full font-black text-sm text-white shadow-md hover:shadow-lg transition-all hover:scale-105 bg-green-700 hover:bg-green-800"
                 >
-                  {prompts.length > 1 ? '→ NEXT QUESTION' : '✓ FINISH JOURNAL'}
+                  {prompts.length > 1 ? 'NEXT QUESTION' : '✓ FINISH JOURNAL'}
                 </button>
               </div>
             )}

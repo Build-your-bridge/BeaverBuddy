@@ -224,6 +224,10 @@ export const checkTodayStatus = async (req: Request, res: Response) => {
       });
 
       const monthlyQuests = userMonthly?.monthlyQuests || sharedMonthly?.monthlyQuests || null;
+      
+      console.log('📅 Check today - userMonthly:', userMonthly ? 'found' : 'not found');
+      console.log('📅 Check today - sharedMonthly:', sharedMonthly ? 'found' : 'not found');
+      console.log('📅 Check today - returning monthlyQuests:', JSON.stringify(monthlyQuests, null, 2));
 
       return res.status(200).json({
         hasGeneratedToday: true,
@@ -499,8 +503,8 @@ Output ONLY this JSON structure with NO extra text:
     {"id": 4, "title": "📝 Quest 4", "description": "Short description (80-120 chars)", "reward": 30}
   ],
   "monthlyQuests": [
-    {"id": 1, "title": "🏒 Monthly Quest 1", "description": "Canadian cultural experience description", "reward": 500},
-    {"id": 2, "title": "🎿 Monthly Quest 2", "description": "Canadian cultural experience description", "reward": 400}
+    {"id": 1, "title": "🏒 Title for Monthly Quest 1 (short, catchy)", "description": "Specific description of what this Canadian cultural event/experience is and what to do (80-120 chars)", "reward": 500},
+    {"id": 2, "title": "🎿 Title for Monthly Quest 2 (short, catchy)", "description": "Specific description of what this different Canadian cultural event/experience is and what to do (80-120 chars)", "reward": 400}
   ],
   "journalPrompts": [
     "A personalized question based on what they shared about their feelings - be specific and caring"
@@ -510,6 +514,9 @@ Output ONLY this JSON structure with NO extra text:
 CRITICAL: 
 - The journal prompt MUST be personalized to their specific feeling, not generic
 - Reference what they actually said in their feeling
+- Monthly quests MUST have BOTH "title" and "description" fields - just like daily quests
+- Monthly quest descriptions MUST be specific, real Canadian cultural events/experiences for the current month
+- DO NOT use "text" field, DO NOT use placeholder text
 - Output ONLY the JSON above. No other text.`,
           },
         ],
@@ -548,6 +555,7 @@ CRITICAL:
       });
     }
 
+    console.log('📊 Monthly Quests from AI:', JSON.stringify(questsData.monthlyQuests, null, 2));
     if (!questsData.monthlyQuests || !Array.isArray(questsData.monthlyQuests) || questsData.monthlyQuests.length !== 2) {
       console.error('Invalid monthlyQuests structure:', questsData);
       return res.status(500).json({
@@ -622,6 +630,8 @@ CRITICAL:
       return { daily, monthly };
     });
 
+    console.log('💾 Saved monthly quests to DB:', JSON.stringify(result.monthly.monthlyQuests, null, 2));
+    
     return res.status(200).json({
       success: true,
       quests: result.daily.quests,

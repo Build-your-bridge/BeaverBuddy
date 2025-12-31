@@ -51,13 +51,32 @@ export default function QuestsPage() {
         
         if (data.hasGeneratedToday && data.quests) {
           console.log('Loaded quests from API:', data.quests);
+          console.log('Loaded monthly quests from API:', data.monthlyQuests);
+          
+          // Transform monthly quests if they have the old 'text' format
+          const transformedMonthlyQuests = (data.monthlyQuests || []).map((quest: any) => {
+            if (quest.text && !quest.title) {
+              // Old format: has 'text' field
+              return {
+                id: quest.id,
+                title: quest.text,
+                description: "Complete this Canadian cultural experience to earn points!",
+                reward: quest.reward || 500,
+                completed: quest.completed || false
+              };
+            }
+            // New format: already has title, description, reward
+            return quest;
+          });
+          
+          console.log('Transformed monthly quests:', transformedMonthlyQuests);
           
           // Update sessionStorage with latest data
           sessionStorage.setItem(`generatedQuests_${currentUser.id}`, JSON.stringify(data.quests));
-          sessionStorage.setItem(`monthlyQuests_${currentUser.id}`, JSON.stringify(data.monthlyQuests || []));
+          sessionStorage.setItem(`monthlyQuests_${currentUser.id}`, JSON.stringify(transformedMonthlyQuests));
           
           setDailyQuests(data.quests);
-          setMonthlyQuests(data.monthlyQuests || []);
+          setMonthlyQuests(transformedMonthlyQuests);
           fetchUserPoints(token);
         } else {
           // No quests generated yet, redirect to dashboard

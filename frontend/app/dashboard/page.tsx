@@ -402,7 +402,7 @@ export default function DashboardPage() {
         <div className="w-full max-w-md py-4">
           {/* Glass card */}
           <div className="relative" style={{
-            background: 'rgba(255, 255, 255, 1)',
+            background: 'rgba(236, 234, 234, 1)',
             backdropFilter: 'blur(20px)',
             borderRadius: '40px',
             padding: '24px',
@@ -428,14 +428,14 @@ export default function DashboardPage() {
                   <path d="M 5 0 Q 15 10 25 0 L 18 15 L 12 15 Z" fill={isInCrisis ? 'rgba(254, 226, 226, 0.8)' : 'white'}/>
                 </svg>
               </div>
-              <h1 className={`text-xl font-black leading-tight ${isInCrisis ? 'text-red-900' : 'text-gray-800'}`}>
+              <h1 className={`text-xl font-black leading-tight text-center ${isInCrisis ? 'text-red-900' : 'text-gray-800'}`}>
                 {isInCrisis 
                   ? "🆘 Emergency Support Active" 
                   : hasGeneratedToday 
                     ? "Today's Check-in Complete! ✓" 
                     : `Hi ${user.name}, how are you feeling today?`}
               </h1>
-              <p className="text-xs text-gray-700 mt-1 font-semibold">
+              <p className="text-xs text-gray-700 mt-1 font-semibold text-center">
                 {isInCrisis 
                   ? "You're in our crisis support mode. Help resources are available." 
                   : hasGeneratedToday 
