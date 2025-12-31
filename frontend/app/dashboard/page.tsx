@@ -28,6 +28,8 @@ export default function DashboardPage() {
   const [hasGeneratedToday, setHasGeneratedToday] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(false);
   const [currentPoints, setCurrentPoints] = useState(500);
+  const [isInCrisis, setIsInCrisis] = useState(false);
+  const [crisisData, setCrisisData] = useState<any>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -45,19 +47,34 @@ export default function DashboardPage() {
     
     // Check for crisis lockout
     const crisisLockout = localStorage.getItem(`crisisLockout_${currentUserId}`);
+    const crisisDataStored = localStorage.getItem(`crisisData_${currentUserId}`);
     const questGeneratedDate = localStorage.getItem(`questGeneratedDate_${currentUserId}`);
     const today = new Date().toDateString();
     
+    // Check if crisis lockout is active
+    if (crisisLockout === 'true' && questGeneratedDate === today) {
+      setIsInCrisis(true);
+      setHasGeneratedToday(true);
+      if (crisisDataStored) {
+        try {
+          setCrisisData(JSON.parse(crisisDataStored));
+        } catch (e) {
+          console.error('Error parsing crisis data:', e);
+        }
+      }
+    }
     // Clear crisis lockout if it's a new day
-    if (crisisLockout === 'true' && questGeneratedDate !== today) {
+    else if (crisisLockout === 'true' && questGeneratedDate !== today) {
       localStorage.removeItem(`crisisLockout_${currentUserId}`);
+      localStorage.removeItem(`crisisData_${currentUserId}`);
+      setIsInCrisis(false);
     }
     
     updateJournalCount(currentUserId);
 
     const existingQuests = sessionStorage.getItem(`generatedQuests_${currentUserId}`);
 
-    if (existingQuests && questGeneratedDate === today) {
+    if (existingQuests && questGeneratedDate === today && !isInCrisis) {
       setHasGeneratedToday(true);
       fetchUserPoints(token);
     } else if (questGeneratedDate && questGeneratedDate !== today) {
@@ -69,9 +86,11 @@ export default function DashboardPage() {
       setCheckingStatus(true);
       checkTodayStatus(token);
       fetchUserPoints(token);
-    } else {
+    } else if (!isInCrisis) {
       setCheckingStatus(true);
       checkTodayStatus(token);
+      fetchUserPoints(token);
+    } else {
       fetchUserPoints(token);
     }
   }, [router]);
@@ -190,7 +209,15 @@ export default function DashboardPage() {
   };
 
   const handleSubmitFeeling = async () => {
-    if (hasGeneratedToday) {
+    // If in crisis, redirect to emergency page
+    if (isInCrisis && crisisData) {
+      const helplineString = encodeURIComponent(JSON.stringify(crisisData.helplines));
+      router.push(`/Emergency?type=${crisisData.crisisType}&message=${encodeURIComponent(crisisData.message)}&helplines=${helplineString}&additional=${encodeURIComponent(crisisData.additionalMessage)}`);
+      return;
+    }
+
+    // If already generated (non-crisis), go to quests
+    if (hasGeneratedToday && !isInCrisis) {
       router.push('/quests');
       return;
     }
@@ -226,8 +253,21 @@ export default function DashboardPage() {
             const currentUser = JSON.parse(userData);
             localStorage.setItem(`questGeneratedDate_${currentUser.id}`, new Date().toDateString());
             localStorage.setItem(`crisisLockout_${currentUser.id}`, 'true');
+            localStorage.setItem(`crisisData_${currentUser.id}`, JSON.stringify({
+              crisisType: data.crisisType,
+              message: data.message,
+              helplines: data.helplines,
+              additionalMessage: data.additionalMessage
+            }));
           }
+          setIsInCrisis(true);
           setHasGeneratedToday(true);
+          setCrisisData({
+            crisisType: data.crisisType,
+            message: data.message,
+            helplines: data.helplines,
+            additionalMessage: data.additionalMessage
+          });
         }
 
         // Redirect to emergency page with data
@@ -265,6 +305,8 @@ export default function DashboardPage() {
     if (userData) {
       const currentUser = JSON.parse(userData);
       localStorage.removeItem(`questGeneratedDate_${currentUser.id}`);
+      localStorage.removeItem(`crisisLockout_${currentUser.id}`);
+      localStorage.removeItem(`crisisData_${currentUser.id}`);
       sessionStorage.removeItem(`generatedQuests_${currentUser.id}`);
       sessionStorage.removeItem(`monthlyQuests_${currentUser.id}`);
       sessionStorage.removeItem(`journalPrompts_${currentUser.id}`);
@@ -325,22 +367,35 @@ export default function DashboardPage() {
             
             {/* Speech bubble */}
             <div className="mb-4 text-left relative" style={{ 
-              background: hasGeneratedToday ? 'rgba(220, 252, 231, 0.6)' : 'rgba(255, 255, 255, 0.4)',
+              background: isInCrisis 
+                ? 'rgba(254, 226, 226, 0.8)' 
+                : hasGeneratedToday 
+                  ? 'rgba(220, 252, 231, 0.6)' 
+                  : 'rgba(255, 255, 255, 0.4)',
               backdropFilter: 'blur(10px)',
               borderRadius: '25px',
               padding: '16px 20px',
-              boxShadow: '0 8px 10px rgba(0, 0, 0, 0.2)'
+              boxShadow: '0 8px 10px rgba(0, 0, 0, 0.2)',
+              border: isInCrisis ? '2px solid rgba(252, 165, 165, 0.5)' : 'none'
             }}>
               <div className="absolute -bottom-3 left-1/2 transform -translate-x-1/2">
                 <svg width="30" height="20" viewBox="0 0 30 20" fill="none">
-                  <path d="M 5 0 Q 15 10 25 0 L 18 15 L 12 15 Z" fill="white"/>
+                  <path d="M 5 0 Q 15 10 25 0 L 18 15 L 12 15 Z" fill={isInCrisis ? 'rgba(254, 226, 226, 0.8)' : 'white'}/>
                 </svg>
               </div>
-              <h1 className="text-xl font-black text-gray-800 leading-tight">
-                {hasGeneratedToday ? "Today's Check-in Complete! ✓" : `Hi ${user.name}, how are you feeling today?`}
+              <h1 className={`text-xl font-black leading-tight ${isInCrisis ? 'text-red-900' : 'text-gray-800'}`}>
+                {isInCrisis 
+                  ? "🆘 Emergency Support Active" 
+                  : hasGeneratedToday 
+                    ? "Today's Check-in Complete! ✓" 
+                    : `Hi ${user.name}, how are you feeling today?`}
               </h1>
               <p className="text-xs text-gray-700 mt-1 font-semibold">
-                {hasGeneratedToday ? "Come back tomorrow for a new check-in" : "Share what's on your mind"}
+                {isInCrisis 
+                  ? "You're in our crisis support mode. Help resources are available." 
+                  : hasGeneratedToday 
+                    ? "Come back tomorrow for a new check-in" 
+                    : "Share what's on your mind"}
               </p>
             </div>
 
@@ -359,8 +414,20 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Success/Error messages */}
-            {hasGeneratedToday && (
+            {/* Success/Error/Crisis messages */}
+            {isInCrisis && (
+              <div className="mb-3 p-3 text-center font-bold text-xs" style={{
+                background: 'rgba(239, 68, 68, 0.3)',
+                backdropFilter: 'blur(10px)',
+                borderRadius: '16px',
+                border: '2px solid rgba(239, 68, 68, 0.5)',
+                color: '#991b1b'
+              }}>
+                🆘 For your safety, we've paused your daily check-ins for 24 hours. Please reach out to the crisis resources available. They're here to help you.
+              </div>
+            )}
+
+            {hasGeneratedToday && !isInCrisis && (
               <div className="mb-3 p-2 text-center font-bold text-xs" style={{
                 background: 'rgba(34, 197, 94, 0.3)',
                 backdropFilter: 'blur(10px)',
@@ -384,8 +451,8 @@ export default function DashboardPage() {
               </div>
             )}
 
-            {/* Input field */}
-            {!hasGeneratedToday && (
+            {/* Input field - disabled if in crisis or already generated */}
+            {!hasGeneratedToday && !isInCrisis && (
               <div className="mb-3">
                 <textarea
                   value={feeling}
@@ -416,23 +483,35 @@ export default function DashboardPage() {
             {/* Submit button */}
             <button
               onClick={handleSubmitFeeling}
-              disabled={loading || (!hasGeneratedToday && feeling.trim().length < 20)}
+              disabled={loading || (!hasGeneratedToday && !isInCrisis && feeling.trim().length < 20)}
               className={`w-full py-3 font-black text-sm tracking-wider transition-all transform disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none cursor-pointer ${
-                hasGeneratedToday || (!loading && feeling.trim().length >= 20) ? 'hover:scale-105' : ''
+                (hasGeneratedToday || isInCrisis || (!loading && feeling.trim().length >= 20)) ? 'hover:scale-105' : ''
               }`}
               style={{ 
                 borderRadius: '16px',
-                background: loading || (!hasGeneratedToday && feeling.trim().length < 20) ? '#9CA3AF' : '#a12b2b',
+                background: loading || (!hasGeneratedToday && !isInCrisis && feeling.trim().length < 20) 
+                  ? '#9CA3AF' 
+                  : isInCrisis 
+                    ? '#DC2626' 
+                    : '#a12b2b',
                 color: 'white'
               }}
             >
-              {loading ? 'GENERATING...' : hasGeneratedToday ? 'VIEW MY QUESTS' : 'SUBMIT & VIEW QUESTS'}
+              {loading 
+                ? 'GENERATING...' 
+                : isInCrisis 
+                  ? '🆘 VIEW EMERGENCY HELP' 
+                  : hasGeneratedToday 
+                    ? 'VIEW MY QUESTS' 
+                    : 'SUBMIT & VIEW QUESTS'}
             </button>
 
             <p className="text-center text-xs mt-2 text-gray-700 font-semibold">
-              {hasGeneratedToday 
-                ? 'One check-in per day. Reset at midnight.' 
-                : 'Share how you\'re feeling to unlock today\'s quests!'}
+              {isInCrisis 
+                ? 'Crisis support active until tomorrow at midnight.' 
+                : hasGeneratedToday 
+                  ? 'One check-in per day. Reset at midnight.' 
+                  : 'Share how you\'re feeling to unlock today\'s quests!'}
             </p>
           </div>
         </div>

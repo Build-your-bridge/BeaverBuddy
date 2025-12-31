@@ -222,10 +222,10 @@ export default function EmergencyPage() {
             {/* Back button */}
             <button
               onClick={() => router.push('/dashboard')}
-              className="w-full py-2 rounded-full font-black text-xs text-white shadow-md hover:shadow-lg transition-all hover:scale-105 flex-shrink-0"
-              style={{ background: '#6B7280' }}
+              className="w-full py-3 rounded-full font-black text-sm text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 flex-shrink-0 tracking-wide"
+              style={{ background: '#DC2626' }}
             >
-              ← RETURN TO DASHBOARD
+              🏠 DASHBOARD
             </button>
           </div>
         </div>
