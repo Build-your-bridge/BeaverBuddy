@@ -33,6 +33,7 @@ export default function BillyPage() {
   const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<'shop' | 'inventory'>('shop');
   const [points, setPoints] = useState(500);
+  const [currentStreak, setCurrentStreak] = useState(0);
   const [outfits, setOutfits] = useState<Outfit[]>([]);
   const [selectedOutfit, setSelectedOutfit] = useState<string>('default');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -64,6 +65,17 @@ export default function BillyPage() {
     // Fetch all outfits and user data
     const fetchData = async () => {
       try {
+        // Fetch streak
+        const streakResponse = await fetch('http://localhost:5000/api/streak/info', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (streakResponse.ok) {
+          const streakData = await streakResponse.json();
+          setCurrentStreak(streakData.currentStreak || 0);
+        }
+
         // Fetch all available outfits
         const outfitsResponse = await fetch('http://localhost:5000/api/outfits', {
           headers: {
@@ -111,7 +123,6 @@ export default function BillyPage() {
         setOutfits(outfitsWithOwnership);
       } catch (error) {
         console.error('Error fetching outfit data:', error);
-        // Fallback to empty array
         setOutfits([]);
       }
     };
@@ -121,7 +132,7 @@ export default function BillyPage() {
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
-    setTimeout(() => setToast(null), 3000); // Auto-hide after 3 seconds
+    setTimeout(() => setToast(null), 3000);
   };
 
   const handlePurchase = async (outfit: Outfit) => {
@@ -148,7 +159,6 @@ export default function BillyPage() {
 
       const result = await response.json();
 
-      // Update local state
       setPoints(prev => prev - outfit.price);
       setOutfits(prev => prev.map(o =>
         o.id === outfit.id ? { ...o, owned: true } : o
@@ -185,21 +195,17 @@ export default function BillyPage() {
 
       const result = await response.json();
 
-      // Update local state
       setOutfits(prev => prev.map(o => ({
         ...o,
         equipped: o.id === outfitId ? result.equipped : false
       })));
       setSelectedOutfit(result.equipped ? outfitId.toString() : 'default');
 
-      // Update user data in localStorage with new equipped outfit
       if (user) {
         let newEquippedOutfit = null;
         if (result.equipped) {
-          // Just equipped this outfit
           newEquippedOutfit = outfits.find(o => o.id === outfitId) || null;
         } else {
-          // Switched to default outfit
           newEquippedOutfit = outfits.find(o => o.name === 'Default Beaver') || null;
         }
         
@@ -272,24 +278,25 @@ export default function BillyPage() {
       <div className="absolute top-32 right-32 text-gray-400 text-2xl z-5" style={{ animation: 'sparkle 3s ease-in-out infinite', animationDelay: '1s' }}>✦</div>
       <div className="absolute bottom-40 left-40 text-gray-400 text-2xl z-5" style={{ animation: 'sparkle 3s ease-in-out infinite', animationDelay: '2s' }}>✦</div>
 
-      {/* Header - Glass */}
+      {/* Header */}
       <Header 
         title="Billy's Wardrobe" 
-        points={points} 
+        points={points}
+        streak={currentStreak}
         onLogout={handleLogout}
-        className="mb-10"
+        className="mb-6"
       />
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col px-6 pb-4 relative z-10">
+      <div className="flex-1 flex flex-col px-4 pb-4 relative z-10 overflow-hidden">
         {/* Billy Display */}
-        <div className="flex justify-center mb-4 mt-2">
-          <div className="relative w-32 h-32 md:w-40 md:h-36 lg:w-48 lg:h-40 flex items-center justify-center">
+        <div className="flex justify-center mb-3">
+          <div className="relative w-28 h-28 md:w-36 md:h-36 flex items-center justify-center">
             <Image
               src={user?.equippedOutfit?.image || "/images/beaver/default/default.png"}
               alt="Billy the Beaver"
-              width={160}
-              height={160}
+              width={112}
+              height={112}
               className="object-contain drop-shadow-2xl"
               priority
               style={{ animation: 'float 3s ease-in-out infinite' }}
@@ -298,8 +305,8 @@ export default function BillyPage() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="p-3 rounded-t-[40px] mt-auto max-w-md mx-auto w-full">
-          <div className="flex gap-3 max-w-xs mx-auto">
+        <div className="mb-3">
+          <div className="flex gap-2 max-w-xs mx-auto">
             <button
               onClick={() => setActiveTab('shop')}
               className={`flex-1 py-2 rounded-full font-bold text-xs shadow-lg transition-all duration-300 cursor-pointer ${
@@ -323,49 +330,47 @@ export default function BillyPage() {
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto pb-28 md:pb-32">
+        {/* Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto pb-20">
           {activeTab === 'shop' ? (
-            <div className="space-y-4">
-              <h3 className="text-lg md:text-xl font-bold text-gray-800 text-center mb-4">Available Outfits</h3>
+            <div className="space-y-3">
+              <h3 className="text-base md:text-lg font-bold text-gray-800 text-center">Available Outfits</h3>
               {filteredOutfits.length === 0 ? (
-                <div className="bg-[#ccab8b] rounded-3xl p-4 shadow-2xl max-w-4xl mx-auto text-center">
-                  <span className="text-4xl block mb-4">🎉</span>
+                <div className="bg-[#ccab8b] rounded-3xl p-4 shadow-xl mx-auto max-w-md text-center">
+                  <span className="text-3xl block mb-3">🎉</span>
                   <h3 className="font-bold text-gray-800">All outfits purchased!</h3>
-                  <p className="text-sm text-gray-600">Check back later for new items.</p>
+                  <p className="text-xs text-gray-600">Check back later for new items.</p>
                 </div>
               ) : (
-                <div className="bg-[#ccab8b] rounded-3xl p-6 shadow-xl max-w-4xl md:max-w-2xl lg:max-w-4xl mx-auto max-h-[calc(100vh-30rem)] md:max-h-[calc(100vh-28rem)] overflow-y-auto">
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-4xl md:max-w-2xl lg:max-w-4xl mx-auto">
+                <div className="bg-[#ccab8b] rounded-3xl p-3 md:p-6 shadow-xl mx-auto max-w-5xl">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 md:gap-6">
                     {filteredOutfits.map((outfit) => (
                       <div
                         key={outfit.id}
-                        className={`flex flex-col items-center hover:scale-105 transition-transform ${points < outfit.price ? 'cursor-default' : ''}`}
+                        className="flex flex-col items-center hover:scale-105 transition-transform"
                       >
-                        <div className="w-28 h-24 md:w-32 md:h-28 lg:w-36 lg:h-32 rounded-xl mb-2 shadow-md border-2 border-gray-200 bg-white flex items-center justify-center">
+                        <div className="w-full aspect-square rounded-lg md:rounded-xl mb-1 shadow-md border-2 border-gray-200 bg-white flex items-center justify-center p-2 md:p-2">
                           <Image
                             src={outfit.image}
                             alt={outfit.name}
-                            width={112}
-                            height={96}
+                            width={64}
+                            height={64}
                             className="w-full h-full object-contain"
                             priority
                           />
                         </div>
                         
-                        {/* Text div with name, price, and buy button */}
-                        <div className="bg-white rounded-xl px-2 py-2 shadow-md border border-gray-200 text-center w-28 md:w-32 lg:w-36">
-                          <h4 className="font-bold text-gray-800 text-[10px] md:text-xs mb-0.5">{outfit.name}</h4>
-                          <div className="flex items-center justify-center gap-1 mb-1">
-                            <span className="text-sm md:text-base">🍁</span>
-                            <span className="font-bold text-gray-800 text-[10px] md:text-xs">{outfit.price}</span>
+                        <div className="bg-white rounded-lg md:rounded-xl px-1.5 py-1 md:px-3 md:py-2 shadow-md border border-gray-200 text-center w-full">
+                          <h4 className="font-bold text-gray-800 text-[9px] md:text-xs mb-0.5 line-clamp-1">{outfit.name}</h4>
+                          <div className="flex items-center justify-center gap-0.5 mb-1">
+                            <span className="text-[10px] md:text-sm">🍁</span>
+                            <span className="font-bold text-gray-800 text-[9px] md:text-xs">{outfit.price}</span>
                           </div>
                           
-                          {/* Buy button */}
                           <button
                             onClick={() => handlePurchase(outfit)}
                             disabled={points < outfit.price}
-                            className={`px-2 md:px-3 py-1 rounded-full text-[10px] font-bold transition-all duration-200 ${
+                            className={`w-full px-1 py-0.5 md:px-2 md:py-1.5 rounded-full text-[8px] md:text-[10px] font-bold transition-all duration-200 ${
                               points >= outfit.price
                                 ? 'bg-green-500 hover:bg-green-600 text-white shadow-sm hover:shadow-md cursor-pointer'
                                 : 'bg-gray-200 text-gray-600 cursor-default'
@@ -374,51 +379,50 @@ export default function BillyPage() {
                             {points >= outfit.price ? 'Buy' : 'Not enough 🍁'}
                           </button>
                         </div>
-                    </div>
-                  ))}
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
             </div>
           ) : (
-            <div className="space-y-4">
-              <h3 className="text-lg md:text-xl font-bold text-gray-800 text-center mb-4">Your Collection</h3>
+            <div className="space-y-3">
+              <h3 className="text-base md:text-lg font-bold text-gray-800 text-center">Your Collection</h3>
               {filteredOutfits.length === 0 ? (
-                <div className="bg-[#ccab8b] rounded-3xl p-4 shadow-lg max-w-4xl mx-auto text-center">
-                  <span className="text-4xl block mb-4">🛍️</span>
+                <div className="bg-[#ccab8b] rounded-3xl p-4 shadow-xl mx-auto max-w-md text-center">
+                  <span className="text-3xl block mb-3">🛍️</span>
                   <h3 className="font-bold text-gray-800">No outfits yet!</h3>
-                  <p className="text-sm text-gray-600">Visit the shop to buy some outfits for Billy.</p>
+                  <p className="text-xs text-gray-600">Visit the shop to buy some outfits for Billy.</p>
                 </div>
               ) : (
-                <div className="bg-[#ccab8b] rounded-3xl p-6 shadow-md max-w-4xl md:max-w-2xl lg:max-w-4xl mx-auto max-h-[calc(100vh-30rem)] md:max-h-[calc(100vh-28rem)] overflow-y-auto">
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-4xl md:max-w-2xl lg:max-w-4xl mx-auto">
+                <div className="bg-[#ccab8b] rounded-3xl p-3 md:p-6 shadow-xl mx-auto max-w-5xl">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2.5 md:gap-6">
                     {filteredOutfits.map((outfit) => (
                       <div
                         key={outfit.id}
                         className="flex flex-col items-center cursor-pointer hover:scale-105 transition-transform"
                         onClick={() => handleEquip(outfit.id)}
                       >
-                        <div className="w-28 h-24 md:w-32 md:h-28 lg:w-36 lg:h-32 rounded-xl mb-2 shadow-md border-2 border-gray-200 bg-white flex items-center justify-center">
+                        <div className="w-full aspect-square rounded-lg md:rounded-xl mb-1 shadow-md border-2 border-gray-200 bg-white flex items-center justify-center p-2 md:p-2">
                           <Image
                             src={outfit.image}
                             alt={outfit.name}
-                            width={112}
-                            height={96}
+                            width={64}
+                            height={64}
                             className="w-full h-full object-contain"
                             priority
                           />
                         </div>
                         
-                        {/* Text div with name and status */}
-                        <div className="bg-white rounded-xl px-2 py-2 shadow-md border border-gray-200 text-center w-28 md:w-32 lg:w-36">
-                          <h4 className="font-bold text-gray-800 text-[10px] md:text-xs mb-1">{outfit.name}</h4>
-                          <div className={`px-1 py-1 rounded-full text-[10px] font-bold ${outfit.equipped ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                        <div className="bg-white rounded-lg md:rounded-xl px-1.5 py-1 md:px-3 md:py-2 shadow-md border border-gray-200 text-center w-full">
+                          <h4 className="font-bold text-gray-800 text-[9px] md:text-xs mb-0.5 line-clamp-1">{outfit.name}</h4>
+                          <div className={`w-full px-1 py-0.5 md:px-2 md:py-1.5 rounded-full text-[8px] md:text-[10px] font-bold ${outfit.equipped ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'}`}>
                             {outfit.equipped ? 'Equipped' : 'Owned'}
                           </div>
                         </div>
-                    </div>
-                  ))}
-                </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -431,13 +435,13 @@ export default function BillyPage() {
 
       {/* Toast Notification */}
       {toast && (
-        <div className="fixed top-16 right-4 md:bottom-4 md:top-auto z-50 animate-fade-in">
-          <div className={`px-4 py-2 md:px-6 md:py-3 rounded-lg shadow-lg border-2 backdrop-blur-md ${
+        <div className="fixed top-20 right-4 z-50 animate-fade-in">
+          <div className={`px-4 py-3 rounded-lg shadow-lg border-2 backdrop-blur-md ${
             toast.type === 'success'
               ? 'bg-green-50 border-green-200 text-green-800'
               : 'bg-red-50 border-red-200 text-red-800'
           }`}>
-            <p className="font-medium">{toast.message}</p>
+            <p className="font-medium text-sm">{toast.message}</p>
           </div>
         </div>
       )}
