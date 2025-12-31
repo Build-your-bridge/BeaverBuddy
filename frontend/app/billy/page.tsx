@@ -431,8 +431,8 @@ export default function BillyPage() {
 
       {/* Toast Notification */}
       {toast && (
-        <div className="fixed bottom-4 right-4 z-50 animate-fade-in">
-          <div className={`px-6 py-3 rounded-lg shadow-lg border-2 backdrop-blur-md ${
+        <div className="fixed top-16 right-4 md:bottom-4 md:top-auto z-50 animate-fade-in">
+          <div className={`px-4 py-2 md:px-6 md:py-3 rounded-lg shadow-lg border-2 backdrop-blur-md ${
             toast.type === 'success'
               ? 'bg-green-50 border-green-200 text-green-800'
               : 'bg-red-50 border-red-200 text-red-800'

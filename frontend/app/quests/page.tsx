@@ -196,7 +196,7 @@ export default function QuestsPage() {
     return (
       <div className="h-screen flex items-center justify-center" style={{ background: 'linear-gradient(to bottom, #E8D4C0 0%, #F5E6D3 100%)' }}>
         <div className="animate-bounce">
-          <p className="text-white text-lg font-bold">Loading quests... 🍁</p>
+          <p className="text-white text-base sm:text-lg font-bold">Loading quests... 🍁</p>
         </div>
       </div>
     );
@@ -207,7 +207,7 @@ export default function QuestsPage() {
   const completedCount = currentQuests.filter(q => q.completed).length;
 
   return (
-    <main className="h-screen overflow-hidden flex flex-col relative" style={{ background: 'linear-gradient(to bottom, #E8D4C0 0%, #F5E6D3 100%)' }}>
+    <main className="h-screen overflow-hidden flex flex-col relative pb-24 md:pb-32" style={{ background: 'linear-gradient(to bottom, #E8D4C0 0%, #F5E6D3 100%)' }}>
       <style jsx>{`
         @keyframes fade-in {
           0% { opacity: 0; transform: translateY(10px); }
@@ -222,23 +222,23 @@ export default function QuestsPage() {
         title="Daily Quests" 
         points={currentPoints} 
         onLogout={handleLogout}
-        className="mb-10"
+        className="mb-4 sm:mb-10"
       />
 
       {/* X Button positioned next to title */}
-      <div className="absolute top-24 left-1/2 ml-64 z-20">
+      <div className="absolute top-16 sm:top-24 left-1/2 ml-32 sm:ml-64 z-20">
         <button
           onClick={() => router.push('/dashboard')}
-          className="w-16 h-16 bg-white/90 backdrop-blur-md rounded-full shadow-lg border border-white/50 flex items-center justify-center hover:bg-white/95 hover:scale-110 transition-all cursor-pointer"
+          className="w-12 h-12 sm:w-16 sm:h-16 bg-white/90 backdrop-blur-md rounded-full shadow-lg border border-white/50 flex items-center justify-center hover:bg-white/95 hover:scale-110 transition-all cursor-pointer"
         >
-          <span className="text-gray-700 font-bold text-4xl leading-none -mt-1">×</span>
+          <span className="text-gray-700 font-bold text-2xl sm:text-4xl leading-none -mt-1">×</span>
         </button>
       </div>
 
-      <div className="max-w-md mx-auto w-full flex flex-col h-full">
-        <div className="bg-white rounded-3xl p-5 shadow-xl mx-4 mb-4 border-b-4 border-red-200">
-          <h1 className="text-xl font-bold text-gray-800 text-center mb-4">
-            {activeTab === 'daily' ? '🔥 Daily Quests' : '� Monthly Quests'}
+      <div className="max-w-sm md:max-w-md lg:max-w-lg mx-auto w-full flex flex-col">
+        <div className="bg-white rounded-3xl p-3 sm:p-5 shadow-xl mx-2 mb-4 border-b-4 border-red-200">
+          <h1 className="text-lg sm:text-xl font-bold text-gray-800 text-center mb-4">
+            {activeTab === 'daily' ? '🔥 Daily Quests' : '📅 Monthly Quests'}
           </h1>
           
           {/* Progress bar */}
@@ -257,18 +257,18 @@ export default function QuestsPage() {
           </p>
         </div>
 
-        <div className="flex-1 px-4 overflow-y-auto space-y-3 pb-16 md:pb-20">
+        <div className="flex-1 px-2 space-y-2 pb-28 md:pb-36">
           {activeTab === 'daily' ? (
             // Daily quests - split into personalized and Canadian
-            <div className="space-y-6">
+            <div className="space-y-4 md:space-y-3 lg:space-y-4">
               {/* Personalized AI Quests Section */}
               <div>
-                <h2 className="text-lg font-bold text-gray-800 mb-3 px-2">Personalized Quests</h2>
-                <div className="space-y-3">
+                <h2 className="text-sm sm:text-base md:text-sm lg:text-base font-bold text-gray-800 mb-2 px-2">Personalized Quests</h2>
+                <div className="space-y-2 md:space-y-1 lg:space-y-2">
                   {dailyQuests.slice(0, 2).map((quest, index) => (
                     <div
                       key={quest.id}
-                      className={`w-full rounded-3xl p-4 flex items-start gap-3 shadow-md transition-all duration-300 ${
+                      className={`w-full rounded-2xl p-3 md:p-2 lg:p-3 flex items-start gap-2 md:gap-1 lg:gap-2 shadow-md transition-all duration-300 ${
                         quest.completed 
                           ? 'bg-green-50'
                           : 'bg-white'
@@ -278,30 +278,30 @@ export default function QuestsPage() {
                           : 'border-transparent'
                       }`}
                     >
-                      <div className="w-16 h-16 rounded-2xl flex flex-col items-center justify-center flex-shrink-0 relative bg-blue-100">
-                        <span className="text-2xl">🍁</span>
+                      <div className="w-12 h-12 sm:w-16 md:w-14 lg:w-16 rounded-xl flex flex-col items-center justify-center flex-shrink-0 relative bg-blue-100 py-1">
+                        <span className="text-lg sm:text-xl md:text-lg lg:text-xl">🍁</span>
                         <span className="text-xs font-bold text-gray-700 mt-0.5">
                           x{quest.reward || 50}
                         </span>
                       </div>
-                      <div className="flex-1 relative pb-6">
-                        <h3 className="text-sm font-bold text-gray-900 mb-1">
+                      <div className="flex-1 relative pb-4">
+                        <h3 className="text-xs sm:text-sm md:text-xs lg:text-sm font-bold text-gray-900 mb-1">
                           {quest.title}
                         </h3>
-                        <p className="text-sm text-gray-600 leading-relaxed mb-2">
+                        <p className="text-xs sm:text-sm md:text-xs lg:text-sm text-gray-600 leading-relaxed mb-2">
                           {quest.description}
                         </p>
                         {!quest.completed && (
                           <button
                             onClick={() => toggleQuestCompletion(index)}
-                            className="absolute bottom-0 right-0 bg-[#a12b2b] text-white px-3 py-1 rounded-full text-xs font-bold hover:bg-[#b54a4a] transition-colors cursor-pointer"
+                            className="absolute bottom-0 right-0 bg-[#a12b2b] text-white px-2 py-1 rounded-full text-xs font-bold hover:bg-[#b54a4a] transition-colors cursor-pointer"
                           >
                             Mark as Done
                           </button>
                         )}
                         {quest.completed && (
                           <button
-                            className="absolute bottom-0 right-0 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold"
+                            className="absolute bottom-0 right-0 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold"
                           >
                             Completed
                           </button>
@@ -314,12 +314,12 @@ export default function QuestsPage() {
 
               {/* Canadian Quests Section */}
               <div>
-                <h2 className="text-lg font-bold text-gray-800 mb-3 px-2">Canadian Quests</h2>
-                <div className="space-y-3">
+                <h2 className="text-sm sm:text-base md:text-sm lg:text-base font-bold text-gray-800 mb-2 px-2">Canadian Quests</h2>
+                <div className="space-y-2 md:space-y-1 lg:space-y-2">
                   {dailyQuests.slice(2, 4).map((quest, index) => (
                     <div
                       key={quest.id}
-                      className={`w-full rounded-3xl p-4 flex items-start gap-3 shadow-md transition-all duration-300 ${
+                      className={`w-full rounded-2xl p-3 md:p-2 lg:p-3 flex items-start gap-2 md:gap-1 lg:gap-2 shadow-md transition-all duration-300 ${
                         quest.completed 
                           ? 'bg-green-50'
                           : 'bg-white'
@@ -329,30 +329,30 @@ export default function QuestsPage() {
                           : 'border-transparent'
                       }`}
                     >
-                      <div className="w-16 h-16 rounded-2xl flex flex-col items-center justify-center flex-shrink-0 relative bg-red-100">
-                        <span className="text-2xl">🍁</span>
+                      <div className="w-12 h-12 sm:w-16 md:w-14 lg:w-16 rounded-xl flex flex-col items-center justify-center flex-shrink-0 relative bg-red-100 py-1">
+                        <span className="text-lg sm:text-xl md:text-lg lg:text-xl">🍁</span>
                         <span className="text-xs font-bold text-gray-700 mt-0.5">
                           x{quest.reward || 50}
                         </span>
                       </div>
-                      <div className="flex-1 relative pb-6">
-                        <h3 className="text-sm font-bold text-gray-900 mb-1">
+                      <div className="flex-1 relative pb-4">
+                        <h3 className="text-xs sm:text-sm md:text-xs lg:text-sm font-bold text-gray-900 mb-1">
                           {quest.title}
                         </h3>
-                        <p className="text-sm text-gray-600 leading-relaxed mb-2">
+                        <p className="text-xs sm:text-sm md:text-xs lg:text-sm text-gray-600 leading-relaxed mb-2">
                           {quest.description}
                         </p>
                         {!quest.completed && (
                           <button
                             onClick={() => toggleQuestCompletion(index + 2)}
-                            className="absolute bottom-0 right-0 bg-[#a12b2b] text-white px-3 py-1 rounded-full text-xs font-bold hover:bg-[#b54a4a] transition-colors cursor-pointer"
+                            className="absolute bottom-0 right-0 bg-[#a12b2b] text-white px-2 py-1 rounded-full text-xs font-bold hover:bg-[#b54a4a] transition-colors cursor-pointer"
                           >
                             Mark as Done
                           </button>
                         )}
                         {quest.completed && (
                           <button
-                            className="absolute bottom-0 right-0 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold"
+                            className="absolute bottom-0 right-0 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold"
                           >
                             Completed
                           </button>
@@ -366,8 +366,8 @@ export default function QuestsPage() {
           ) : (
             // Monthly quests - keep existing structure
             currentQuests.length === 0 ? (
-              <div className="bg-white/90 backdrop-blur rounded-3xl p-10 text-center shadow-xl border-2 border-white/50">
-                <span className="text-5xl block mb-4">🎉</span>
+              <div className="bg-white/90 backdrop-blur rounded-3xl p-6 sm:p-10 text-center shadow-xl border-2 border-white/50">
+                <span className="text-4xl sm:text-5xl block mb-4">🎉</span>
                 <h3 className="font-bold text-gray-800">All Quests Clear!</h3>
                 <p className="text-sm text-gray-600">You're doing great, eh!</p>
               </div>
@@ -375,7 +375,7 @@ export default function QuestsPage() {
               currentQuests.map((quest, index) => (
                 <div
                   key={quest.id}
-                  className={`w-full rounded-3xl p-4 flex items-start gap-3 shadow-md transition-all duration-300 ${
+                  className={`w-full rounded-2xl p-3 md:p-2 lg:p-3 flex items-start gap-2 md:gap-1 lg:gap-2 shadow-md transition-all duration-300 ${
                     quest.completed 
                       ? 'bg-purple-50'
                       : 'bg-white'
@@ -385,30 +385,30 @@ export default function QuestsPage() {
                       : 'border-transparent'
                   }`}
                 >
-                  <div className={`w-16 h-16 rounded-2xl flex flex-col items-center justify-center flex-shrink-0 relative bg-purple-100`}>
-                    <span className="text-2xl">🍁</span>
+                  <div className={`w-12 h-12 sm:w-16 md:w-14 lg:w-16 rounded-xl flex flex-col items-center justify-center flex-shrink-0 relative bg-purple-100 py-1`}>
+                    <span className="text-lg sm:text-xl md:text-lg lg:text-xl">🍁</span>
                     <span className="text-xs font-bold text-gray-700 mt-0.5">
                       x{quest.reward || 50}
                     </span>
                   </div>
                   <div className="flex-1 relative pb-4">
-                    <h3 className="text-sm font-bold text-gray-900 mb-1">
+                    <h3 className="text-xs sm:text-sm md:text-xs lg:text-sm font-bold text-gray-900 mb-1">
                       {quest.title}
                     </h3>
-                    <p className="text-sm text-gray-600 leading-relaxed mb-2">
+                    <p className="text-xs sm:text-sm md:text-xs lg:text-sm text-gray-600 leading-relaxed mb-2">
                       {quest.description}
                     </p>
                     {!quest.completed && (
                       <button
                         onClick={() => toggleQuestCompletion(index)}
-                        className="absolute bottom-0 right-0 bg-[#a12b2b] text-white px-3 py-1 rounded-full text-xs font-bold hover:bg-[#b54a4a] transition-colors cursor-pointer"
+                        className="absolute bottom-0 right-0 bg-[#a12b2b] text-white px-2 py-1 rounded-full text-xs font-bold hover:bg-[#b54a4a] transition-colors cursor-pointer"
                       >
                         Mark as Done
                       </button>
                     )}
                     {quest.completed && (
                       <button
-                        className="absolute bottom-0 right-0 bg-[#8B0000] text-white px-3 py-1 rounded-full text-xs font-bold"
+                        className="absolute bottom-0 right-0 bg-[#8B0000] text-white px-2 py-1 rounded-full text-xs font-bold"
                       >
                         Completed
                       </button>
@@ -421,12 +421,12 @@ export default function QuestsPage() {
         </div>
 
         {/* Floating Daily/Monthly Tabs */}
-        <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-10">
-          <div className="bg-white p-4 rounded-[40px] shadow-2xl">
-            <div className="flex gap-4 w-80 mx-auto">
+        <div className="fixed bottom-0 left-0 right-0 z-20">
+          <div className="bg-white p-3 sm:p-4 rounded-t-[40px] shadow-2xl">
+            <div className="flex gap-2 sm:gap-4 w-full max-w-xs mx-auto">
               <button 
                 onClick={() => setActiveTab('daily')}
-                className={`flex-1 py-3 px-6 rounded-full font-bold text-sm shadow-lg transition-all duration-300 cursor-pointer ${
+                className={`flex-1 py-2 sm:py-3 px-4 sm:px-6 rounded-full font-bold text-xs sm:text-sm shadow-lg transition-all duration-300 cursor-pointer ${
                   activeTab === 'daily'
                     ? 'bg-[#a12b2b] text-white scale-105'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -436,7 +436,7 @@ export default function QuestsPage() {
               </button>
               <button 
                 onClick={() => setActiveTab('monthly')}
-                className={`flex-1 py-3 px-6 rounded-full font-bold text-sm shadow-lg transition-all duration-300 cursor-pointer ${
+                className={`flex-1 py-2 sm:py-3 px-4 sm:px-6 rounded-full font-bold text-xs sm:text-sm shadow-lg transition-all duration-300 cursor-pointer ${
                   activeTab === 'monthly'
                     ? 'bg-[#a12b2b] text-white scale-105'
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
