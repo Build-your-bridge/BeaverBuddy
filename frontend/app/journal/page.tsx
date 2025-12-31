@@ -369,6 +369,24 @@ export default function JournalPage() {
                 </div>
               )}
 
+              {/* User's Answer */}
+              {showResponse && currentAnswer && (
+                <div className="mb-6 flex justify-end">
+                  <div className="max-w-md">
+                    <div className="flex items-start gap-3 flex-row-reverse">
+                      <div className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg bg-gray-600">
+                        <span className="text-2xl">👤</span>
+                      </div>
+                      <div className="rounded-2xl rounded-tr-none px-4 py-3 shadow-md bg-gray-600 border border-gray-700">
+                        <p className="text-sm text-white leading-relaxed">
+                          {currentAnswer.length > 100 ? currentAnswer.substring(0, 100) + '...' : currentAnswer}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Typing Indicator */}
               {isTyping && (
                 <div className="mb-6 flex justify-start">
@@ -412,24 +430,6 @@ export default function JournalPage() {
                       <div className="rounded-2xl rounded-tl-none px-4 py-3 bg-white border-2 border-gray-300 shadow-md">
                         <p className="text-xs font-bold text-red-800 mb-1.5">Billy says:</p>
                         <p className="text-sm text-gray-800 leading-relaxed">{aiResponse}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* User's Answer */}
-              {showResponse && currentAnswer && (
-                <div className="mb-6 flex justify-end">
-                  <div className="max-w-md">
-                    <div className="flex items-start gap-3 flex-row-reverse">
-                      <div className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg bg-gray-600">
-                        <span className="text-2xl">👤</span>
-                      </div>
-                      <div className="rounded-2xl rounded-tr-none px-4 py-3 shadow-md bg-gray-600 border border-gray-700">
-                        <p className="text-sm text-white leading-relaxed">
-                          {currentAnswer.length > 100 ? currentAnswer.substring(0, 100) + '...' : currentAnswer}
-                        </p>
                       </div>
                     </div>
                   </div>
