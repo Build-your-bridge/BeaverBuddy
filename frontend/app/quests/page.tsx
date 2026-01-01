@@ -19,6 +19,9 @@ export default function QuestsPage() {
   const [loading, setLoading] = useState(true);
   const [currentPoints, setCurrentPoints] = useState(500);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [showMonthlyFilters, setShowMonthlyFilters] = useState(true);
+  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -77,6 +80,12 @@ export default function QuestsPage() {
           
           setDailyQuests(data.quests);
           setMonthlyQuests(transformedMonthlyQuests);
+          
+          // If monthly quests exist, show them instead of the filter screen
+          if (transformedMonthlyQuests.length > 0) {
+            setShowMonthlyFilters(false);
+          }
+          
           fetchUserPoints(token);
         } else {
           // No quests generated yet, redirect to dashboard
@@ -94,6 +103,11 @@ export default function QuestsPage() {
           const monthlyArray = monthlyDataRaw ? JSON.parse(monthlyDataRaw) : [];
           setDailyQuests(dailyArray);
           setMonthlyQuests(monthlyArray);
+          
+          // If monthly quests exist, show them instead of the filter screen
+          if (monthlyArray.length > 0) {
+            setShowMonthlyFilters(false);
+          }
         } else {
           router.push('/dashboard');
         }
@@ -187,6 +201,66 @@ export default function QuestsPage() {
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000); // Auto-hide after 3 seconds
+  };
+
+  const toggleFilter = (filter: string) => {
+    setSelectedFilters(prev => 
+      prev.includes(filter) 
+        ? prev.filter(f => f !== filter)
+        : [...prev, filter]
+    );
+  };
+
+  const handleSearchEvents = async () => {
+    try {
+      setSearchLoading(true);
+      const token = localStorage.getItem('token');
+      const locationData = localStorage.getItem('userLocation');
+      let city, province;
+      
+      if (locationData) {
+        try {
+          const location = JSON.parse(locationData);
+          city = location.city;
+          province = location.province;
+        } catch (e) {
+          console.error('Failed to parse location:', e);
+        }
+      }
+
+      const response = await fetch('http://localhost:5000/api/quests/generate-monthly', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ filters: selectedFilters, city, province })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        showToast(data.error || 'Failed to generate monthly quests', 'error');
+        throw new Error(data.error || 'Failed to generate monthly quests');
+      }
+
+      // Save monthly quests to sessionStorage
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        const currentUser = JSON.parse(userData);
+        sessionStorage.setItem(`monthlyQuests_${currentUser.id}`, JSON.stringify(data.monthlyQuests));
+      }
+
+      // Update state and hide filters
+      setMonthlyQuests(data.monthlyQuests);
+      setShowMonthlyFilters(false);
+      showToast('Monthly quests generated successfully!', 'success');
+    } catch (error: any) {
+      console.error('Error generating monthly quests:', error);
+      showToast(error.message || 'Failed to generate quests', 'error');
+    } finally {
+      setSearchLoading(false);
+    }
   };
 
   const handleLogout = () => {
@@ -383,61 +457,208 @@ export default function QuestsPage() {
               </div>
             </div>
           ) : (
-            // Monthly quests - keep existing structure
-            currentQuests.length === 0 ? (
-              <div className="bg-white/90 backdrop-blur rounded-3xl p-6 sm:p-10 text-center shadow-xl border-2 border-white/50">
-                <span className="text-4xl sm:text-5xl block mb-4">🎉</span>
-                <h3 className="font-bold text-gray-800">All Quests Clear!</h3>
-                <p className="text-sm text-gray-600">You're doing great, eh!</p>
+            // Monthly quests - show filters first, then quests
+            showMonthlyFilters ? (
+              // Filter Selection Screen
+              <div className="space-y-4">
+                <div className="bg-white/95 backdrop-blur rounded-3xl p-6 shadow-xl">
+                  <h2 className="text-xl font-bold text-gray-800 mb-2 text-center">Find Events Near You</h2>
+                  <p className="text-sm text-gray-600 mb-6 text-center">Select your interests to discover local events</p>
+                  
+                  {/* Filter Buttons */}
+                  <div className="grid grid-cols-2 gap-3 mb-6">
+                    {[
+                      { id: 'music', label: 'Music', emoji: '🎵' },
+                      { id: 'sports', label: 'Sports', emoji: '⚽' },
+                      { id: 'children', label: 'Children\'s Events', emoji: '🎪' },
+                      { id: 'comedy', label: 'Comedy', emoji: '😂' },
+                      { id: 'theatre', label: 'Theatre', emoji: '🎭' },
+                      { id: 'arts', label: 'Arts & Culture', emoji: '🎨' }
+                    ].map(filter => (
+                      <button
+                        key={filter.id}
+                        onClick={() => toggleFilter(filter.id)}
+                        className={`p-4 rounded-2xl font-bold text-sm transition-all duration-300 ${
+                          selectedFilters.includes(filter.id)
+                            ? 'bg-[#a12b2b] text-white scale-105 shadow-lg'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        <div className="text-2xl mb-1">{filter.emoji}</div>
+                        {filter.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Search Button */}
+                  <button
+                    onClick={handleSearchEvents}
+                    disabled={selectedFilters.length === 0 || searchLoading}
+                    className={`w-full py-4 rounded-full font-bold text-lg shadow-lg transition-all ${
+                      selectedFilters.length > 0 && !searchLoading
+                        ? 'bg-[#a12b2b] text-white hover:bg-[#b54a4a] cursor-pointer hover:scale-105'
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    }`}
+                  >
+                    {searchLoading 
+                      ? 'SEARCHING...'
+                      : selectedFilters.length > 0 
+                        ? `Search Events (${selectedFilters.length} ${selectedFilters.length === 1 ? 'filter' : 'filters'})` 
+                        : 'Select at least one interest'}
+                  </button>
+                </div>
               </div>
             ) : (
-              currentQuests.map((quest, index) => (
-                <div
-                  key={quest.id}
-                  className={`w-full rounded-2xl p-3 md:p-2 lg:p-3 flex items-start gap-2 md:gap-1 lg:gap-2 shadow-md transition-all duration-300 ${
-                    quest.completed 
-                      ? 'bg-green-50'
-                      : 'bg-white'
-                  } border-2 ${
-                    quest.completed 
-                      ? 'border-green-200'
-                      : 'border-transparent'
-                  }`}
+              // Quest Results Screen - Always show the quests
+              <div className="space-y-4 md:space-y-3 lg:space-y-4">
+                {/* Back to Filters Button */}
+                <button
+                  onClick={() => setShowMonthlyFilters(true)}
+                  className="mb-2 px-4 py-2 bg-white/90 backdrop-blur rounded-full text-sm font-bold text-gray-700 hover:bg-white transition-all shadow-md"
                 >
-                  <div className={`w-12 h-12 sm:w-16 md:w-14 lg:w-16 rounded-xl flex flex-col items-center justify-center flex-shrink-0 relative bg-purple-100 py-1`}>
-                    <span className="text-lg sm:text-xl md:text-lg lg:text-xl">🍁</span>
-                    <span className="text-xs font-bold text-gray-700 mt-0.5">
-                      x{quest.reward || 50}
-                    </span>
+                  ← Change Filters
+                </button>
+                
+                {/* Event Quests Section */}
+                <div>
+                    <h2 className="text-sm sm:text-base md:text-sm lg:text-base font-bold text-gray-800 mb-2 px-2">Event Quests</h2>
+                    <div className="space-y-2 md:space-y-1 lg:space-y-2">
+                      {currentQuests.filter((q: any) => q.url).map((quest, index) => {
+                        // Map category to emoji and display name
+                        const categoryMap: Record<string, {emoji: string, name: string, color: string}> = {
+                          'music': {emoji: '🎵', name: 'Music', color: 'bg-purple-500 text-white'},
+                          'sports': {emoji: '⚽', name: 'Sports', color: 'bg-blue-500 text-white'},
+                          'children': {emoji: '🎪', name: 'Family', color: 'bg-pink-500 text-white'},
+                          'comedy': {emoji: '😂', name: 'Comedy', color: 'bg-yellow-500 text-white'},
+                          'theatre': {emoji: '🎭', name: 'Theatre', color: 'bg-red-500 text-white'},
+                          'arts': {emoji: '🎨', name: 'Arts', color: 'bg-green-500 text-white'},
+                        };
+                        
+                        const questCategory = (quest as any).category?.toLowerCase() || 'general';
+                        const categoryInfo = categoryMap[questCategory] || {emoji: '🎫', name: questCategory.charAt(0).toUpperCase() + questCategory.slice(1), color: 'bg-gray-500 text-white'};
+                        
+                        return (
+                        <div
+                          key={quest.id}
+                          className={`w-full rounded-2xl p-3 md:p-2 lg:p-3 flex items-start gap-2 md:gap-1 lg:gap-2 shadow-md transition-all duration-300 ${
+                            quest.completed 
+                              ? 'bg-green-50'
+                              : 'bg-white'
+                          } border-2 ${
+                            quest.completed 
+                              ? 'border-green-200'
+                              : 'border-transparent'
+                          }`}
+                        >
+                          <div className="flex flex-col items-center">
+                            <div className={`w-12 h-12 sm:w-16 md:w-14 lg:w-16 rounded-xl flex flex-col items-center justify-center flex-shrink-0 relative bg-purple-100 py-1`}>
+                              <span className="text-lg sm:text-xl md:text-lg lg:text-xl">🍁</span>
+                              <span className="text-xs font-bold text-gray-700 mt-0.5">
+                                x{quest.reward || 50}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="flex-1 relative pb-4">
+                            <h3 className="text-xs sm:text-sm md:text-xs lg:text-sm font-bold text-gray-900 mb-1">
+                              {quest.title}
+                            </h3>
+                            <p className="text-xs sm:text-sm md:text-xs lg:text-sm text-gray-600 leading-relaxed mb-2">
+                              {quest.description}
+                            </p>
+                            
+                            {/* Show event URL link if available */}
+                            {(quest as any).url && (
+                              <a
+                                href={(quest as any).url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-block mb-2 text-xs text-blue-600 hover:text-blue-800 underline"
+                              >
+                                🎟️ View Event Details
+                              </a>
+                            )}
+                            
+                            {/* Category tag aligned with maple leaf at bottom */}
+                            <div className={`absolute bottom-0 -left-18 px-2 py-0.5 rounded-full text-xs font-semibold ${categoryInfo.color} whitespace-nowrap`}>
+                              {categoryInfo.name}
+                            </div>
+                            
+                            {!quest.completed && (
+                              <button
+                                onClick={() => toggleQuestCompletion(currentQuests.indexOf(quest))}
+                                className="absolute bottom-0 right-0 bg-[#a12b2b] text-white px-2 py-1 rounded-full text-xs font-bold hover:bg-[#b54a4a] transition-colors cursor-pointer"
+                              >
+                                Mark as Done
+                              </button>
+                            )}
+                            {quest.completed && (
+                              <button
+                                className="absolute bottom-0 right-0 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold"
+                              >
+                                Completed
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )})}
+                    </div>
                   </div>
-                  <div className="flex-1 relative pb-4">
-                    <h3 className="text-xs sm:text-sm md:text-xs lg:text-sm font-bold text-gray-900 mb-1">
-                      {quest.title}
-                    </h3>
-                    <p className="text-xs sm:text-sm md:text-xs lg:text-sm text-gray-600 leading-relaxed mb-2">
-                      {quest.description}
-                    </p>
-                    {!quest.completed && (
-                      <button
-                        onClick={() => toggleQuestCompletion(index)}
-                        className="absolute bottom-0 right-0 bg-[#a12b2b] text-white px-2 py-1 rounded-full text-xs font-bold hover:bg-[#b54a4a] transition-colors cursor-pointer"
-                      >
-                        Mark as Done
-                      </button>
-                    )}
-                    {quest.completed && (
-                      <button
-                        className="absolute bottom-0 right-0 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold"
-                      >
-                        Completed
-                      </button>
-                    )}
+
+                  {/* Landmark Quest Section */}
+                  <div>
+                    <h2 className="text-sm sm:text-base md:text-sm lg:text-base font-bold text-gray-800 mb-2 px-2">Landmark Quest</h2>
+                    <div className="space-y-2 md:space-y-1 lg:space-y-2">
+                      {currentQuests.filter((q: any) => !q.url).map((quest, index) => (
+                        <div
+                          key={quest.id}
+                          className={`w-full rounded-2xl p-3 md:p-2 lg:p-3 flex items-start gap-2 md:gap-1 lg:gap-2 shadow-md transition-all duration-300 ${
+                            quest.completed 
+                              ? 'bg-green-50'
+                              : 'bg-white'
+                          } border-2 ${
+                            quest.completed 
+                              ? 'border-green-200'
+                              : 'border-transparent'
+                          }`}
+                        >
+                          <div className={`w-12 h-12 sm:w-16 md:w-14 lg:w-16 rounded-xl flex flex-col items-center justify-center flex-shrink-0 relative bg-purple-100 py-1`}>
+                            <span className="text-lg sm:text-xl md:text-lg lg:text-xl">🍁</span>
+                            <span className="text-xs font-bold text-gray-700 mt-0.5">
+                              x{quest.reward || 50}
+                            </span>
+                          </div>
+                          <div className="flex-1 relative pb-4">
+                            <h3 className="text-xs sm:text-sm md:text-xs lg:text-sm font-bold text-gray-900 mb-1">
+                              {quest.title}
+                            </h3>
+                            <p className="text-xs sm:text-sm md:text-xs lg:text-sm text-gray-600 leading-relaxed mb-2">
+                              {quest.description}
+                            </p>
+                            
+                            {!quest.completed && (
+                              <button
+                                onClick={() => toggleQuestCompletion(currentQuests.indexOf(quest))}
+                                className="absolute bottom-0 right-0 bg-[#a12b2b] text-white px-2 py-1 rounded-full text-xs font-bold hover:bg-[#b54a4a] transition-colors cursor-pointer"
+                              >
+                                Mark as Done
+                              </button>
+                            )}
+                            {quest.completed && (
+                              <button
+                                className="absolute bottom-0 right-0 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold"
+                              >
+                                Completed
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              ))
-            )
-          )}
-        </div>
+              )
+            )}
+          </div>
 
         {/* Floating Daily/Monthly Tabs */}
         <div className="fixed bottom-0 left-0 right-0 z-20">

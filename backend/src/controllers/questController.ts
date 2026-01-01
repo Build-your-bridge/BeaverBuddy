@@ -2,6 +2,7 @@
 import { Request, Response } from 'express';
 import prisma from '../db/prisma';
 import { getHelplinesByType } from './helpline';
+import { fetchTicketmasterEvents, formatEventForAI } from '../services/ticketmasterService';
 
 // Type definitions
 interface CrisisCheckResult {
@@ -466,7 +467,8 @@ Your response (one word only):`
     }
 
     // If AI says SAFE, proceed with quest generation
-    console.log('✅ Safety check passed, generating quests...');
+    console.log('✅ Safety check passed, generating daily quests...');
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -484,13 +486,12 @@ Your response (one word only):`
           },
           {
             role: 'user',
-            content: `Generate quests for a Canadian immigrant mental health app.
+            content: `Generate daily quests for a Canadian immigrant mental health app.
 
 User's feeling: "${feeling}"
 
 You must generate EXACTLY:
 - 4 daily quests (2 personalized to their feeling, 2 general Canadian experiences)
-- 2 monthly quests (Canadian cultural events for ${new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })})
 - 1 personalized journal prompt (a caring question specifically about what they shared in their feeling - reference their specific situation)
 
 Output ONLY this JSON structure with NO extra text:
@@ -502,10 +503,6 @@ Output ONLY this JSON structure with NO extra text:
     {"id": 3, "title": "🏃 Quest 3", "description": "Short description (80-120 chars)", "reward": 15},
     {"id": 4, "title": "📝 Quest 4", "description": "Short description (80-120 chars)", "reward": 30}
   ],
-  "monthlyQuests": [
-    {"id": 1, "title": "🏒 Title for Monthly Quest 1 (short, catchy)", "description": "Specific description of what this Canadian cultural event/experience is and what to do (80-120 chars)", "reward": 500},
-    {"id": 2, "title": "🎿 Title for Monthly Quest 2 (short, catchy)", "description": "Specific description of what this different Canadian cultural event/experience is and what to do (80-120 chars)", "reward": 400}
-  ],
   "journalPrompts": [
     "A personalized question based on what they shared about their feelings - be specific and caring"
   ]
@@ -514,9 +511,6 @@ Output ONLY this JSON structure with NO extra text:
 CRITICAL: 
 - The journal prompt MUST be personalized to their specific feeling, not generic
 - Reference what they actually said in their feeling
-- Monthly quests MUST have BOTH "title" and "description" fields - just like daily quests
-- Monthly quest descriptions MUST be specific, real Canadian cultural events/experiences for the current month
-- DO NOT use "text" field, DO NOT use placeholder text
 - Output ONLY the JSON above. No other text.`,
           },
         ],
@@ -555,14 +549,6 @@ CRITICAL:
       });
     }
 
-    console.log('📊 Monthly Quests from AI:', JSON.stringify(questsData.monthlyQuests, null, 2));
-    if (!questsData.monthlyQuests || !Array.isArray(questsData.monthlyQuests) || questsData.monthlyQuests.length !== 2) {
-      console.error('Invalid monthlyQuests structure:', questsData);
-      return res.status(500).json({
-        error: 'AI generated invalid monthly quest structure. Please try again.',
-      });
-    }
-
     if (!questsData.journalPrompts || !Array.isArray(questsData.journalPrompts) || questsData.journalPrompts.length !== 1) {
       console.error('Invalid journalPrompts structure:', questsData);
       return res.status(500).json({
@@ -594,51 +580,23 @@ CRITICAL:
 
     // Add completed: false to all quests
     questsData.quests = questsData.quests.map((q: any) => ({ ...q, completed: false }));
-    questsData.monthlyQuests = questsData.monthlyQuests.map((q: any) => ({ ...q, completed: false }));
 
-    // Save quests to DB
-    const result = await prisma.$transaction(async (tx) => {
-      const daily = await tx.dailyQuest.create({
-        data: {
-          userId,
-          date: today,
-          quests: questsData.quests,
-          journalPrompts: questsData.journalPrompts,
-          originalFeeling: feeling,
-        },
-      });
-
-      let monthly = userMonthly || existingMonthly;
-      if (!monthly) {
-        monthly = await tx.monthlyQuest.create({
-          data: {
-            userId,
-            month: currentMonthStr,
-            monthlyQuests: questsData.monthlyQuests,
-          },
-        });
-      } else if (!userMonthly && existingMonthly) {
-        monthly = await tx.monthlyQuest.create({
-          data: {
-            userId,
-            month: currentMonthStr,
-            monthlyQuests: existingMonthly.monthlyQuests as any,
-          },
-        });
-      }
-
-      return { daily, monthly };
+    // Save daily quests to DB
+    const daily = await prisma.dailyQuest.create({
+      data: {
+        userId,
+        date: today,
+        quests: questsData.quests,
+        journalPrompts: questsData.journalPrompts,
+        originalFeeling: feeling,
+      },
     });
-
-    console.log('💾 Saved monthly quests to DB:', JSON.stringify(result.monthly.monthlyQuests, null, 2));
     
     return res.status(200).json({
       success: true,
-      quests: result.daily.quests,
-      monthlyQuests: result.monthly.monthlyQuests,
-      journalPrompts: result.daily.journalPrompts,
+      quests: daily.quests,
+      journalPrompts: daily.journalPrompts,
       generatedAt: today,
-      monthGenerated: currentMonthStr,
       regenerated: true,
     });
 
@@ -747,6 +705,259 @@ export const updateQuestCompletion = async (req: Request, res: Response) => {
     console.error('Update quest completion error:', error);
     return res.status(500).json({
       error: 'Failed to update quest completion',
+    });
+  }
+};
+
+// Generate Monthly Quests (separate endpoint)
+export const generateMonthlyQuests = async (req: Request, res: Response) => {
+  const openaiKey = process.env.OPENAI_API_KEY;
+  try {
+    const userId = (req as any).userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const { filters, city, province } = req.body;
+
+    if (!filters || !Array.isArray(filters) || filters.length === 0) {
+      return res.status(422).json({
+        error: 'Please select at least one interest filter',
+      });
+    }
+
+    const now = new Date();
+    const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    // Check if user already has monthly quests
+    const userMonthly = await prisma.monthlyQuest.findUnique({
+      where: {
+        userId_month: {
+          userId,
+          month: currentMonthStr,
+        },
+      },
+    });
+
+    // If user already has monthly quests, delete them to generate fresh ones with new filters
+    if (userMonthly) {
+      console.log('🗑️ Deleting existing monthly quests to regenerate with new filters');
+      await prisma.monthlyQuest.delete({
+        where: {
+          userId_month: {
+            userId,
+            month: currentMonthStr,
+          },
+        },
+      });
+    }
+
+    // Fetch Ticketmaster events based on filters
+    let ticketmasterEvents: string[] = [];
+    try {
+      console.log('🎫 Fetching Ticketmaster events for filters:', filters, 'city:', city || 'Toronto');
+      const events = await fetchTicketmasterEvents(filters, city || 'Toronto');
+      console.log(`📊 Raw events fetched: ${events.length}`);
+      
+      if (events.length > 0) {
+        console.log('First event sample:', JSON.stringify(events[0], null, 2));
+      }
+      
+      ticketmasterEvents = events.slice(0, 30).map((event: any) => 
+        formatEventForAI(event, event._filterCategory || 'general')
+      );
+      console.log(`✅ Formatted ${ticketmasterEvents.length} events for AI`);
+      
+      // Need at least 2 events for proper monthly quests (2 event quests + 1 landmark quest)
+      if (ticketmasterEvents.length < 2) {
+        console.error(`❌ Only ${ticketmasterEvents.length} event found - need at least 2`);
+        console.error('Selected filters:', filters);
+        return res.status(404).json({
+          error: `Only ${ticketmasterEvents.length} event found. Try selecting more categories or check back later!`,
+          filters: filters
+        });
+      }
+      
+      if (ticketmasterEvents.length > 0) {
+        console.log('First 3 formatted events being sent to AI:');
+        ticketmasterEvents.slice(0, 3).forEach((event, i) => {
+          console.log(`${i + 1}. ${event.substring(0, 200)}...`);
+        });
+      }
+    } catch (error) {
+      console.error('❌ Error fetching Ticketmaster events:', error);
+      return res.status(500).json({
+        error: 'Failed to fetch events from Ticketmaster. Please try again.',
+      });
+    }
+
+    // Generate monthly quests with AI
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        max_tokens: 1500,
+        temperature: 0.7,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a helpful JSON generator for a mental health support app. You MUST output ONLY valid, well-formed JSON. No explanations, no markdown, no extra text - ONLY the JSON object.'
+          },
+          {
+            role: 'user',
+            content: `Generate 3 monthly quests for a Canadian immigrant mental health app.
+
+User selected interests: ${filters.join(', ')}
+
+You must generate EXACTLY 3 monthly quests:
+${ticketmasterEvents.length > 0 ? `
+* 2 EVENT quests: Select the BEST 2 HIGH-QUALITY events from the list below.
+  SELECTION CRITERIA (in order of importance):
+  1. Major cultural significance to Canada (hockey games, major concerts, theatre productions, festivals)
+  2. Well-known venues or artists/performers
+  3. Events that promote mental wellness and social connection
+  4. Professional productions (NOT amateur nights, open mics, karaoke, trivia)
+  5. Events with clear dates and reputable venues
+  
+  IMPORTANT VARIETY RULES:
+  - Select 2 COMPLETELY DIFFERENT events (not multiple performances of the same show)
+  - If multiple categories are available, select events from DIFFERENT categories (e.g., one sports + one music, NOT two sports)
+  - DO NOT select "Clue (Touring)" on Jan 8th AND "Clue (Touring)" on Jan 9th - that's the same show!
+  - Choose diverse experiences to give users variety
+  
+  AVOID: Generic bar events, amateur nights, small unknown venues, unclear events, duplicate shows
+  PREFER: Major sports (Maple Leafs, Raptors, Blue Jays), major concerts, professional theatre, established festivals
+  
+  CRITICAL RULES:
+  - YOU MUST ONLY SELECT EVENTS FROM THE LIST BELOW - DO NOT MAKE UP OR INVENT EVENTS
+  - USE THE EXACT "name", "url", "id", and "category" from the event JSON below
+  - The "category" field tells you what filter it came from (music, sports, theatre, arts, etc.)
+  - If an event has category="theatre" it should be tagged as theatre, NOT arts
+* 1 LANDMARK quest: A famous Canadian landmark to visit (AGO, ROM, CN Tower, Ripley's Aquarium, Casa Loma, etc.)
+
+Available Events (select the best 2):
+${ticketmasterEvents.join('\n')}
+` : `
+* 2 EVENT quests: Major Canadian cultural events for ${new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })} related to: ${filters.join(', ')}
+* 1 LANDMARK quest: A famous Toronto landmark (AGO, ROM, CN Tower, Ripley's Aquarium, Casa Loma)
+`}
+
+QUEST WRITING REQUIREMENTS:
+- Titles should be the ACTUAL EVENT NAME from the data (e.g., "Toronto Maple Leafs vs Winnipeg Jets" NOT "Catch the Maple Leafs in Action")
+- Descriptions must be SHORT and punchy (max 2 sentences, ~20-25 words)
+- Use SPECIFIC dates like "January 17th" or "February 3rd" (NOT "this Friday" or "next week")
+- Include venue name and make it exciting but BRIEF
+- DO NOT use "join us" or "we" - you are NOT hosting the event, just recommending it
+
+EXAMPLES:
+- Title: "🏒 Toronto Maple Leafs vs Winnipeg Jets"
+  Description: "Watch the Leafs battle at Scotiabank Arena on January 17th. Experience live NHL hockey!"
+  
+- Title: "🎵 Deep Dish Concert"
+  Description: "Legendary house duo performs at CODA on February 3rd. Get ready to dance!"
+
+- Title: "🏛️ Explore the Royal Ontario Museum"
+  Description: "Discover Canada's cultural heritage at the ROM. Explore world-class exhibits and artifacts."
+
+Output ONLY this JSON structure with NO extra text:
+
+{
+  "monthlyQuests": [
+    {"id": 1, "title": "[Emoji + exciting title]", "description": "[Short description with venue and specific date like 'January 17th']", "reward": 500, "url": "[EXACT url]", "eventId": "[EXACT id]", "category": "[EXACT category]"},
+    {"id": 2, "title": "[Emoji + exciting title]", "description": "[Short description with venue and specific date like 'February 3rd']", "reward": 500, "url": "[EXACT url]", "eventId": "[EXACT id]", "category": "[EXACT category]"},
+    {"id": 3, "title": "[Landmark with emoji]", "description": "[Short 20-25 word description of the landmark]", "reward": 400}
+  ]
+}
+
+CRITICAL: 
+- For EVENT quests: YOU MUST ONLY USE EVENTS FROM THE PROVIDED LIST
+- DO NOT INVENT, MAKE UP, OR CREATE fake events like "Toronto Theatre Festival" or "Art Gallery Opening"
+- Copy the EXACT "name", "url", "id", and "category" fields from the event data
+- Titles MUST use the ACTUAL EVENT NAME from the "name" field (e.g., "Toronto Maple Leafs vs Ottawa Senators")
+- URLs MUST contain ticketmaster.com, ticketmaster.ca, ticketweb.ca, or ticketweb.com - anything else is WRONG
+- The "category" field in the event data tells you which filter it came from - USE IT EXACTLY
+- Descriptions MUST be SHORT (20-25 words max) - be concise!
+- Use SPECIFIC dates like "January 17th" (NOT "this Friday")
+- DO NOT say "join us" or "we" - you are recommending events, not hosting them
+- For LANDMARK quest: Only include title, description, reward (no url/eventId/category)
+- Output ONLY the JSON above. No other text.`,
+          },
+        ],
+      }),
+    });
+
+    // Parse monthly quest response from OpenAI
+    const data: any = await response.json();
+
+    if (!response.ok || !data.choices || !data.choices[0]) {
+      console.error('OpenAI API error:', data);
+      return res.status(500).json({
+        error: data.error?.message || 'AI service temporarily unavailable',
+      });
+    }
+
+    let content = data.choices[0].message.content;
+    console.log('AI Monthly Quest Response:', content.substring(0, 200));
+
+    let questsData;
+    try {
+      questsData = parseAIResponse(content);
+    } catch (parseError: any) {
+      console.error('JSON Parse Error:', parseError.message);
+      console.error('Failed content:', content);
+      return res.status(500).json({
+        error: 'Failed to parse AI response. Please try again.',
+        details: parseError.message
+      });
+    }
+
+    // Validate the structure
+    console.log('📊 Monthly Quests from AI:', JSON.stringify(questsData.monthlyQuests, null, 2));
+    if (!questsData.monthlyQuests || !Array.isArray(questsData.monthlyQuests) || questsData.monthlyQuests.length !== 3) {
+      console.error('Invalid monthlyQuests structure:', questsData);
+      return res.status(500).json({
+        error: 'AI generated invalid monthly quest structure. Please try again.',
+      });
+    }
+
+    // Log event quests for debugging (trust Ticketmaster API data)
+    questsData.monthlyQuests.forEach((quest: any, index: number) => {
+      if (quest.url) {
+        console.log(`Quest ${index + 1}: "${quest.title}"`);
+        console.log(`  URL: ${quest.url}`);
+        console.log(`  Category: ${quest.category}`);
+      }
+    });
+
+    // Add completed: false to all quests
+    questsData.monthlyQuests = questsData.monthlyQuests.map((q: any) => ({ ...q, completed: false }));
+
+    // Save monthly quests to DB
+    const monthly = await prisma.monthlyQuest.create({
+      data: {
+        userId,
+        month: currentMonthStr,
+        monthlyQuests: questsData.monthlyQuests,
+      },
+    });
+
+    console.log('💾 Saved monthly quests to DB:', JSON.stringify(monthly.monthlyQuests, null, 2));
+    
+    return res.status(200).json({
+      success: true,
+      monthlyQuests: monthly.monthlyQuests,
+      monthGenerated: currentMonthStr,
+      regenerated: true,
+    });
+
+  } catch (error: any) {
+    console.error('Generate monthly quests error:', error);
+    return res.status(500).json({
+      error: error.message || 'Failed to generate monthly quests. Please try again.',
     });
   }
 };

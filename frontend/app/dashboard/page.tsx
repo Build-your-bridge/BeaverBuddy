@@ -311,7 +311,7 @@ export default function DashboardPage() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ feeling, city, province }) // Include location
+        body: JSON.stringify({ feeling, city, province }) // Only daily quests, no filters
       });
 
       const data = await response.json();
@@ -352,11 +352,10 @@ export default function DashboardPage() {
         throw new Error(data.error || 'Failed to generate quests');
       }
 
-      const userData = localStorage.getItem('user');
-      if (userData) {
-        const currentUser = JSON.parse(userData);
+      const userDataStr = localStorage.getItem('user');
+      if (userDataStr) {
+        const currentUser = JSON.parse(userDataStr);
         sessionStorage.setItem(`generatedQuests_${currentUser.id}`, JSON.stringify(data.quests));
-        sessionStorage.setItem(`monthlyQuests_${currentUser.id}`, JSON.stringify(data.monthlyQuests));
         sessionStorage.setItem(`journalPrompts_${currentUser.id}`, JSON.stringify(data.journalPrompts));
         localStorage.setItem(`questGeneratedDate_${currentUser.id}`, new Date().toDateString());
         updateJournalCount(currentUser.id);
