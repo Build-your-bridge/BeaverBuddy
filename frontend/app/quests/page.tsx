@@ -10,6 +10,9 @@ interface Quest {
   description: string;
   reward: number;
   completed: boolean;
+  url?: string;
+  eventId?: string;
+  category?: string;
 }
 
 export default function QuestsPage() {
@@ -223,7 +226,11 @@ export default function QuestsPage() {
         }
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/quests/generate-monthly`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const endpoint = `${apiUrl}/api/quests/generate-monthly`;
+      console.log('Calling API:', endpoint);
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -232,12 +239,19 @@ export default function QuestsPage() {
         body: JSON.stringify({ filters: selectedFilters, city, province })
       });
 
-      const data = await response.json();
-
       if (!response.ok) {
-        showToast(data.error || 'Failed to generate monthly quests', 'error');
-        throw new Error(data.error || 'Failed to generate monthly quests');
+        const errorText = await response.text();
+        console.error('Backend error response:', errorText);
+        try {
+          const errorData = JSON.parse(errorText);
+          showToast(errorData.error || 'Failed to generate monthly quests', 'error');
+        } catch {
+          showToast('Failed to generate monthly quests', 'error');
+        }
+        throw new Error('Failed to generate monthly quests');
       }
+
+      const data = await response.json();
 
       // Save monthly quests and event pools to sessionStorage
       const userData = localStorage.getItem('user');
@@ -610,82 +624,40 @@ export default function QuestsPage() {
                                 <span className={`${categoryInfo.color} text-white px-2.5 py-1 rounded-full text-xs font-semibold whitespace-nowrap`}>
                                   {categoryInfo.name}
                                 </span>
-                                {!quest.completed ? (
-                                  <button
-                                    onClick={() => toggleQuestCompletion(currentQuests.indexOf(quest))}
-                                    className="bg-[#a12b2b] text-white px-3 py-1.5 rounded-full text-xs font-bold hover:bg-[#b54a4a] transition-colors whitespace-nowrap flex-shrink-0"
-                                  >
-                                    Mark as Done
-                                  </button>
-                                ) : (
-                                  <span className="bg-green-500 text-white px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap flex-shrink-0">
-                                    Completed
-                                  </span>
-                                )}
+                                <div className="flex items-center gap-2">
+                                  {/* Reroll button */}
+                                  {!quest.completed && (() => {
+                                    const questIndex = currentQuests.filter((q: any) => q.url).findIndex(q => q.id === quest.id);
+                                    const poolKey = questIndex === 0 ? 'quest1' : 'quest2';
+                                    return eventPools[poolKey]?.length > 0;
+                                  })() && (
+                                    <button
+                                      onClick={() => handleRerollQuest(quest.id)}
+                                      className="bg-gray-600 text-white px-3 py-1.5 rounded-full text-xs font-bold hover:bg-gray-700 transition-colors whitespace-nowrap flex-shrink-0"
+                                      title="Reroll for different event"
+                                    >
+                                      🔄 Reroll
+                                    </button>
+                                  )}
+                                  
+                                  {!quest.completed ? (
+                                    <button
+                                      onClick={() => toggleQuestCompletion(currentQuests.indexOf(quest))}
+                                      className="bg-[#a12b2b] text-white px-3 py-1.5 rounded-full text-xs font-bold hover:bg-[#b54a4a] transition-colors whitespace-nowrap flex-shrink-0"
+                                    >
+                                      Mark as Done
+                                    </button>
+                                  ) : (
+                                    <span className="bg-green-500 text-white px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap flex-shrink-0">
+                                      Completed
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>
                         );
                       })}
-                          </div>
-                          <div className="flex-1 relative pb-4">
-                            <h3 className="text-xs sm:text-sm md:text-xs lg:text-sm font-bold text-gray-900 mb-1">
-                              {quest.title}
-                            </h3>
-                            <p className="text-xs sm:text-sm md:text-xs lg:text-sm text-gray-600 leading-relaxed mb-2">
-                              {quest.description}
-                            </p>
-                            
-                            {/* Show event URL link if available */}
-                            {(quest as any).url && (
-                              <a
-                                href={(quest as any).url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-block mb-2 text-xs text-blue-600 hover:text-blue-800 underline"
-                              >
-                                🎟️ View Event Details
-                              </a>
-                            )}
-                            
-                            {/* Category tag aligned with maple leaf at bottom */}
-                            <div className={`absolute bottom-0 -left-18 px-2 py-0.5 rounded-full text-xs font-semibold ${categoryInfo.color} whitespace-nowrap`}>
-                              {categoryInfo.name}
-                            </div>
-                            
-                            {/* Reroll button (left of Mark as Done) */}
-                            {!quest.completed && (() => {
-                              const questIndex = currentQuests.filter((q: any) => q.url).findIndex(q => q.id === quest.id);
-                              const poolKey = questIndex === 0 ? 'quest1' : 'quest2';
-                              return eventPools[poolKey]?.length > 0;
-                            })() && (
-                              <button
-                                onClick={() => handleRerollQuest(quest.id)}
-                                className="absolute bottom-0 right-28 bg-gray-600 text-white px-2 py-1 rounded-full text-xs font-bold hover:bg-gray-700 transition-colors cursor-pointer"
-                                title="Reroll for different event"
-                              >
-                                🔄 Reroll
-                              </button>
-                            )}
-                            
-                            {!quest.completed && (
-                              <button
-                                onClick={() => toggleQuestCompletion(currentQuests.indexOf(quest))}
-                                className="absolute bottom-0 right-0 bg-[#a12b2b] text-white px-2 py-1 rounded-full text-xs font-bold hover:bg-[#b54a4a] transition-colors cursor-pointer"
-                              >
-                                Mark as Done
-                              </button>
-                            )}
-                            {quest.completed && (
-                              <button
-                                className="absolute bottom-0 right-0 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold"
-                              >
-                                Completed
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      )})}
                     </div>
                   </div>
 
