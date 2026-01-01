@@ -15,6 +15,7 @@ interface Quest {
 export default function QuestsPage() {
   const [dailyQuests, setDailyQuests] = useState<Quest[]>([]);
   const [monthlyQuests, setMonthlyQuests] = useState<Quest[]>([]);
+  const [eventPools, setEventPools] = useState<{quest1: any[], quest2: any[]}>({quest1: [], quest2: []});
   const [activeTab, setActiveTab] = useState<'daily' | 'monthly'>('daily');
   const [loading, setLoading] = useState(true);
   const [currentPoints, setCurrentPoints] = useState(500);
@@ -261,11 +262,15 @@ export default function QuestsPage() {
         throw new Error(data.error || 'Failed to generate monthly quests');
       }
 
-      // Save monthly quests to sessionStorage
+      // Save monthly quests and event pools to sessionStorage
       const userData = localStorage.getItem('user');
       if (userData) {
         const currentUser = JSON.parse(userData);
         sessionStorage.setItem(`monthlyQuests_${currentUser.id}`, JSON.stringify(data.monthlyQuests));
+        if (data.eventPools) {
+          sessionStorage.setItem(`eventPools_${currentUser.id}`, JSON.stringify(data.eventPools));
+          setEventPools(data.eventPools);
+        }
       }
 
       // Update state and hide filters
@@ -278,6 +283,83 @@ export default function QuestsPage() {
     } finally {
       setSearchLoading(false);
     }
+  };
+
+  const handleRerollQuest = (questId: number) => {
+    // Determine which pool to use based on which EVENT quest this is (not all quests)
+    const eventQuests = monthlyQuests.filter(q => q.url); // Only event quests
+    const questIndex = eventQuests.findIndex(q => q.id === questId);
+    const poolKey = questIndex === 0 ? 'quest1' : 'quest2';
+    const currentPool = eventPools[poolKey];
+    
+    console.log(`Rerolling quest ${questId}, eventQuestIndex: ${questIndex}, using pool: ${poolKey}`, currentPool);
+    
+    if (!currentPool || currentPool.length === 0) {
+      showToast('No more events available to reroll', 'error');
+      return;
+    }
+
+    // Get the next event from this quest's pool
+    const nextEvent = currentPool[0];
+    const remainingPool = currentPool.slice(1);
+
+    // Update the quest with the new event
+    const updatedQuests = monthlyQuests.map(quest => {
+      if (quest.id === questId && quest.url) {
+        // This is an event quest, swap it
+        const oldEvent = {
+          id: quest.eventId,
+          name: quest.title,
+          description: quest.description,
+          url: quest.url,
+          category: quest.category
+        };
+        
+        // Add old event back to this quest's pool
+        remainingPool.push(oldEvent);
+        
+        return {
+          ...quest,
+          title: nextEvent.name,
+          description: nextEvent.description,
+          url: nextEvent.url,
+          eventId: nextEvent.id,
+          category: nextEvent.category
+        };
+      }
+      return quest;
+    });
+
+    setMonthlyQuests(updatedQuests);
+    setEventPools({
+      ...eventPools,
+      [poolKey]: remainingPool
+    });
+
+    // Update sessionStorage
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const currentUser = JSON.parse(userData);
+      sessionStorage.setItem(`monthlyQuests_${currentUser.id}`, JSON.stringify(updatedQuests));
+      sessionStorage.setItem(`eventPools_${currentUser.id}`, JSON.stringify({
+        ...eventPools,
+        [poolKey]: remainingPool
+      }));
+    }
+
+    showToast('Event rerolled!', 'success');
+  };
+
+  const getCategoryEmoji = (category: string) => {
+    const emojiMap: { [key: string]: string } = {
+      music: '🎵',
+      sports: '🏒',
+      comedy: '🎤',
+      theatre: '🎭',
+      arts: '🎨',
+      children: '🎪'
+    };
+    return emojiMap[category] || '🎉';
   };
 
   const handleLogout = () => {
@@ -599,6 +681,21 @@ export default function QuestsPage() {
                             <div className={`absolute bottom-0 -left-18 px-2 py-0.5 rounded-full text-xs font-semibold ${categoryInfo.color} whitespace-nowrap`}>
                               {categoryInfo.name}
                             </div>
+                            
+                            {/* Reroll button (left of Mark as Done) */}
+                            {!quest.completed && (() => {
+                              const questIndex = currentQuests.filter((q: any) => q.url).findIndex(q => q.id === quest.id);
+                              const poolKey = questIndex === 0 ? 'quest1' : 'quest2';
+                              return eventPools[poolKey]?.length > 0;
+                            })() && (
+                              <button
+                                onClick={() => handleRerollQuest(quest.id)}
+                                className="absolute bottom-0 right-28 bg-gray-600 text-white px-2 py-1 rounded-full text-xs font-bold hover:bg-gray-700 transition-colors cursor-pointer"
+                                title="Reroll for different event"
+                              >
+                                🔄 Reroll
+                              </button>
+                            )}
                             
                             {!quest.completed && (
                               <button

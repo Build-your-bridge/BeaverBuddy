@@ -754,6 +754,7 @@ export const generateMonthlyQuests = async (req: Request, res: Response) => {
 
     // Fetch Ticketmaster events based on filters
     let ticketmasterEvents: string[] = [];
+    let rawEvents: any[] = [];
     try {
       console.log('🎫 Fetching Ticketmaster events for filters:', filters, 'city:', city || 'Toronto');
       const events = await fetchTicketmasterEvents(filters, city || 'Toronto');
@@ -763,17 +764,20 @@ export const generateMonthlyQuests = async (req: Request, res: Response) => {
         console.log('First event sample:', JSON.stringify(events[0], null, 2));
       }
       
-      ticketmasterEvents = events.slice(0, 30).map((event: any) => 
+      // Store raw events for reroll pool
+      rawEvents = events.slice(0, 30);
+      
+      ticketmasterEvents = rawEvents.map((event: any) => 
         formatEventForAI(event, event._filterCategory || 'general')
       );
       console.log(`✅ Formatted ${ticketmasterEvents.length} events for AI`);
       
-      // Need at least 2 events for proper monthly quests (2 event quests + 1 landmark quest)
-      if (ticketmasterEvents.length < 2) {
-        console.error(`❌ Only ${ticketmasterEvents.length} event found - need at least 2`);
+      // Need at least 6 events for proper monthly quests (2 shown + 4 in reroll pool)
+      if (ticketmasterEvents.length < 6) {
+        console.error(`❌ Only ${ticketmasterEvents.length} events found - need at least 6 for reroll pool`);
         console.error('Selected filters:', filters);
         return res.status(404).json({
-          error: `Only ${ticketmasterEvents.length} event found. Try selecting more categories or check back later!`,
+          error: `Only ${ticketmasterEvents.length} events found. Try selecting more categories or check back later!`,
           filters: filters
         });
       }
@@ -809,13 +813,13 @@ export const generateMonthlyQuests = async (req: Request, res: Response) => {
           },
           {
             role: 'user',
-            content: `Generate 3 monthly quests for a Canadian immigrant mental health app.
+            content: `Generate monthly quests for a Canadian immigrant mental health app.
 
 User selected interests: ${filters.join(', ')}
 
-You must generate EXACTLY 3 monthly quests:
-${ticketmasterEvents.length > 0 ? `
-* 2 EVENT quests: Select the BEST 2 HIGH-QUALITY events from the list below.
+TASK: You will generate descriptions for 6 EVENT options and 1 LANDMARK quest.
+
+PART 1 - Generate descriptions for the TOP 6 EVENTS from the list below:
   SELECTION CRITERIA (in order of importance):
   1. Major cultural significance to Canada (hockey games, major concerts, theatre productions, festivals)
   2. Well-known venues or artists/performers
@@ -824,8 +828,8 @@ ${ticketmasterEvents.length > 0 ? `
   5. Events with clear dates and reputable venues
   
   IMPORTANT VARIETY RULES:
-  - Select 2 COMPLETELY DIFFERENT events (not multiple performances of the same show)
-  - If multiple categories are available, select events from DIFFERENT categories (e.g., one sports + one music, NOT two sports)
+  - Select 6 COMPLETELY DIFFERENT events (not multiple performances of the same show)
+  - If multiple categories are available, select events from DIFFERENT categories
   - DO NOT select "Clue (Touring)" on Jan 8th AND "Clue (Touring)" on Jan 9th - that's the same show!
   - Choose diverse experiences to give users variety
   
@@ -837,14 +841,12 @@ ${ticketmasterEvents.length > 0 ? `
   - USE THE EXACT "name", "url", "id", and "category" from the event JSON below
   - The "category" field tells you what filter it came from (music, sports, theatre, arts, etc.)
   - If an event has category="theatre" it should be tagged as theatre, NOT arts
-* 1 LANDMARK quest: A famous Canadian landmark to visit (AGO, ROM, CN Tower, Ripley's Aquarium, Casa Loma, etc.)
 
-Available Events (select the best 2):
-${ticketmasterEvents.join('\n')}
-` : `
-* 2 EVENT quests: Major Canadian cultural events for ${new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })} related to: ${filters.join(', ')}
-* 1 LANDMARK quest: A famous Toronto landmark (AGO, ROM, CN Tower, Ripley's Aquarium, Casa Loma)
-`}
+PART 2 - 1 LANDMARK quest: A famous Canadian landmark to visit (AGO, ROM, CN Tower, Ripley's Aquarium, Casa Loma, etc.)
+
+${ticketmasterEvents.length > 0 ? `Available Events (select and describe the top 6):
+${ticketmasterEvents.join('\n')}` : `* 6 EVENT options: Fun Ontario events for ${new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })} related to: ${filters.join(', ')}
+* 1 LANDMARK quest: A famous Toronto landmark (AGO, ROM, CN Tower, Ripley's Aquarium, Casa Loma)`}
 
 QUEST WRITING REQUIREMENTS:
 - Titles should be the ACTUAL EVENT NAME from the data (e.g., "Toronto Maple Leafs vs Winnipeg Jets" NOT "Catch the Maple Leafs in Action")
@@ -852,6 +854,7 @@ QUEST WRITING REQUIREMENTS:
 - Use SPECIFIC dates like "January 17th" or "February 3rd" (NOT "this Friday" or "next week")
 - Include venue name and make it exciting but BRIEF
 - DO NOT use "join us" or "we" - you are NOT hosting the event, just recommending it
+- Each event must have a UNIQUE, ENGAGING description - don't just repeat the title!
 
 EXAMPLES:
 - Title: "🏒 Toronto Maple Leafs vs Winnipeg Jets"
@@ -866,19 +869,23 @@ EXAMPLES:
 Output ONLY this JSON structure with NO extra text:
 
 {
-  "monthlyQuests": [
-    {"id": 1, "title": "[Emoji + exciting title]", "description": "[Short description with venue and specific date like 'January 17th']", "reward": 500, "url": "[EXACT url]", "eventId": "[EXACT id]", "category": "[EXACT category]"},
-    {"id": 2, "title": "[Emoji + exciting title]", "description": "[Short description with venue and specific date like 'February 3rd']", "reward": 500, "url": "[EXACT url]", "eventId": "[EXACT id]", "category": "[EXACT category]"},
-    {"id": 3, "title": "[Landmark with emoji]", "description": "[Short 20-25 word description of the landmark]", "reward": 400}
-  ]
+  "eventOptions": [
+    {"id": 1, "title": "[Emoji + event name]", "description": "[SHORT unique description with venue and date]", "reward": 500, "url": "[EXACT url]", "eventId": "[EXACT id]", "category": "[EXACT category]"},
+    {"id": 2, "title": "[Emoji + event name]", "description": "[SHORT unique description]", "reward": 500, "url": "[EXACT url]", "eventId": "[EXACT id]", "category": "[EXACT category]"},
+    {"id": 3, "title": "[Emoji + event name]", "description": "[SHORT unique description]", "reward": 500, "url": "[EXACT url]", "eventId": "[EXACT id]", "category": "[EXACT category]"},
+    {"id": 4, "title": "[Emoji + event name]", "description": "[SHORT unique description]", "reward": 500, "url": "[EXACT url]", "eventId": "[EXACT id]", "category": "[EXACT category]"},
+    {"id": 5, "title": "[Emoji + event name]", "description": "[SHORT unique description]", "reward": 500, "url": "[EXACT url]", "eventId": "[EXACT id]", "category": "[EXACT category]"},
+    {"id": 6, "title": "[Emoji + event name]", "description": "[SHORT unique description]", "reward": 500, "url": "[EXACT url]", "eventId": "[EXACT id]", "category": "[EXACT category]"}
+  ],
+  "landmarkQuest": {"id": 7, "title": "[Landmark with emoji]", "description": "[Short 20-25 word description]", "reward": 400}
 }
 
 CRITICAL: 
-- For EVENT quests: YOU MUST ONLY USE EVENTS FROM THE PROVIDED LIST
-- DO NOT INVENT, MAKE UP, OR CREATE fake events like "Toronto Theatre Festival" or "Art Gallery Opening"
+- For EVENT options: YOU MUST ONLY USE EVENTS FROM THE PROVIDED LIST
+- DO NOT INVENT, MAKE UP, OR CREATE fake events
 - Copy the EXACT "name", "url", "id", and "category" fields from the event data
-- Titles MUST use the ACTUAL EVENT NAME from the "name" field (e.g., "Toronto Maple Leafs vs Ottawa Senators")
-- URLs MUST contain ticketmaster.com, ticketmaster.ca, ticketweb.ca, or ticketweb.com - anything else is WRONG
+- Titles MUST use the ACTUAL EVENT NAME from the "name" field
+- Descriptions must be UNIQUE for each event - tell us WHY it's interesting, not just repeat the title!
 - The "category" field in the event data tells you which filter it came from - USE IT EXACTLY
 - Descriptions MUST be SHORT (20-25 words max) - be concise!
 - Use SPECIFIC dates like "January 17th" (NOT "this Friday")
@@ -915,41 +922,64 @@ CRITICAL:
       });
     }
 
-    // Validate the structure
-    console.log('📊 Monthly Quests from AI:', JSON.stringify(questsData.monthlyQuests, null, 2));
-    if (!questsData.monthlyQuests || !Array.isArray(questsData.monthlyQuests) || questsData.monthlyQuests.length !== 3) {
-      console.error('Invalid monthlyQuests structure:', questsData);
+    // Validate the structure - now expecting eventOptions array + landmarkQuest
+    console.log('📊 Event Options from AI:', JSON.stringify(questsData.eventOptions, null, 2));
+    if (!questsData.eventOptions || !Array.isArray(questsData.eventOptions) || questsData.eventOptions.length !== 6) {
+      console.error('Invalid eventOptions structure:', questsData);
       return res.status(500).json({
-        error: 'AI generated invalid monthly quest structure. Please try again.',
+        error: 'AI generated invalid event options structure. Please try again.',
       });
     }
 
-    // Log event quests for debugging (trust Ticketmaster API data)
-    questsData.monthlyQuests.forEach((quest: any, index: number) => {
-      if (quest.url) {
-        console.log(`Quest ${index + 1}: "${quest.title}"`);
-        console.log(`  URL: ${quest.url}`);
-        console.log(`  Category: ${quest.category}`);
-      }
-    });
+    // Pick first 2 events for display, keep rest in pools
+    const displayEvents = questsData.eventOptions.slice(0, 2).map((q: any, idx: number) => ({ ...q, id: idx + 1, completed: false }));
+    const poolEvents = questsData.eventOptions.slice(2);
+    
+    // Add landmark quest
+    const landmarkQuest = { ...questsData.landmarkQuest, id: 3, completed: false };
+    const monthlyQuests = [...displayEvents, landmarkQuest];
 
-    // Add completed: false to all quests
-    questsData.monthlyQuests = questsData.monthlyQuests.map((q: any) => ({ ...q, completed: false }));
+    console.log('📊 Final Monthly Quests:', JSON.stringify(monthlyQuests, null, 2));
 
     // Save monthly quests to DB
     const monthly = await prisma.monthlyQuest.create({
       data: {
         userId,
         month: currentMonthStr,
-        monthlyQuests: questsData.monthlyQuests,
+        monthlyQuests: monthlyQuests,
       },
     });
 
     console.log('💾 Saved monthly quests to DB:', JSON.stringify(monthly.monthlyQuests, null, 2));
     
+    // Create event pool for rerolling (events not currently selected)
+    const monthlyQuestsArray = Array.isArray(monthly.monthlyQuests) ? monthly.monthlyQuests : [];
+    const eventQuests = monthlyQuestsArray.filter((q: any) => q.eventId);
+    
+    // Create separate reroll pools with AI-generated descriptions
+    const quest1Pool = poolEvents.slice(0, 2).map((event: any) => ({
+      id: event.eventId,
+      name: event.title,
+      description: event.description,
+      url: event.url,
+      category: event.category
+    }));
+    
+    const quest2Pool = poolEvents.slice(2, 4).map((event: any) => ({
+      id: event.eventId,
+      name: event.title,
+      description: event.description,
+      url: event.url,
+      category: event.category
+    }));
+    
     return res.status(200).json({
       success: true,
       monthlyQuests: monthly.monthlyQuests,
+      eventPools: {
+        quest1: quest1Pool,
+        quest2: quest2Pool
+      },
       monthGenerated: currentMonthStr,
       regenerated: true,
     });
