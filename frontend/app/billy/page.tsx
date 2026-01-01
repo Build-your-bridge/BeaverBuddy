@@ -66,7 +66,7 @@ export default function BillyPage() {
     const fetchData = async () => {
       try {
         // Fetch streak
-        const streakResponse = await fetch('http://localhost:5000/api/streak/info', {
+        const streakResponse = await fetch('http://localhost:5001/api/streak/info', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -77,7 +77,7 @@ export default function BillyPage() {
         }
 
         // Fetch all available outfits
-        const outfitsResponse = await fetch('http://localhost:5000/api/outfits', {
+        const outfitsResponse = await fetch('http://localhost:5001/api/outfits', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -90,7 +90,7 @@ export default function BillyPage() {
         const allOutfits = await outfitsResponse.json();
 
         // Fetch user's owned outfits
-        const userOutfitsResponse = await fetch('http://localhost:5000/api/outfits/user', {
+        const userOutfitsResponse = await fetch('http://localhost:5001/api/outfits/user', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -99,7 +99,7 @@ export default function BillyPage() {
         const userOutfits = userOutfitsResponse.ok ? await userOutfitsResponse.json() : [];
 
         // Fetch user points
-        const pointsResponse = await fetch('http://localhost:5000/api/outfits/user/points', {
+        const pointsResponse = await fetch('http://localhost:5001/api/outfits/user/points', {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -143,7 +143,7 @@ export default function BillyPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/outfits/user/${outfit.id}/buy`, {
+      const response = await fetch(`http://localhost:5001/api/outfits/user/${outfit.id}/buy`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -179,7 +179,7 @@ export default function BillyPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/outfits/user/${outfitId}/equip`, {
+      const response = await fetch(`http://localhost:5001/api/outfits/user/${outfitId}/equip`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

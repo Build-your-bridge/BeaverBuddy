@@ -99,7 +99,7 @@ export default function JournalPage() {
   // --------------------------------------------------------------------------
   const fetchJournalPrompts = async (token: string, userId: number) => {
     try {
-      const response = await fetch('http://localhost:5000/api/quests/check-today', {
+      const response = await fetch('http://localhost:5001/api/quests/check-today', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -212,7 +212,7 @@ export default function JournalPage() {
       }
       
       // Save answer to backend and get AI response
-      const saveResponse = await fetch('http://localhost:5000/api/journal/submit', {
+      const saveResponse = await fetch('http://localhost:5001/api/journal/submit', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -325,7 +325,7 @@ export default function JournalPage() {
   // --------------------------------------------------------------------------  
   const fetchUserPoints = async (token: string) => {
     try {
-      const response = await fetch('http://localhost:5000/api/outfits/user/points', {
+      const response = await fetch('http://localhost:5001/api/outfits/user/points', {
         headers: {
           'Authorization': `Bearer ${token}`
         }

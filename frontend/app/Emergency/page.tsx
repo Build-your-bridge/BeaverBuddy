@@ -62,7 +62,7 @@ function EmergencyContent() {
 
     // Fetch user points
     if (token) {
-      fetch('http://localhost:5000/api/outfits/user/points', {
+      fetch('http://localhost:5001/api/outfits/user/points', {
         headers: {
           'Authorization': `Bearer ${token}`
         }

@@ -77,7 +77,9 @@ export async function fetchTicketmasterEvents(
   maxResults: number = 30
 ): Promise<TicketmasterEvent[]> {
   
-  if (!TICKETMASTER_API_KEY) {
+  const apiKey = process.env.TICKETMASTER_API_KEY;
+  if (!apiKey) {
+    console.error('TICKETMASTER_API_KEY not found in environment');
     throw new Error('Ticketmaster API key not configured');
   }
 
@@ -101,8 +103,8 @@ export async function fetchTicketmasterEvents(
     if (!segmentName) continue;
 
     const params: any = {
-      apikey: TICKETMASTER_API_KEY,
-      stateCode: 'ON', // Use Ontario instead of specific city for better results
+      apikey: apiKey,  // Changed from TICKETMASTER_API_KEY
+      stateCode: 'ON',
       countryCode,
       segmentName,
       startDateTime,
