@@ -56,34 +56,51 @@ export default function QuestsPage() {
           console.log('Loaded quests from API:', data.quests);
           console.log('Loaded monthly quests from API:', data.monthlyQuests);
           
-          // Transform monthly quests if they have the old 'text' format
-          const transformedMonthlyQuests = (data.monthlyQuests || []).map((quest: any) => {
-            if (quest.text && !quest.title) {
-              // Old format: has 'text' field
-              return {
-                id: quest.id,
-                title: quest.text,
-                description: "Complete this Canadian cultural experience to earn points!",
-                reward: quest.reward || 500,
-                completed: quest.completed || false
-              };
-            }
-            // New format: already has title, description, reward
-            return quest;
-          });
+          // Only use monthly quests if they exist and have valid data
+          let validMonthlyQuests = [];
+          if (data.monthlyQuests && Array.isArray(data.monthlyQuests) && data.monthlyQuests.length > 0) {
+            // Transform monthly quests if they have the old 'text' format
+            validMonthlyQuests = data.monthlyQuests.map((quest: any) => {
+              if (quest.text && !quest.title) {
+                // Old format: has 'text' field
+                return {
+                  id: quest.id,
+                  title: quest.text,
+                  description: "Complete this Canadian cultural experience to earn points!",
+                  reward: quest.reward || 500,
+                  completed: quest.completed || false
+                };
+              }
+              // New format: already has title, description, reward
+              return quest;
+            });
+            
+            // Filter out any quests without proper URLs (hardcoded legacy data)
+            validMonthlyQuests = validMonthlyQuests.filter((quest: any) => {
+              // Event quests must have URLs, landmark quests don't need them
+              if (quest.url === undefined || quest.url === '') {
+                // This is a landmark quest, it's valid
+                return !quest.title?.includes('Winterlude') && !quest.title?.includes('TIFF');
+              }
+              return true;
+            });
+          }
           
-          console.log('Transformed monthly quests:', transformedMonthlyQuests);
+          console.log('Valid monthly quests:', validMonthlyQuests);
           
           // Update sessionStorage with latest data
           sessionStorage.setItem(`generatedQuests_${currentUser.id}`, JSON.stringify(data.quests));
-          sessionStorage.setItem(`monthlyQuests_${currentUser.id}`, JSON.stringify(transformedMonthlyQuests));
+          sessionStorage.setItem(`monthlyQuests_${currentUser.id}`, JSON.stringify(validMonthlyQuests));
           
           setDailyQuests(data.quests);
-          setMonthlyQuests(transformedMonthlyQuests);
+          setMonthlyQuests(validMonthlyQuests);
           
-          // If monthly quests exist, show them instead of the filter screen
-          if (transformedMonthlyQuests.length > 0) {
+          // If valid monthly quests exist, show them instead of the filter screen
+          if (validMonthlyQuests.length > 0) {
             setShowMonthlyFilters(false);
+          } else {
+            // No valid monthly quests, show filter screen
+            setShowMonthlyFilters(true);
           }
           
           fetchUserPoints(token);
