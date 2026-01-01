@@ -155,7 +155,7 @@ export default function DashboardPage() {
 
   const checkStreakStatus = async (token: string): Promise<boolean> => {
     try {
-      const response = await fetch('http://localhost:5000/api/streak/check', {
+      const response = await fetch('http://localhost:5001/api/streak/check', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -217,7 +217,7 @@ export default function DashboardPage() {
     }, 10000);
     
     try {
-      const response = await fetch('http://localhost:5000/api/quests/check-today', {
+      const response = await fetch('http://localhost:5001/api/quests/check-today', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -252,7 +252,7 @@ export default function DashboardPage() {
 
   const fetchUserPoints = async (token: string) => {
     try {
-      const response = await fetch('http://localhost:5000/api/outfits/user/points', {
+      const response = await fetch('http://localhost:5001/api/outfits/user/points', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -305,7 +305,7 @@ export default function DashboardPage() {
         }
       }
       
-      const response = await fetch('http://localhost:5000/api/quests/generate', {
+      const response = await fetch('http://localhost:5001/api/quests/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
