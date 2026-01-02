@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Header from '../components/Header';
 import BottomNav from '../components/BottomNav';
+import { api } from '../../lib/api';
 
 // ============================================================================
 // INTERFACES
@@ -99,7 +100,7 @@ export default function JournalPage() {
   // --------------------------------------------------------------------------
   const fetchJournalPrompts = async (token: string, userId: number) => {
     try {
-      const response = await fetch('http://localhost:5001/api/quests/check-today', {
+      const response = await fetch(api.quests.checkToday, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -325,7 +326,7 @@ export default function JournalPage() {
   // --------------------------------------------------------------------------  
   const fetchUserPoints = async (token: string) => {
     try {
-      const response = await fetch('http://localhost:5001/api/outfits/user/points', {
+      const response = await fetch(api.outfits.points, {
         headers: {
           'Authorization': `Bearer ${token}`
         }

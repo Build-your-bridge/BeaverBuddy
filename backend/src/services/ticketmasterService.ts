@@ -55,19 +55,26 @@ interface TicketmasterResponse {
   };
 }
 
-// Map frontend filter IDs to Ticketmaster segment names
-const FILTER_TO_SEGMENT_MAP: { [key: string]: string } = {
-  'music': 'Music',
-  'sports': 'Sports',
-  'children': 'Family',
-  'comedy': 'Arts & Theatre',
-  'theatre': 'Arts & Theatre',
-  'arts': 'Arts & Theatre'
+// Map frontend filter IDs to Ticketmaster classification IDs (official IDs from Ticketmaster API)
+const FILTER_TO_CLASSIFICATION_ID: { [key: string]: string } = {
+  'music': 'KZFzniwnSyZfZ7v7nJ',        // Music segment
+  'sports': 'KZFzniwnSyZfZ7v7nE',       // Sports segment
+  'children': 'KZFzniwnSyZfZ7v7n1',     // Family segment
+  'theatre': 'KZFzniwnSyZfZ7v7na',      // Arts & Theatre segment
+  'arts': 'KZFzniwnSyZfZ7v7na'          // Arts & Theatre segment
 };
 
-const FILTER_TO_GENRE_MAP: { [key: string]: string | undefined } = {
-  'comedy': 'Comedy',
-  'theatre': 'Theatre',
+// For comedy, we need to use Arts & Theatre segment + Comedy genre name
+const FILTER_NEEDS_GENRE: { [key: string]: { segmentId: string, genreName: string } } = {
+  'comedy': { segmentId: 'KZFzniwnSyZfZ7v7na', genreName: 'Comedy' }
+};
+
+// Map to get proper category name for display
+const CLASSIFICATION_TO_CATEGORY: { [key: string]: string } = {
+  'KZFzniwnSyZfZ7v7nJ': 'music',
+  'KZFzniwnSyZfZ7v7nE': 'sports',
+  'KZFzniwnSyZfZ7v7n1': 'children',
+  'KZFzniwnSyZfZ7v7na': 'arts'
 };
 
 export async function fetchTicketmasterEvents(
@@ -85,37 +92,43 @@ export async function fetchTicketmasterEvents(
 
   const allEvents: TicketmasterEvent[] = [];
   
-  // Get date range: start 7 days from now, end 30 days from now for better planning
+  // Get date range: start 1 day from now, end 60 days from now for more event variety
   const startDate = new Date();
-  startDate.setDate(startDate.getDate() + 7); // Start 7 days from now
+  startDate.setDate(startDate.getDate() + 1); // Start 1 day from now
   const endDate = new Date();
-  endDate.setDate(endDate.getDate() + 30); // End 30 days from now
+  endDate.setDate(endDate.getDate() + 30); // End 60 days from now
   
   // Use simple date format YYYY-MM-DDTHH:MM:SSZ
   const startDateTime = startDate.toISOString().split('.')[0] + 'Z';
   const endDateTime = endDate.toISOString().split('.')[0] + 'Z';
+  
+  console.log(`📅 Date range: ${startDateTime} to ${endDateTime} (1-60 days from now)`);
+  console.log(`📅 Current date: ${new Date().toISOString()}`);
+  console.log(`📅 Start date: ${startDate.toISOString()}`);
+  console.log(`📅 End date: ${endDate.toISOString()}`);
 
   // Fetch events for each selected filter
   for (const filter of filters) {
-    const segmentName = FILTER_TO_SEGMENT_MAP[filter];
-    const genreName = FILTER_TO_GENRE_MAP[filter];
+    // Check if this filter needs special genre handling (like comedy)
+    const genreConfig = FILTER_NEEDS_GENRE[filter];
+    const classificationId = genreConfig ? genreConfig.segmentId : FILTER_TO_CLASSIFICATION_ID[filter];
     
-    if (!segmentName) continue;
+    if (!classificationId) continue;
 
     const params: any = {
-      apikey: apiKey,  // Changed from TICKETMASTER_API_KEY
+      apikey: apiKey,
       stateCode: 'ON',
       countryCode,
-      segmentName,
+      classificationId,  // Use official Ticketmaster classification ID
       startDateTime,
       endDateTime,
-      size: Math.ceil(maxResults / filters.length),
-      sort: 'date,asc'
+      size: 20,  // Get more events per category to spread across the date range
+      sort: 'random'  // Random sort to get diverse dates instead of clustering
     };
 
-    // Add genre filter if applicable
-    if (genreName) {
-      params.genreName = genreName;
+    // Add genre filter for comedy
+    if (genreConfig) {
+      params.genreName = genreConfig.genreName;
     }
 
     const queryString = new URLSearchParams(params).toString();
@@ -168,24 +181,21 @@ export async function fetchTicketmasterEvents(
           return !isLowQuality;
         });
         
-        // Tag each quality event with proper category based on its actual segment/genre
+        // Tag each quality event with proper category based on Ticketmaster's classification
         const taggedEvents = qualityEvents.map((event: any) => {
-          const segment = event.classifications?.[0]?.segment?.name?.toLowerCase() || '';
+          const classificationId = event.classifications?.[0]?.segment?.id || event.classifications?.[0]?.genre?.id;
           const genre = event.classifications?.[0]?.genre?.name?.toLowerCase() || '';
           
-          // Determine proper category based on actual event type
-          let properCategory = filter; // default to filter
+          // Use Ticketmaster's official classification ID to determine category
+          let properCategory = CLASSIFICATION_TO_CATEGORY[classificationId] || filter;
           
-          if (segment.includes('music')) {
-            properCategory = 'music';
-          } else if (segment.includes('sports')) {
-            properCategory = 'sports';
-          } else if (genre.includes('comedy')) {
-            properCategory = 'comedy';
-          } else if (genre.includes('theatre') || genre.includes('play') || genre.includes('musical')) {
-            properCategory = 'theatre';
-          } else if (segment.includes('family')) {
-            properCategory = 'children';
+          // Special handling for arts & theatre segment
+          if (properCategory === 'arts') {
+            if (genre.includes('comedy')) {
+              properCategory = 'comedy';
+            } else if (genre.includes('theatre') || genre.includes('play') || genre.includes('musical')) {
+              properCategory = 'theatre';
+            }
           }
           
           return {
@@ -203,6 +213,14 @@ export async function fetchTicketmasterEvents(
   }
 
   console.log(`📊 Total events fetched: ${allEvents.length}`);
+  
+  // Shuffle events to prevent date clustering (Fisher-Yates shuffle)
+  for (let i = allEvents.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [allEvents[i], allEvents[j]] = [allEvents[j], allEvents[i]];
+  }
+  console.log(`🔀 Events shuffled for date diversity`);
+  
   return allEvents;
 }
 

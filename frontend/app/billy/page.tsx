@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Header from '../components/Header';
 import BottomNav from '../components/BottomNav';
+import { api } from '../../lib/api';
 
 interface User {
   id: number;
@@ -66,7 +67,7 @@ export default function BillyPage() {
     const fetchData = async () => {
       try {
         // Fetch streak
-        const streakResponse = await fetch('http://localhost:5001/api/streak/info', {
+        const streakResponse = await fetch(api.streak.info, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -77,7 +78,7 @@ export default function BillyPage() {
         }
 
         // Fetch all available outfits
-        const outfitsResponse = await fetch('http://localhost:5001/api/outfits', {
+        const outfitsResponse = await fetch(api.outfits.all, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -90,7 +91,7 @@ export default function BillyPage() {
         const allOutfits = await outfitsResponse.json();
 
         // Fetch user's owned outfits
-        const userOutfitsResponse = await fetch('http://localhost:5001/api/outfits/user', {
+        const userOutfitsResponse = await fetch(api.outfits.user, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -99,7 +100,7 @@ export default function BillyPage() {
         const userOutfits = userOutfitsResponse.ok ? await userOutfitsResponse.json() : [];
 
         // Fetch user points
-        const pointsResponse = await fetch('http://localhost:5001/api/outfits/user/points', {
+        const pointsResponse = await fetch(api.outfits.points, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -143,7 +144,7 @@ export default function BillyPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:5001/api/outfits/user/${outfit.id}/buy`, {
+      const response = await fetch(api.outfits.buy(outfit.id), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -179,7 +180,7 @@ export default function BillyPage() {
     }
 
     try {
-      const response = await fetch(`http://localhost:5001/api/outfits/user/${outfitId}/equip`, {
+      const response = await fetch(api.outfits.equip(outfitId), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

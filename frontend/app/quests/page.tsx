@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Header from '../components/Header';
+import { api } from '../../lib/api';
 
 interface Quest {
   id: number;
@@ -226,11 +227,7 @@ export default function QuestsPage() {
         }
       }
 
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const endpoint = `${apiUrl}/api/quests/generate-monthly`;
-      console.log('Calling API:', endpoint);
-      
-      const response = await fetch(endpoint, {
+      const response = await fetch(api.quests.generateMonthly, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

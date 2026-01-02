@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { api } from '../../lib/api';
 
 export default function Page() {
   const [email, setEmail] = useState('');
@@ -17,7 +18,7 @@ export default function Page() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5001/api/auth/login', {
+      const response = await fetch(api.auth.login, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

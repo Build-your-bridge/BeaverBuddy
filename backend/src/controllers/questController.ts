@@ -486,32 +486,48 @@ Your response (one word only):`
           },
           {
             role: 'user',
-            content: `Generate daily quests for a Canadian immigrant mental health app.
+            content: `Generate 4 unique daily quests + 1 journal prompt. User feeling: "${feeling}"
 
-User's feeling: "${feeling}"
+Quest 1-2: Personalized activities for their FEELING (NOT Canadian - focus on emotional needs)
+Quest 3-4: SPECIFIC Canadian cultural learning (5-15 min, at-home)
 
-You must generate EXACTLY:
-- 4 daily quests (2 personalized to their feeling, 2 general Canadian experiences)
-- 1 personalized journal prompt (a caring question specifically about what they shared in their feeling - reference their specific situation)
+CRITICAL SEPARATION:
+- Quest 1-2 = EMOTIONAL SUPPORT (journaling, self-care, mindfulness)
+- Quest 3-4 = CANADIAN CONTENT ONLY (specific artists, dishes, historical events)
+- DO NOT mix these up!
 
-Output ONLY this JSON structure with NO extra text:
+TITLE FORMAT:
+- Emoji + FUN PUNCHY 2-4 words (creative, catchy, playful - NOT boring descriptions)
+- Make it FUN and memorable like a game quest!
+- Good: "☕ Timmies Time", "🎵 Drake o'Clock", "🍁 Poutine Power", "🗺️ Province Pro", "🎤 Anthem Hour"
+- Bad: "☕ Buy coffee from Tim Hortons", "🎵 Listen to Drake", "🍁 Make poutine", "🗺️ Memorize provinces"
+- Use wordplay, rhymes, alliteration when possible!
 
+DESCRIPTION FORMAT:
+- Be ULTRA SPECIFIC with exact details (this is where clarity goes)
+- Use FREE platforms: YouTube, free websites, at-home
+- NEVER: Spotify, Netflix, paid apps
+- Good: "Grab a coffee from Tim Hortons and savor a Canadian classic"
+- Include: exact song names, specific instructions, particular dishes, named events
+
+CANADIAN CONTENT IDEAS (Quest 3-4):
+- Music: specific artists (Drake, Weeknd, Bieber), specific songs
+- Food: specific dishes (poutine, butter tarts, tourtiere)
+- Geography: memorize 10 provinces + 3 territories, research specific provinces (Ontario, Quebec, BC)
+- Culture: listen to O Canada and memorize lyrics, learn Canadian slang
+- History: specific events (1972 Summit Series, Confederation), famous Canadians
+- Fun learning: pick a province and research its capital/flag/facts
+
+Output JSON only:
 {
   "quests": [
-    {"id": 1, "title": "☕ Quest 1", "description": "Short description (80-120 chars)", "reward": 20},
-    {"id": 2, "title": "🎵 Quest 2", "description": "Short description (80-120 chars)", "reward": 25},
-    {"id": 3, "title": "🏃 Quest 3", "description": "Short description (80-120 chars)", "reward": 15},
-    {"id": 4, "title": "📝 Quest 4", "description": "Short description (80-120 chars)", "reward": 30}
+    {"id": 1, "title": "💭 Specific action", "description": "Clear details", "reward": 20},
+    {"id": 2, "title": "🌟 Specific action", "description": "Clear details", "reward": 25},
+    {"id": 3, "title": "🍁 Specific Canadian item", "description": "Ultra specific details", "reward": 15},
+    {"id": 4, "title": "🍁 Specific Canadian item", "description": "Ultra specific details", "reward": 30}
   ],
-  "journalPrompts": [
-    "A personalized question based on what they shared about their feelings - be specific and caring"
-  ]
-}
-
-CRITICAL: 
-- The journal prompt MUST be personalized to their specific feeling, not generic
-- Reference what they actually said in their feeling
-- Output ONLY the JSON above. No other text.`,
+  "journalPrompts": ["Question about their feeling"]
+}`,
           },
         ],
       }),
@@ -821,13 +837,20 @@ TASK: You will generate descriptions for 6 EVENT options and 1 LANDMARK quest.
 
 PART 1 - Generate descriptions for the TOP 6 EVENTS from the list below:
   SELECTION CRITERIA (in order of importance):
-  1. Major cultural significance to Canada (hockey games, major concerts, theatre productions, festivals)
-  2. Well-known venues or artists/performers
-  3. Events that promote mental wellness and social connection
-  4. Professional productions (NOT amateur nights, open mics, karaoke, trivia)
-  5. Events with clear dates and reputable venues
+  1. DATE DIVERSITY - Select events spread across DIFFERENT dates throughout the month (avoid clustering dates)
+  2. Major cultural significance to Canada (hockey games, major concerts, theatre productions, festivals)
+  3. Well-known venues or artists/performers
+  4. Events that promote mental wellness and social connection
+  5. Professional productions (NOT amateur nights, open mics, karaoke, trivia)
   
-  IMPORTANT VARIETY RULES:
+  CRITICAL DATE VARIETY RULES:
+  - SPREAD OUT THE DATES: Select events from early, mid, and late in the month
+  - DO NOT select 3+ events from the same week
+  - Aim for at least 3-5 days between event dates when possible
+  - Example GOOD date spread: Jan 5th, Jan 14th, Jan 20th, Jan 27th, Feb 3rd, Feb 10th
+  - Example BAD date clustering: Jan 2nd, Jan 2nd, Jan 3rd, Jan 4th, Jan 5th, Jan 6th
+  
+  OTHER VARIETY RULES:
   - Select 6 COMPLETELY DIFFERENT events (not multiple performances of the same show)
   - If multiple categories are available, select events from DIFFERENT categories
   - DO NOT select "Clue (Touring)" on Jan 8th AND "Clue (Touring)" on Jan 9th - that's the same show!
@@ -845,7 +868,7 @@ PART 1 - Generate descriptions for the TOP 6 EVENTS from the list below:
 PART 2 - 1 LANDMARK quest: A famous Canadian landmark to visit (AGO, ROM, CN Tower, Ripley's Aquarium, Casa Loma, etc.)
 
 ${ticketmasterEvents.length > 0 ? `Available Events (select and describe the top 6):
-${ticketmasterEvents.join('\n')}` : `* 6 EVENT options: Fun Ontario events for ${new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })} related to: ${filters.join(', ')}
+${ticketmasterEvents.join('\n')}` : `* 6 EVENT options: Fun Ontario events for the next 2 months related to: ${filters.join(', ')}
 * 1 LANDMARK quest: A famous Toronto landmark (AGO, ROM, CN Tower, Ripley's Aquarium, Casa Loma)`}
 
 QUEST WRITING REQUIREMENTS:

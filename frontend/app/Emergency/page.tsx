@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Header from '../components/Header';
+import { api } from '../../lib/api';
 
 interface Helpline {
   name: string;
@@ -62,7 +63,7 @@ function EmergencyContent() {
 
     // Fetch user points
     if (token) {
-      fetch('http://localhost:5001/api/outfits/user/points', {
+      fetch(api.outfits.points, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
