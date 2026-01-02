@@ -208,7 +208,7 @@ export const checkTodayStatus = async (req: Request, res: Response) => {
         });
       }
 
-      // Get monthly quests (user's own or shared from another user for this month)
+      // Get monthly quests (only user's own - no sharing across users)
       const userMonthly = await prisma.monthlyQuest.findUnique({
         where: {
           userId_month: {
@@ -218,16 +218,9 @@ export const checkTodayStatus = async (req: Request, res: Response) => {
         },
       });
 
-      const sharedMonthly = await prisma.monthlyQuest.findFirst({
-        where: {
-          month: currentMonthStr,
-        },
-      });
-
-      const monthlyQuests = userMonthly?.monthlyQuests || sharedMonthly?.monthlyQuests || null;
+      const monthlyQuests = userMonthly?.monthlyQuests || null;
       
       console.log('📅 Check today - userMonthly:', userMonthly ? 'found' : 'not found');
-      console.log('📅 Check today - sharedMonthly:', sharedMonthly ? 'found' : 'not found');
       console.log('📅 Check today - returning monthlyQuests:', JSON.stringify(monthlyQuests, null, 2));
 
       return res.status(200).json({
