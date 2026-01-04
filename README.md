@@ -1,25 +1,33 @@
-# 🦫 BeaverBuddy - AI Companion for Mental Health & Cultural Integration
+# 🦫 BeaverBuddy - Your AI Companion for Mental Health & Cultural Integration
 
-A **turn-based fighting game** inspired by the popular tower defense game *Kingdom Rush*, built with **Java Swing**.  
-This project recreates the exciting battles of Kingdom Rush with custom weapons, enemies, and a fantasy-themed UI.  
+BeaverBuddy is an AI-powered mental health and cultural integration app designed for Canadian immigrants.
 
----
-
-## 🎮 Gameplay Overview
-- Players choose from **3 weapon categories**:
-  - 🏹 Archer Weapons  
-  - ⚔️ Melee Weapons  
-  - 🔮 Magic Weapons  
-- Each category contains **3 unique weapons** (total: **9 weapons**).  
-- Before battle, the player selects **one weapon per category**.  
-- Battles are turn-based (similar to Pokémon), where each weapon has different attack stats and effects.  
-- Custom UI with themed buttons, health/energy bars, and battle screens.
+Creators: Team Supernova - Gaston Chung, Aryan Desai and Matthew Phang.
+This project was created for Bridging Divides' 2025 Build a Bridge Competition.
 
 ---
 
-## 🖼️ Features
-- ✅ Java Swing GUI with a fantasy Kingdom Rush theme  
-- ✅ Custom health & energy bars  
-- ✅ Player & enemy stat panels  
-- ✅ Weapon selection system (archer, melee, magic)  
-- ✅ Turn-based battle mechanics  
+## 🔀 User Flow
+- Daily Mental Health Check-In: Tell the Beaver how you're feeling today and why
+
+- AI generates 4 Daily Quests:
+  - 2 Personalized Quests to counter the negative emotions you're feeling (If you're feeling mad, try some breathing exercises)
+  - 2 Canadian Quests to get you more comfortable with Canadian culture (Buy a coffee from Tim Hortons)
+  
+- AI also generates 3 Monthly Quests:
+  - 2 Event Quests: Major public events that have a specific time and location (Check out a Raptors game)
+  - 1 Landmark Quest: Visit a local landmark (CN Tower, ROM, or Eaton Center)
+
+- Complete Quests to collect Maple Leaves
+- Use Maple Leaves to decorate your Beaver Avatar by buying Beaver Skins
+
+---
+
+## 🌐 Tech Stack
+- ✅ **Javascript** for both the Frontend & Backend
+- ✅ **Node.js** to host the website on an online server
+- ✅ **PostgreSQL** for the database containing all user info
+- ✅ **Prisma ORM** to connect the database to the website
+- ✅ **JWT** for user authentication throughout the website
+- ✅ **ChatGPT 4.0 Mini API** for mental support and quest generation
+- ✅ **Ticketmaster API** to fetch event info
