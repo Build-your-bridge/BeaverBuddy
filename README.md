@@ -8,7 +8,7 @@ This project was created as our entry in the competition, under the category of 
 
 ---
 
-## 🔀 User Flow
+## 📲 How The App Works
 - Daily Mental Health Check-In: Tell the Beaver how you're feeling today and why
 - AI generates 4 Daily Quests:
   - 2 Personalized Quests to counter the negative emotions you're feeling (If you're feeling mad, try some breathing exercises)
