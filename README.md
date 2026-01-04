@@ -3,8 +3,8 @@
 BeaverBuddy is an AI-powered mental health and cultural integration app designed for Canadian immigrants.
 
 Creators: Team Supernova - Gaston Chung, Aryan Desai and Matthew Phang.
-We are Team 7 of Bridging Divides' 2025 Build A Bridge Program.
-This project was created as our entry for the Build a Bridge Competition.
+We are Team 7 of Bridging Divides' 2025 Build A Bridge Program and Competition.
+This project was created as our entry in the competition, under the category of Immigrant Mental Health & Well-Being.
 
 ---
 
