@@ -86,12 +86,12 @@ export default function JournalPage() {
   }, [router]);
 
   // --------------------------------------------------------------------------
-  // CHECK IF ALL PROMPTS COMPLETED - Redirect to dashboard when done
+  // CHECK IF ALL PROMPTS COMPLETED - Redirect to quests when done
   // --------------------------------------------------------------------------
   useEffect(() => {
-    // If we have allPrompts loaded but no unanswered prompts, redirect to dashboard
+    // If we have allPrompts loaded but no unanswered prompts, redirect to quests
     if (allPrompts.length > 0 && prompts.length === 0) {
-      router.push('/dashboard');
+      router.push('/quests');
     }
   }, [prompts, allPrompts, router]);
 
@@ -142,7 +142,7 @@ export default function JournalPage() {
       console.log('📋 Unanswered prompts:', unansweredPrompts);
       
       if (unansweredPrompts.length === 0) {
-        router.push('/dashboard');
+        router.push('/quests');
         return;
       }
       
@@ -167,7 +167,7 @@ export default function JournalPage() {
         setAllPrompts(normalizedPrompts);
         const unansweredPrompts = normalizedPrompts.filter((p: JournalPrompt) => p.answer === null);
         if (unansweredPrompts.length === 0) {
-          router.push('/dashboard');
+          router.push('/quests');
           return;
         }
         setPrompts(unansweredPrompts);
@@ -361,8 +361,6 @@ export default function JournalPage() {
   const totalQuestions = allPrompts.length;
   const answeredCount = totalQuestions - prompts.length;
   const progressPercentage = (answeredCount / totalQuestions) * 100;
-
-  // Comment
 
   // --------------------------------------------------------------------------
   // RENDER

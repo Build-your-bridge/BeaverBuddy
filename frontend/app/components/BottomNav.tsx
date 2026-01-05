@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 interface BottomNavProps {
-  currentPage: 'billy' | 'dashboard' | 'journal';
+  currentPage: 'billy' | 'dashboard' | 'journal' | 'growth';
   hasJournalPrompts?: boolean;
   remainingJournalCount?: number;
 }
@@ -15,13 +15,13 @@ export default function BottomNav({ currentPage, hasJournalPrompts = false, rema
   return (
     <div className="fixed bottom-0 left-0 right-0 h-20 md:h-24 flex items-center justify-center px-4 z-10 border-t-2 border-gray-200 shadow-lg" style={{ background: 'linear-gradient(to bottom, #E8D4C0 0%, #F5E6D3 100%)' }}>
       <div className="flex justify-center items-center gap-8 w-full max-w-2xl">
-        {/* Billy Button */}
+        {/* Billy Button - Goes to Outfits/Avatars */}
         <button 
-          onClick={() => router.push('/billy')}
+          onClick={() => router.push('/outfits')}
           className="flex flex-col items-center gap-0.5 md:gap-1 transition-transform hover:scale-110 cursor-pointer"
         >
           <div className={`w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center shadow-lg ${
-            currentPage === 'billy' 
+            currentPage === 'billy'
               ? 'bg-white border-3 border-red-800' 
               : 'bg-white border border-gray-300'
           }`}>
@@ -36,13 +36,13 @@ export default function BottomNav({ currentPage, hasJournalPrompts = false, rema
           <span className="text-xs font-bold text-gray-700">Billy</span>
         </button>
         
-        {/* Home Button */}
+        {/* Home Button - Goes to Growth page */}
         <button 
           onClick={() => router.push('/dashboard')}
           className="flex flex-col items-center gap-0.5 md:gap-1 transition-transform hover:scale-110 cursor-pointer"
         >
           <div className={`w-12 h-12 md:w-16 md:h-16 rounded-2xl flex items-center justify-center shadow-lg ${
-            currentPage === 'dashboard' 
+            currentPage === 'growth'
               ? 'bg-white border-3 border-red-800' 
               : 'bg-white border border-gray-300'
           }`}>

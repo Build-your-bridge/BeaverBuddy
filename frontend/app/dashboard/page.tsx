@@ -35,6 +35,13 @@ export default function DashboardPage() {
   const [crisisData, setCrisisData] = useState<any>(null);
   const [checkingStreak, setCheckingStreak] = useState(true);
   const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showBreathingPrompt, setShowBreathingPrompt] = useState(false);
+  const [submittedFeeling, setSubmittedFeeling] = useState('');
+  const [showWelcomeBack, setShowWelcomeBack] = useState(false);
+  const [previousIssue, setPreviousIssue] = useState('');
+  const [previousCategory, setPreviousCategory] = useState('');
+  const [welcomeBackResponse, setWelcomeBackResponse] = useState('');
+  const [showMedicalRecommendation, setShowMedicalRecommendation] = useState(false);
   
   const router = useRouter();
 
@@ -78,6 +85,8 @@ export default function DashboardPage() {
     const crisisLockout = localStorage.getItem(`crisisLockout_${currentUserId}`);
     const crisisDataStored = localStorage.getItem(`crisisData_${currentUserId}`);
     const questGeneratedDate = localStorage.getItem(`questGeneratedDate_${currentUserId}`);
+    const previousIssueData = localStorage.getItem(`previousIssue_${currentUserId}`);
+    const previousCategoryData = localStorage.getItem(`previousCategory_${currentUserId}`);
     const today = new Date().toDateString();
     
     // Check if crisis lockout is active
@@ -92,11 +101,18 @@ export default function DashboardPage() {
         }
       }
     }
-    // Clear crisis lockout if it's a new day
+    // Clear crisis lockout if it's a new day and show welcome back if we have previous issue data
     else if (crisisLockout === 'true' && questGeneratedDate !== today) {
       localStorage.removeItem(`crisisLockout_${currentUserId}`);
       localStorage.removeItem(`crisisData_${currentUserId}`);
       setIsInCrisis(false);
+      
+      // Show welcome back check-in if user had a previous crisis issue
+      if (previousIssueData && previousCategoryData) {
+        setPreviousIssue(previousIssueData);
+        setPreviousCategory(previousCategoryData);
+        setShowWelcomeBack(true);
+      }
     }
     
     updateJournalCount(currentUserId);
@@ -326,6 +342,9 @@ export default function DashboardPage() {
             const currentUser = JSON.parse(userData);
             localStorage.setItem(`questGeneratedDate_${currentUser.id}`, new Date().toDateString());
             localStorage.setItem(`crisisLockout_${currentUser.id}`, 'true');
+            // Store the previous issue/category for welcome back message
+            localStorage.setItem(`previousIssue_${currentUser.id}`, data.crisisType || 'this issue');
+            localStorage.setItem(`previousCategory_${currentUser.id}`, data.category || data.crisisType || 'this issue');
             localStorage.setItem(`crisisData_${currentUser.id}`, JSON.stringify({
               crisisType: data.crisisType,
               message: data.message,
@@ -359,17 +378,61 @@ export default function DashboardPage() {
         sessionStorage.setItem(`generatedQuests_${currentUser.id}`, JSON.stringify(data.quests));
         sessionStorage.setItem(`journalPrompts_${currentUser.id}`, JSON.stringify(data.journalPrompts));
         localStorage.setItem(`questGeneratedDate_${currentUser.id}`, new Date().toDateString());
+        
+        // Save to growth tracking
+        const growthHistory = localStorage.getItem(`growthCheckInHistory_${currentUser.id}`) || '[]';
+        const history = JSON.parse(growthHistory);
+        history.push({
+          date: new Date().toDateString(),
+          feeling: feeling,
+          timestamp: new Date().toISOString(),
+          emoji: '💭',
+          mood: 'neutral'
+        });
+        localStorage.setItem(`growthCheckInHistory_${currentUser.id}`, JSON.stringify(history));
+        
         updateJournalCount(currentUser.id);
       }
 
+      // Analyze sentiment of the feeling
+      const sentiment = analyzeSentiment(feeling);
+      
+      // If positive sentiment, skip breathing and assessment - go straight to journal
+      if (sentiment === 'positive') {
+        setHasGeneratedToday(true);
+        setSubmittedFeeling(feeling);
+        router.push(`/journal?feeling=${encodeURIComponent(feeling)}&skipLayers=true`);
+        return;
+      }
+
+      // For neutral or negative sentiment, show breathing prompt
       setHasGeneratedToday(true);
-      router.push('/quests');
+      setSubmittedFeeling(feeling);
+      setShowBreathingPrompt(true);
 
     } catch (err: any) {
       setError(err.message || 'Failed to generate quests. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const analyzeSentiment = (text: string): 'positive' | 'negative' | 'neutral' => {
+    const positiveWords = ['great', 'amazing', 'wonderful', 'excellent', 'fantastic', 'awesome', 'happy', 'joyful', 'grateful', 'blessed', 'good', 'better', 'best', 'love', 'excited', 'proud', 'confident'];
+    const negativeWords = ['sad', 'stressed', 'anxious', 'overwhelmed', 'worried', 'tired', 'exhausted', 'depressed', 'upset', 'angry', 'frustrated', 'scared', 'afraid', 'lonely', 'isolated', 'hopeless', 'desperate'];
+    
+    const lowerText = text.toLowerCase();
+    
+    const hasPositive = positiveWords.some(word => lowerText.includes(word));
+    const hasNegative = negativeWords.some(word => lowerText.includes(word));
+    
+    if (hasPositive && !hasNegative) {
+      return 'positive';
+    }
+    if (hasNegative) {
+      return 'negative';
+    }
+    return 'neutral';
   };
 
   const handleLogout = () => {
@@ -387,6 +450,29 @@ export default function DashboardPage() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     router.push('/');
+  };
+
+  const handleWelcomeBackResponse = (status: 'better' | 'same' | 'worse') => {
+    // If user says it's worse, show medical recommendation
+    if (status === 'worse') {
+      setShowMedicalRecommendation(true);
+    } else {
+      // For better or same, dismiss the modal and proceed to quests
+      setShowWelcomeBack(false);
+      router.push('/quests');
+    }
+  };
+
+  const handleMedicalRecommendation = () => {
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const currentUser = JSON.parse(userData);
+      // Store that they acknowledged medical recommendation
+      localStorage.setItem(`medicalRecommendationAcknowledged_${currentUser.id}`, 'true');
+    }
+    setShowMedicalRecommendation(false);
+    setShowWelcomeBack(false);
+    router.push('/quests');
   };
 
   if (!user || (checkingStreak && !showLocationModal)) {
@@ -441,6 +527,160 @@ export default function DashboardPage() {
 
       {/* Main content */}
       <div className="flex-1 flex items-center justify-center px-4 pb-24 relative z-10 overflow-y-auto">
+        {/* Breathing Prompt Modal */}
+        {showBreathingPrompt && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+            <div className="w-full max-w-md" style={{
+              background: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(20px)',
+              borderRadius: '28px',
+              padding: '28px',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+              border: '1px solid rgba(255, 255, 255, 0.5)'
+            }}>
+              <div className="text-center">
+                <p className="text-4xl mb-4">🌬️</p>
+                <h2 className="text-2xl font-black text-gray-800 mb-3">Would you like to pause for a moment?</h2>
+                <p className="text-sm text-gray-700 mb-6">
+                  Taking a few deep breaths can help you feel more centered before you continue.
+                </p>
+                
+                <div className="space-y-3">
+                  <button
+                    onClick={() => router.push(`/breathing-exercise?feeling=${encodeURIComponent(submittedFeeling)}`)}
+                    className="w-full py-4 font-black text-lg tracking-wider transition-all transform hover:scale-105 rounded-xl"
+                    style={{
+                      background: 'linear-gradient(135deg, #DC2626 0%, #EF4444 100%)',
+                      color: 'white'
+                    }}
+                  >
+                    Yes, Let's Breathe
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setShowBreathingPrompt(false);
+                      router.push('/quests');
+                    }}
+                    className="w-full py-3 font-semibold rounded-xl border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all"
+                  >
+                    Skip & Go to Quests
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Welcome Back Modal */}
+        {showWelcomeBack && !showMedicalRecommendation && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+            <div className="w-full max-w-md" style={{
+              background: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(20px)',
+              borderRadius: '28px',
+              padding: '28px',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+              border: '1px solid rgba(255, 255, 255, 0.5)'
+            }}>
+              <div className="text-center">
+                <p className="text-4xl mb-4">👋</p>
+                <h2 className="text-2xl font-black text-gray-800 mb-3">Welcome back!</h2>
+                <p className="text-sm text-gray-700 mb-6">
+                  I remember you said you were dealing with <span className="font-bold">{previousCategory}</span>. How is that going right now?
+                </p>
+                
+                <div className="space-y-3">
+                  <button
+                    onClick={() => handleWelcomeBackResponse('better')}
+                    className="w-full py-3 font-black text-sm tracking-wider transition-all transform hover:scale-105 rounded-xl text-white"
+                    style={{
+                      background: 'linear-gradient(135deg, #10b981 0%, #34d399 100%)'
+                    }}
+                  >
+                    ✨ I'm Feeling Better
+                  </button>
+
+                  <button
+                    onClick={() => handleWelcomeBackResponse('same')}
+                    className="w-full py-3 font-black text-sm tracking-wider transition-all transform hover:scale-105 rounded-xl text-white"
+                    style={{
+                      background: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)'
+                    }}
+                  >
+                    😐 About the Same
+                  </button>
+
+                  <button
+                    onClick={() => handleWelcomeBackResponse('worse')}
+                    className="w-full py-3 font-black text-sm tracking-wider transition-all transform hover:scale-105 rounded-xl text-white"
+                    style={{
+                      background: 'linear-gradient(135deg, #ef4444 0%, #f87171 100%)'
+                    }}
+                  >
+                    😞 It's Getting Worse
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Medical Recommendation Modal */}
+        {showMedicalRecommendation && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 px-4">
+            <div className="w-full max-w-md" style={{
+              background: 'rgba(255, 255, 255, 0.95)',
+              backdropFilter: 'blur(20px)',
+              borderRadius: '28px',
+              padding: '28px',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+              border: '2px solid rgba(239, 68, 68, 0.3)'
+            }}>
+              <div className="text-center">
+                <p className="text-5xl mb-4">❤️‍🩹</p>
+                <h2 className="text-2xl font-black text-gray-800 mb-3">I'm here for you</h2>
+                <p className="text-sm text-gray-700 mb-6 leading-relaxed">
+                  Since things have been getting harder with your <span className="font-bold">{previousCategory}</span>, I'd really recommend talking to someone who can help. This could be:
+                </p>
+                
+                <ul className="text-xs text-gray-700 mb-6 text-left space-y-2 bg-red-50 p-3 rounded-lg">
+                  <li>✓ A school counselor or trusted teacher</li>
+                  <li>✓ A family doctor or mental health professional</li>
+                  <li>✓ A crisis helpline (available 24/7)</li>
+                  <li>✓ A trusted family member or friend</li>
+                </ul>
+
+                <p className="text-xs text-red-700 font-semibold mb-6">
+                  You don't have to handle this alone. Please reach out to someone today.
+                </p>
+                
+                <div className="space-y-3">
+                  <button
+                    onClick={handleMedicalRecommendation}
+                    className="w-full py-3 font-black text-sm tracking-wider transition-all transform hover:scale-105 rounded-xl text-white"
+                    style={{
+                      background: 'linear-gradient(135deg, #dc2626 0%, #ef4444 100%)'
+                    }}
+                  >
+                    I Understand, Let's Continue
+                  </button>
+
+                  <button
+                    onClick={() => router.push('/local-help')}
+                    className="w-full py-3 font-black text-sm tracking-wider transition-all transform hover:scale-105 rounded-xl text-white"
+                    style={{
+                      background: 'linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%)'
+                    }}
+                  >
+                    🆘 View Crisis Resources
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="w-full max-w-md py-4">
           {/* Glass card */}
           <div className="relative" style={{
@@ -500,6 +740,20 @@ export default function DashboardPage() {
                 />
               </div>
             </div>
+
+            {/* Growth Rate Button */}
+            <button
+              onClick={() => router.push('/growth')}
+              className="w-full py-3 mb-4 font-black text-sm tracking-wider transition-all transform hover:scale-105"
+              style={{ 
+                borderRadius: '16px',
+                background: 'linear-gradient(135deg, #FBBF24 0%, #FCD34D 100%)',
+                color: '#78350F',
+                boxShadow: '0 4px 15px rgba(251, 191, 36, 0.4)'
+              }}
+            >
+              📈 CHECK YOUR GROWTH & STREAK
+            </button>
 
             {/* Success/Error/Crisis messages */}
             {isInCrisis && (
