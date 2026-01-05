@@ -562,7 +562,7 @@ export default function DashboardPage() {
                   onBlur={(e) => e.currentTarget.style.border = '2px solid rgba(236, 72, 153, 0.3)'}
                 />
                 <p className="text-xs text-gray-700 mt-1 ml-1 font-semibold">
-                  {feeling.length}/20 characters minimum
+                  {feeling.length}/50 characters minimum
                 </p>
               </div>
             )}
