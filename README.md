@@ -23,8 +23,8 @@ This project was created as our entry in the competition, under the category of 
 ---
 
 ## 🌐 Tech Stack
-- ✅ **Javascript** for both the Frontend & Backend
-- ✅ **Node.js** to host the website on an online server
+- ✅ **JavaScript & Node.js** - App Development
+- ✅ **Next.js + Express** - Frontend & Backend Frameworks
 - ✅ **PostgreSQL** for the database containing all user info
 - ✅ **Prisma ORM** to connect the database to the website
 - ✅ **JWT** for user authentication throughout the website
